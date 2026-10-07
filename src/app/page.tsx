@@ -1,18 +1,19 @@
 "use client";
+
 import AddTaskDialog from "@/components/tasks/AddTaskDialog";
+import TaskList from "@/components/tasks/TaskList";
+import { useTaskStore } from "@/store/taskStore";
 
 import {
   Bell,
   CalendarDays,
   CheckCircle2,
-  ChevronRight,
   Clock3,
   Flame,
   Home,
   ListTodo,
   Menu,
   MoreHorizontal,
-  Plus,
   Settings,
   Target,
   Timer,
@@ -20,44 +21,6 @@ import {
 } from "lucide-react";
 
 import { useState } from "react";
-
-const tasks = [
-  {
-    time: "10:00 AM",
-    title: "DSA Practice",
-    category: "Study",
-    color: "bg-red-500",
-    duration: "1h 30m",
-  },
-  {
-    time: "12:00 PM",
-    title: "Lunch Break",
-    category: "Personal",
-    color: "bg-yellow-500",
-    duration: "1h",
-  },
-  {
-    time: "02:00 PM",
-    title: "AI / ML Study",
-    category: "Learning",
-    color: "bg-blue-500",
-    duration: "2h",
-  },
-  {
-    time: "05:00 PM",
-    title: "Gym",
-    category: "Fitness",
-    color: "bg-green-500",
-    duration: "1h",
-  },
-  {
-    time: "08:00 PM",
-    title: "Project Development",
-    category: "Development",
-    color: "bg-purple-500",
-    duration: "2h",
-  },
-];
 
 const navigation = [
   { label: "Dashboard", icon: Home, active: true },
@@ -70,20 +33,17 @@ const navigation = [
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const tasks = useTaskStore((state) => state.tasks);
 
-const completedTasks = tasks.filter(
-  (task) => task.completed
-);
+  const completedTasks = tasks.filter((task) => task.completed);
 
-const remainingTasks = tasks.length - completedTasks.length;
+  const remainingTasks = tasks.length - completedTasks.length;
 
-const completionPercentage =
-  tasks.length === 0
-    ? 0
-    : Math.round(
-        (completedTasks.length / tasks.length) * 100
-      );
+  const completionPercentage =
+    tasks.length === 0
+      ? 0
+      : Math.round((completedTasks.length / tasks.length) * 100);
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
@@ -107,6 +67,7 @@ const completionPercentage =
                     <h1 className="text-lg font-semibold tracking-tight">
                       DayFlow
                     </h1>
+
                     <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
                       Personal OS
                     </p>
@@ -155,7 +116,9 @@ const completionPercentage =
                 <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <Flame size={16} className="text-orange-400" />
-                    <span className="text-sm font-medium">7 day streak</span>
+                    <span className="text-sm font-medium">
+                      7 day streak
+                    </span>
                   </div>
 
                   <p className="text-xs leading-relaxed text-zinc-500">
@@ -181,6 +144,7 @@ const completionPercentage =
 
               <div>
                 <p className="text-xs text-zinc-500">Wednesday</p>
+
                 <p className="text-sm font-medium text-zinc-300">
                   October 7, 2026
                 </p>
@@ -190,6 +154,7 @@ const completionPercentage =
             <div className="flex items-center gap-3">
               <button className="relative rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-zinc-400 transition hover:bg-white/5 hover:text-white">
                 <Bell size={18} />
+
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-500" />
               </button>
 
@@ -212,14 +177,17 @@ const completionPercentage =
               {/* Greeting */}
               <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
                 <div>
-                  <p className="mb-2 text-sm text-zinc-500">Good morning 👋</p>
+                  <p className="mb-2 text-sm text-zinc-500">
+                    Good morning 👋
+                  </p>
 
                   <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
                     Let's make today count.
                   </h2>
 
                   <p className="mt-2 text-sm text-zinc-500">
-                    You have 8 tasks planned for today.
+                    You have {tasks.length}{" "}
+                    {tasks.length === 1 ? "task" : "tasks"} planned for today.
                   </p>
                 </div>
 
@@ -231,15 +199,15 @@ const completionPercentage =
                 <StatCard
                   icon={<ListTodo size={19} />}
                   label="Today's Tasks"
-                  value="08"
-                  subtitle="3 remaining"
+                  value={String(tasks.length).padStart(2, "0")}
+                  subtitle={`${remainingTasks} remaining`}
                 />
 
                 <StatCard
                   icon={<CheckCircle2 size={19} />}
                   label="Completed"
-                  value="05"
-                  subtitle="62% complete"
+                  value={String(completedTasks.length).padStart(2, "0")}
+                  subtitle={`${completionPercentage}% complete`}
                 />
 
                 <StatCard
@@ -264,6 +232,7 @@ const completionPercentage =
                   <div className="flex items-center justify-between border-b border-white/10 p-5 md:p-6">
                     <div>
                       <h3 className="font-semibold">Today's Schedule</h3>
+
                       <p className="mt-1 text-xs text-zinc-500">
                         Your timeline for today
                       </p>
@@ -275,61 +244,19 @@ const completionPercentage =
                   </div>
 
                   <div className="p-5 md:p-6">
-                    <div className="space-y-1">
-                      {tasks.map((task, index) => (
-                        <div
-                          key={task.title}
-                          className="group grid grid-cols-[72px_1fr] gap-4"
-                        >
-                          <div className="pt-4 text-right text-xs text-zinc-500">
-                            {task.time}
-                          </div>
-
-                          <div className="relative pb-3">
-                            {index !== tasks.length - 1 && (
-                              <div className="absolute left-[7px] top-8 h-full w-px bg-white/10" />
-                            )}
-
-                            <div className="relative rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition hover:border-white/20 hover:bg-white/[0.04]">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex gap-3">
-                                  <div
-                                    className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${task.color}`}
-                                  />
-
-                                  <div>
-                                    <h4 className="text-sm font-medium">
-                                      {task.title}
-                                    </h4>
-
-                                    <div className="mt-2 flex items-center gap-2 text-xs text-zinc-500">
-                                      <span>{task.category}</span>
-                                      <span>•</span>
-                                      <span>{task.duration}</span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <button className="rounded-lg p-1.5 text-zinc-600 opacity-0 transition group-hover:opacity-100 hover:bg-white/5 hover:text-white">
-                                  <ChevronRight size={16} />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <TaskList />
                   </div>
                 </section>
 
-                {/* Right column */}
+                {/* Right Column */}
                 <div className="space-y-6">
-                  {/* Next alarm */}
+                  {/* Next Alarm */}
                   <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
                     <div className="border-b border-white/10 p-5">
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="font-semibold">Next Alarm</h3>
+
                           <p className="mt-1 text-xs text-zinc-500">
                             Your upcoming reminder
                           </p>
@@ -347,7 +274,9 @@ const completionPercentage =
                         </span>
                       </p>
 
-                      <p className="mt-2 text-sm font-medium">DSA Practice</p>
+                      <p className="mt-2 text-sm font-medium">
+                        DSA Practice
+                      </p>
 
                       <div className="mt-6 flex items-center gap-2">
                         <button className="flex-1 rounded-xl bg-white px-4 py-2.5 text-xs font-medium text-black hover:bg-zinc-200">
@@ -366,21 +295,29 @@ const completionPercentage =
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">Daily Progress</h3>
+
                         <p className="mt-1 text-xs text-zinc-500">
                           Keep going
                         </p>
                       </div>
 
-                      <span className="text-sm font-medium">62%</span>
+                      <span className="text-sm font-medium">
+                        {completionPercentage}%
+                      </span>
                     </div>
 
                     <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
-                      <div className="h-full w-[62%] rounded-full bg-white" />
+                      <div
+                        className="h-full rounded-full bg-white transition-all duration-500"
+                        style={{
+                          width: `${completionPercentage}%`,
+                        }}
+                      />
                     </div>
 
                     <div className="mt-4 flex justify-between text-xs text-zinc-500">
-                      <span>5 completed</span>
-                      <span>3 remaining</span>
+                      <span>{completedTasks.length} completed</span>
+                      <span>{remainingTasks} remaining</span>
                     </div>
                   </section>
                 </div>
