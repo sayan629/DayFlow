@@ -37,7 +37,7 @@ const navigation = [
   {
     label: "Alarms",
     icon: Bell,
-    href: "/",
+    href: "/alarms",
   },
   {
     label: "Focus",
