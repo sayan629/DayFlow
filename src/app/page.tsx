@@ -4,63 +4,23 @@ import AddTaskDialog from "@/components/tasks/AddTaskDialog";
 import AlarmEngine from "@/components/alarms/AlarmEngine";
 import AlarmRinging from "@/components/alarms/AlarmRinging";
 import NextTaskCard from "@/components/scheduler/NextTaskCard";
+import Sidebar from "@/components/layout/Sidebar";
 import TaskList from "@/components/tasks/TaskList";
 import { useTaskStore } from "@/store/taskStore";
+
 import {
   Bell,
-  CalendarDays,
   CheckCircle2,
-  Clock3,
   Flame,
-  Home,
   ListTodo,
   Menu,
   MoreHorizontal,
-  Settings,
-  Target,
   Timer,
-  TrendingUp,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+
 import { useEffect, useState } from "react";
 
-const navigation = [
-  {
-    label: "Dashboard",
-    icon: Home,
-    href: "/",
-  },
-  {
-  label: "Tasks",
-  icon: ListTodo,
-  href: "/tasks",
-},
-  {
-    label: "Calendar",
-    icon: CalendarDays,
-    href: "/calendar",
-  },
-  {
-    label: "Alarms",
-    icon: Bell,
-    href: "/",
-  },
-  {
-    label: "Focus",
-    icon: Target,
-    href: "/",
-  },
-  {
-    label: "Analytics",
-    icon: TrendingUp,
-    href: "/",
-  },
-];
-
 export default function HomePage() {
-  const pathname = usePathname();
-
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [today, setToday] = useState("");
 
@@ -70,7 +30,9 @@ export default function HomePage() {
 
   const allTasks = useTaskStore((state) => state.tasks);
 
-  const tasks = allTasks.filter((task) => task.date === today);
+  const tasks = allTasks.filter(
+    (task) => task.date === today
+  );
 
   const completedTasks = tasks.filter(
     (task) => task.completed
@@ -94,105 +56,7 @@ export default function HomePage() {
 
       <div className="flex min-h-screen">
         {/* Sidebar */}
-        <aside
-          className={`${
-            sidebarOpen ? "w-64" : "w-20"
-          } hidden shrink-0 border-r border-white/10 bg-[#0c0c0f] transition-all duration-300 lg:block`}
-        >
-          <div className="flex h-full flex-col">
-            {/* Logo */}
-            <div className="flex h-20 items-center border-b border-white/10 px-6">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-black">
-                  <Clock3 size={19} />
-                </div>
-
-                {sidebarOpen && (
-                  <div>
-                    <h1 className="text-lg font-semibold tracking-tight">
-                      DayFlow
-                    </h1>
-
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-                      Personal OS
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Navigation */}
-            <nav className="flex-1 space-y-1 p-4">
-              {navigation.map((item) => {
-                const Icon = item.icon;
-
-                const isActive =
-                  item.href === "/"
-                    ? pathname === "/"
-                    : pathname === item.href;
-
-                return (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${
-                      isActive
-                        ? "bg-white text-black"
-                        : "text-zinc-400 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    <Icon size={18} />
-
-                    {sidebarOpen && (
-                      <span className="font-medium">
-                        {item.label}
-                      </span>
-                    )}
-
-                    {sidebarOpen &&
-                      item.label === "Alarms" && (
-                        <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
-                      )}
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {/* Bottom */}
-            <div className="border-t border-white/10 p-4">
-              <button
-                type="button"
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
-              >
-                <Settings size={18} />
-
-                {sidebarOpen && (
-                  <span>Settings</span>
-                )}
-              </button>
-
-              {sidebarOpen && (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <Flame
-                      size={16}
-                      className="text-orange-400"
-                    />
-
-                    <span className="text-sm font-medium">
-                      7 day streak
-                    </span>
-                  </div>
-
-                  <p className="text-xs leading-relaxed text-zinc-500">
-                    Keep completing your tasks to
-                    maintain your streak.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
+        <Sidebar open={sidebarOpen} />
 
         {/* Main */}
         <section className="flex min-w-0 flex-1 flex-col">
