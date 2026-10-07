@@ -5,9 +5,7 @@ import AlarmEngine from "@/components/alarms/AlarmEngine";
 import AlarmRinging from "@/components/alarms/AlarmRinging";
 import NextTaskCard from "@/components/scheduler/NextTaskCard";
 import TaskList from "@/components/tasks/TaskList";
-
 import { useTaskStore } from "@/store/taskStore";
-
 import {
   Bell,
   CalendarDays,
@@ -23,16 +21,15 @@ import {
   Timer,
   TrendingUp,
 } from "lucide-react";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const navigation = [
   {
     label: "Dashboard",
     icon: Home,
     href: "/",
-    active: true,
   },
   {
     label: "Tasks",
@@ -62,6 +59,8 @@ const navigation = [
 ];
 
 export default function HomePage() {
+  const pathname = usePathname();
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [today, setToday] = useState("");
 
@@ -69,13 +68,9 @@ export default function HomePage() {
     setToday(new Date().toISOString().split("T")[0]);
   }, []);
 
-  const allTasks = useTaskStore(
-    (state) => state.tasks
-  );
+  const allTasks = useTaskStore((state) => state.tasks);
 
-  const tasks = allTasks.filter(
-    (task) => task.date === today
-  );
+  const tasks = allTasks.filter((task) => task.date === today);
 
   const completedTasks = tasks.filter(
     (task) => task.completed
@@ -88,9 +83,7 @@ export default function HomePage() {
     tasks.length === 0
       ? 0
       : Math.round(
-          (completedTasks.length /
-            tasks.length) *
-            100
+          (completedTasks.length / tasks.length) * 100
         );
 
   return (
@@ -133,11 +126,17 @@ export default function HomePage() {
               {navigation.map((item) => {
                 const Icon = item.icon;
 
+                const isActive =
+                  item.href === "/"
+                    ? pathname === "/"
+                    : pathname === item.href;
+
                 return (
-                  <button
+                  <Link
                     key={item.label}
+                    href={item.href}
                     className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${
-                      item.active
+                      isActive
                         ? "bg-white text-black"
                         : "text-zinc-400 hover:bg-white/5 hover:text-white"
                     }`}
@@ -154,14 +153,17 @@ export default function HomePage() {
                       item.label === "Alarms" && (
                         <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
                       )}
-                  </button>
+                  </Link>
                 );
               })}
             </nav>
 
             {/* Bottom */}
             <div className="border-t border-white/10 p-4">
-              <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white">
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+              >
                 <Settings size={18} />
 
                 {sidebarOpen && (
@@ -198,6 +200,7 @@ export default function HomePage() {
           <header className="flex h-20 items-center justify-between border-b border-white/10 px-5 md:px-8">
             <div className="flex items-center gap-3">
               <button
+                type="button"
                 onClick={() =>
                   setSidebarOpen(!sidebarOpen)
                 }
@@ -211,12 +214,9 @@ export default function HomePage() {
                   {today
                     ? new Date(
                         `${today}T00:00:00`
-                      ).toLocaleDateString(
-                        "en-US",
-                        {
-                          weekday: "long",
-                        }
-                      )
+                      ).toLocaleDateString("en-US", {
+                        weekday: "long",
+                      })
                     : ""}
                 </p>
 
@@ -224,21 +224,21 @@ export default function HomePage() {
                   {today
                     ? new Date(
                         `${today}T00:00:00`
-                      ).toLocaleDateString(
-                        "en-US",
-                        {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        }
-                      )
+                      ).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })
                     : ""}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="relative rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-zinc-400 transition hover:bg-white/5 hover:text-white">
+              <button
+                type="button"
+                className="relative rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-zinc-400 transition hover:bg-white/5 hover:text-white"
+              >
                 <Bell size={18} />
 
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-500" />
@@ -293,9 +293,10 @@ export default function HomePage() {
                 <StatCard
                   icon={<ListTodo size={19} />}
                   label="Today's Tasks"
-                  value={String(
-                    tasks.length
-                  ).padStart(2, "0")}
+                  value={String(tasks.length).padStart(
+                    2,
+                    "0"
+                  )}
                   subtitle={`${remainingTasks} remaining`}
                 />
 
@@ -341,7 +342,10 @@ export default function HomePage() {
                       </p>
                     </div>
 
-                    <button className="rounded-lg p-2 text-zinc-500 hover:bg-white/5 hover:text-white">
+                    <button
+                      type="button"
+                      className="rounded-lg p-2 text-zinc-500 hover:bg-white/5 hover:text-white"
+                    >
                       <MoreHorizontal size={19} />
                     </button>
                   </div>
@@ -387,11 +391,17 @@ export default function HomePage() {
                       </p>
 
                       <div className="mt-6 flex items-center gap-2">
-                        <button className="flex-1 rounded-xl bg-white px-4 py-2.5 text-xs font-medium text-black hover:bg-zinc-200">
+                        <button
+                          type="button"
+                          className="flex-1 rounded-xl bg-white px-4 py-2.5 text-xs font-medium text-black hover:bg-zinc-200"
+                        >
                           View Task
                         </button>
 
-                        <button className="rounded-xl border border-white/10 px-4 py-2.5 text-xs text-zinc-400 hover:bg-white/5 hover:text-white">
+                        <button
+                          type="button"
+                          className="rounded-xl border border-white/10 px-4 py-2.5 text-xs text-zinc-400 hover:bg-white/5 hover:text-white"
+                        >
                           Snooze
                         </button>
                       </div>
