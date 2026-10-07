@@ -6,17 +6,10 @@ import { useTaskStore } from "@/store/taskStore";
 import {
   CheckCircle2,
   ListTodo,
-  Search,
 } from "lucide-react";
-import { useState } from "react";
 
 export default function TasksPage() {
   const tasks = useTaskStore((state) => state.tasks);
-
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<
-    "all" | "active" | "completed"
-  >("all");
 
   const completedTasks = tasks.filter(
     (task) => task.completed
@@ -102,82 +95,20 @@ export default function TasksPage() {
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.02] p-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            {/* Search */}
-            <div className="relative w-full md:max-w-sm">
-              <Search
-                size={17}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600"
-              />
-
-              <input
-                value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
-                placeholder="Search tasks..."
-                className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-2.5 pl-10 pr-4 text-sm text-white outline-none placeholder:text-zinc-700 focus:border-white/20"
-              />
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-2">
-              {[
-                {
-                  label: "All",
-                  value: "all" as const,
-                },
-                {
-                  label: "Active",
-                  value: "active" as const,
-                },
-                {
-                  label: "Completed",
-                  value: "completed" as const,
-                },
-              ].map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() =>
-                    setFilter(item.value)
-                  }
-                  className={`rounded-xl px-4 py-2 text-xs font-medium transition ${
-                    filter === item.value
-                      ? "bg-white text-black"
-                      : "text-zinc-500 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Task List */}
-        <section className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
+        {/* Today's Tasks */}
+        <section className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
           <div className="border-b border-white/10 px-6 py-5">
             <h2 className="font-semibold">
-              {filter === "all"
-                ? "All Tasks"
-                : filter === "active"
-                  ? "Active Tasks"
-                  : "Completed Tasks"}
+              Today's Tasks
             </h2>
 
             <p className="mt-1 text-xs text-zinc-600">
-              {tasks.length} total tasks
+              Your scheduled tasks for today
             </p>
           </div>
 
-          <div className="p-5">
-            <TaskList
-              search={search}
-              filter={filter}
-            />
+          <div className="p-5 md:p-6">
+            <TaskList />
           </div>
         </section>
       </div>
