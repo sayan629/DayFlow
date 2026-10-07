@@ -2,6 +2,7 @@
 
 import AddTaskDialog from "@/components/tasks/AddTaskDialog";
 import AlarmEngine from "@/components/alarms/AlarmEngine";
+import AlarmRinging from "@/components/alarms/AlarmRinging";
 import NextTaskCard from "@/components/scheduler/NextTaskCard";
 import TaskList from "@/components/tasks/TaskList";
 
@@ -89,6 +90,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-[#09090b] text-white">
       {/* Alarm Engine */}
       <AlarmEngine />
+      <AlarmRinging />
 
       <div className="flex min-h-screen">
         {/* Sidebar */}
