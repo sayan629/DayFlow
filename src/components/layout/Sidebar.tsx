@@ -12,6 +12,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 interface SidebarProps {
@@ -51,10 +52,14 @@ const navigation = [
   },
 ];
 
-export default function Sidebar({
-  open,
-}: SidebarProps) {
+export default function Sidebar({ open }: SidebarProps) {
   const pathname = usePathname();
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <aside
@@ -89,10 +94,15 @@ export default function Sidebar({
           {navigation.map((item) => {
             const Icon = item.icon;
 
-            const isActive =
-              item.href === "/"
+            /*
+             * Keep the server and first client render identical.
+             * Active route is calculated only after hydration.
+             */
+            const isActive = mounted
+              ? item.href === "/"
                 ? pathname === "/"
-                : pathname === item.href;
+                : pathname === item.href
+              : false;
 
             return (
               <Link
@@ -145,8 +155,8 @@ export default function Sidebar({
               </div>
 
               <p className="text-xs leading-relaxed text-zinc-500">
-                Keep completing your tasks to maintain your
-                streak.
+                Keep completing your tasks to maintain
+                your streak.
               </p>
             </div>
           )}
