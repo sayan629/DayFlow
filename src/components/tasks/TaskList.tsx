@@ -33,3 +33,11 @@ export default function TaskList() {
       </div>
     );
   }
+    return (
+    <div className="space-y-1">
+      {sortedTasks.map((task) => (
+        <TaskItem key={task.id} task={task} />
+      ))}
+    </div>
+  );
+}
