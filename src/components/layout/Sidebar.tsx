@@ -69,3 +69,27 @@ export default function Sidebar({
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-black">
               <Clock3 size={19} />
             </div>
+
+          {open && (
+              <div>
+                <h1 className="text-lg font-semibold tracking-tight">
+                  DayFlow
+                </h1>
+
+                <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                  Personal OS
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 p-4">
+          {navigation.map((item) => {
+            const Icon = item.icon;
+
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname === item.href;
