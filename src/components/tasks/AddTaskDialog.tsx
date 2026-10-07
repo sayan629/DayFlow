@@ -146,6 +146,7 @@ export default function AddTaskDialog({
     <>
       {!editTask && (
         <button
+          type="button"
           onClick={() => {
             setDate(getToday());
             setOpen(true);
@@ -159,9 +160,9 @@ export default function AddTaskDialog({
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-[#111114] shadow-2xl">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#111114] shadow-2xl">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <h2 className="text-lg font-semibold">
                   {editTask
@@ -188,11 +189,11 @@ export default function AddTaskDialog({
             {/* Form */}
             <form
               onSubmit={handleSubmit}
-              className="space-y-5 p-6"
+              className="space-y-4 p-5"
             >
               {/* Title */}
               <div>
-                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                   Task title
                 </label>
 
@@ -209,7 +210,7 @@ export default function AddTaskDialog({
 
               {/* Description */}
               <div>
-                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                   Description
                 </label>
 
@@ -219,14 +220,14 @@ export default function AddTaskDialog({
                     setDescription(e.target.value)
                   }
                   placeholder="Add some details..."
-                  rows={3}
+                  rows={2}
                   className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600"
                 />
               </div>
 
               {/* Date */}
               <div>
-                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                   Date
                 </label>
 
@@ -243,7 +244,7 @@ export default function AddTaskDialog({
               {/* Time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                     Start time
                   </label>
 
@@ -258,7 +259,7 @@ export default function AddTaskDialog({
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                     End time
                   </label>
 
@@ -277,7 +278,7 @@ export default function AddTaskDialog({
               <div className="grid grid-cols-2 gap-3">
                 {/* Priority */}
                 <div>
-                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                     Priority
                   </label>
 
@@ -307,7 +308,7 @@ export default function AddTaskDialog({
 
                 {/* Category */}
                 <div>
-                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                     Category
                   </label>
 
@@ -346,7 +347,7 @@ export default function AddTaskDialog({
 
               {/* Reminder */}
               <div>
-                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                   Reminder
                 </label>
 
@@ -390,7 +391,7 @@ export default function AddTaskDialog({
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-1">
                 <button
                   type="button"
                   onClick={closeDialog}
