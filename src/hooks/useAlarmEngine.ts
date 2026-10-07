@@ -10,6 +10,7 @@ export function useAlarmEngine() {
 
   const notifiedTasks = useRef<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const snoozeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Create alarm audio
   useEffect(() => {
@@ -23,22 +24,35 @@ export function useAlarmEngine() {
     return () => {
       audio.pause();
       audio.currentTime = 0;
+
+      if (snoozeTimeoutRef.current) {
+        clearTimeout(snoozeTimeoutRef.current);
+      }
+
       audioRef.current = null;
     };
   }, []);
 
-  // Listen for stop alarm
+  // Stop alarm
   useEffect(() => {
     const handleStopAlarm = () => {
       const audio = audioRef.current;
 
-      if (!audio) return;
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
 
-      audio.pause();
-      audio.currentTime = 0;
+      if (snoozeTimeoutRef.current) {
+        clearTimeout(snoozeTimeoutRef.current);
+        snoozeTimeoutRef.current = null;
+      }
     };
 
-    window.addEventListener("dayflow-stop-alarm", handleStopAlarm);
+    window.addEventListener(
+      "dayflow-stop-alarm",
+      handleStopAlarm
+    );
 
     return () => {
       window.removeEventListener(
@@ -48,11 +62,80 @@ export function useAlarmEngine() {
     };
   }, []);
 
+  // Snooze alarm
+  useEffect(() => {
+    const handleSnoozeAlarm = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        minutes: number;
+      }>;
+
+      const minutes = customEvent.detail.minutes;
+
+      // Stop current alarm sound
+      const audio = audioRef.current;
+
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+
+      // Clear previous snooze if one exists
+      if (snoozeTimeoutRef.current) {
+        clearTimeout(snoozeTimeoutRef.current);
+      }
+
+      const alarmState = useAlarmStore.getState();
+
+      const taskId = alarmState.taskId;
+      const taskTitle = alarmState.taskTitle;
+
+      if (!taskId || !taskTitle) {
+        return;
+      }
+
+      // Wait for snooze duration
+      snoozeTimeoutRef.current = setTimeout(() => {
+        const currentAudio = audioRef.current;
+
+        if (currentAudio) {
+          currentAudio.currentTime = 0;
+
+          currentAudio.play().catch((error) => {
+            console.warn(
+              "Could not play snoozed alarm:",
+              error
+            );
+          });
+        }
+
+        useAlarmStore
+          .getState()
+          .startAlarm(taskId, taskTitle);
+
+        snoozeTimeoutRef.current = null;
+      }, minutes * 60 * 1000);
+    };
+
+    window.addEventListener(
+      "dayflow-snooze-alarm",
+      handleSnoozeAlarm
+    );
+
+    return () => {
+      window.removeEventListener(
+        "dayflow-snooze-alarm",
+        handleSnoozeAlarm
+      );
+    };
+  }, []);
+
+  // Check scheduled alarms
   useEffect(() => {
     const checkAlarms = () => {
       const now = new Date();
 
       const today = now.toISOString().split("T")[0];
+
       const currentMinutes =
         now.getHours() * 60 + now.getMinutes();
 
@@ -71,7 +154,9 @@ export function useAlarmEngine() {
         const [hour, minute] =
           task.startTime.split(":").map(Number);
 
-        const taskMinutes = hour * 60 + minute;
+        const taskMinutes =
+          hour * 60 + minute;
+
         const reminderMinutes =
           taskMinutes - task.reminder;
 
@@ -106,7 +191,9 @@ export function useAlarmEngine() {
       1000
     );
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+    };
   }, [tasks, startAlarm]);
 
   function playAlarm() {
