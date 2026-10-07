@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 
 import { useTaskStore } from "@/store/taskStore";
@@ -13,19 +13,26 @@ export default function AddTaskDialog() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [date, setDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [category, setCategory] =
     useState<TaskCategory>("development");
 
+  // Set today's date only in the browser after mount.
+  useEffect(() => {
+    setDate(new Date().toISOString().split("T")[0]);
+  }, []);
+
+  const getToday = () => {
+    return new Date().toISOString().split("T")[0];
+  };
+
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setDate(new Date().toISOString().split("T")[0]);
+    setDate(getToday());
     setStartTime("");
     setEndTime("");
     setPriority("medium");
@@ -59,7 +66,10 @@ export default function AddTaskDialog() {
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setDate(getToday());
+          setOpen(true);
+        }}
         className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-200"
       >
         <Plus size={17} />
@@ -82,6 +92,7 @@ export default function AddTaskDialog() {
               </div>
 
               <button
+                type="button"
                 onClick={() => {
                   resetForm();
                   setOpen(false);
@@ -213,9 +224,11 @@ export default function AddTaskDialog() {
                     className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
                   >
                     <option value="study">Study</option>
+
                     <option value="development">
                       Development
                     </option>
+
                     <option value="personal">Personal</option>
                     <option value="fitness">Fitness</option>
                     <option value="other">Other</option>
