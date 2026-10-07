@@ -14,3 +14,22 @@ export default function TaskList() {
 
     return a.startTime.localeCompare(b.startTime);
   });
+
+  if (sortedTasks.length === 0) {
+    return (
+      <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+          <ListTodo size={20} className="text-zinc-500" />
+        </div>
+
+        <h3 className="mt-4 text-sm font-medium">
+          No tasks yet
+        </h3>
+
+        <p className="mt-1 max-w-xs text-xs leading-relaxed text-zinc-600">
+          Your schedule is empty. Add your first task to get
+          started.
+        </p>
+      </div>
+    );
+  }
