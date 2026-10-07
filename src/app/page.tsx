@@ -2,6 +2,7 @@
 
 import AddTaskDialog from "@/components/tasks/AddTaskDialog";
 import TaskList from "@/components/tasks/TaskList";
+import NextTaskCard from "@/components/scheduler/NextTaskCard";
 import { useTaskStore } from "@/store/taskStore";
 import { useEffect, useState } from "react";
 
@@ -256,6 +257,9 @@ const completionPercentage =
                   subtitle="Best: 14 days"
                 />
               </div>
+
+              {/* Next Up */}
+              <NextTaskCard />
 
               {/* Main Grid */}
               <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
