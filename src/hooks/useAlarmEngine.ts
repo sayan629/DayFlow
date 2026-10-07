@@ -1,23 +1,50 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useTaskStore } from "@/store/taskStore";
 import { useAlarmStore } from "@/store/alarmStore";
+import { useTaskStore } from "@/store/taskStore";
 
 export function useAlarmEngine() {
   const tasks = useTaskStore((state) => state.tasks);
-  const notifiedTasks = useRef<Set<string>>(new Set());
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const startAlarm = useAlarmStore((state) => state.startAlarm);
 
+  const notifiedTasks = useRef<Set<string>>(new Set());
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Create alarm audio
   useEffect(() => {
-    audioRef.current = new Audio("/sounds/alarm.mp3");
-    audioRef.current.loop = true;
-    audioRef.current.volume = 0.8;
+    const audio = new Audio("/sounds/alarm.mp3");
+
+    audio.loop = true;
+    audio.volume = 0.8;
+
+    audioRef.current = audio;
 
     return () => {
-      audioRef.current?.pause();
+      audio.pause();
+      audio.currentTime = 0;
       audioRef.current = null;
+    };
+  }, []);
+
+  // Listen for stop alarm
+  useEffect(() => {
+    const handleStopAlarm = () => {
+      const audio = audioRef.current;
+
+      if (!audio) return;
+
+      audio.pause();
+      audio.currentTime = 0;
+    };
+
+    window.addEventListener("dayflow-stop-alarm", handleStopAlarm);
+
+    return () => {
+      window.removeEventListener(
+        "dayflow-stop-alarm",
+        handleStopAlarm
+      );
     };
   }, []);
 
@@ -26,18 +53,27 @@ export function useAlarmEngine() {
       const now = new Date();
 
       const today = now.toISOString().split("T")[0];
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const currentMinutes =
+        now.getHours() * 60 + now.getMinutes();
 
       tasks.forEach((task) => {
         if (task.completed) return;
         if (task.date !== today) return;
         if (!task.startTime) return;
-        if (task.reminder === undefined || task.reminder === null) return;
 
-        const [hour, minute] = task.startTime.split(":").map(Number);
+        if (
+          task.reminder === undefined ||
+          task.reminder === null
+        ) {
+          return;
+        }
+
+        const [hour, minute] =
+          task.startTime.split(":").map(Number);
 
         const taskMinutes = hour * 60 + minute;
-        const reminderMinutes = taskMinutes - task.reminder;
+        const reminderMinutes =
+          taskMinutes - task.reminder;
 
         const notificationKey =
           `${task.id}-${task.date}-${task.startTime}-${task.reminder}`;
@@ -48,23 +84,30 @@ export function useAlarmEngine() {
         ) {
           notifiedTasks.current.add(notificationKey);
 
-          // 🔊 Play alarm music
+          // 🔊 Start music
           playAlarm();
 
+          // 🔔 Start alarm state
           startAlarm(task.id, task.title);
 
-          // 🔔 Browser notification
-          sendNotification(task.title, task.reminder);
+          // 🖥️ Desktop notification
+          sendNotification(
+            task.title,
+            task.reminder
+          );
         }
       });
     };
 
     checkAlarms();
 
-    const interval = setInterval(checkAlarms, 1000);
+    const interval = setInterval(
+      checkAlarms,
+      1000
+    );
 
     return () => clearInterval(interval);
-  }, [tasks]);
+  }, [tasks, startAlarm]);
 
   function playAlarm() {
     const audio = audioRef.current;
@@ -74,7 +117,10 @@ export function useAlarmEngine() {
     audio.currentTime = 0;
 
     audio.play().catch((error) => {
-      console.warn("Could not play alarm sound:", error);
+      console.warn(
+        "Could not play alarm sound:",
+        error
+      );
     });
   }
 }
@@ -94,7 +140,9 @@ function sendNotification(
     reminderMinutes === 0
       ? `${title} is starting now.`
       : `${title} starts in ${reminderMinutes} ${
-          reminderMinutes === 1 ? "minute" : "minutes"
+          reminderMinutes === 1
+            ? "minute"
+            : "minutes"
         }.`;
 
   if (Notification.permission === "granted") {
@@ -107,13 +155,15 @@ function sendNotification(
   }
 
   if (Notification.permission !== "denied") {
-    Notification.requestPermission().then((permission) => {
-      if (permission === "granted") {
-        new Notification("DayFlow 🔔", {
-          body: message,
-          icon: "/favicon.ico",
-        });
+    Notification.requestPermission().then(
+      (permission) => {
+        if (permission === "granted") {
+          new Notification("DayFlow 🔔", {
+            body: message,
+            icon: "/favicon.ico",
+          });
+        }
       }
-    });
+    );
   }
 }

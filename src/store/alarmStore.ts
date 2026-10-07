@@ -5,26 +5,38 @@ interface AlarmStore {
   taskId: string | null;
   taskTitle: string | null;
 
-  startAlarm: (taskId: string, taskTitle: string) => void;
+  startAlarm: (
+    taskId: string,
+    taskTitle: string
+  ) => void;
+
   stopAlarm: () => void;
 }
 
-export const useAlarmStore = create<AlarmStore>((set) => ({
-  isRinging: false,
-  taskId: null,
-  taskTitle: null,
+export const useAlarmStore =
+  create<AlarmStore>((set) => ({
+    isRinging: false,
+    taskId: null,
+    taskTitle: null,
 
-  startAlarm: (taskId, taskTitle) =>
-    set({
-      isRinging: true,
-      taskId,
-      taskTitle,
-    }),
+    startAlarm: (taskId, taskTitle) =>
+      set({
+        isRinging: true,
+        taskId,
+        taskTitle,
+      }),
 
-  stopAlarm: () =>
-    set({
-      isRinging: false,
-      taskId: null,
-      taskTitle: null,
-    }),
-}));
+    stopAlarm: () => {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new Event("dayflow-stop-alarm")
+        );
+      }
+
+      set({
+        isRinging: false,
+        taskId: null,
+        taskTitle: null,
+      });
+    },
+  }));
