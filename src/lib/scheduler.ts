@@ -116,7 +116,8 @@ export function getNextTask(
         .split(":")
         .map(Number);
 
-      const taskMinutes = hour * 60 + minute;
+      const taskMinutes =
+        hour * 60 + minute;
 
       return taskMinutes > currentMinutes;
     })

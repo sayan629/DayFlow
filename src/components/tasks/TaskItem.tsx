@@ -1,10 +1,17 @@
 "use client";
 
-import { Check, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  Check,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 
+import { getTaskStatus } from "@/lib/scheduler";
 import { useTaskStore } from "@/store/taskStore";
 import { Task } from "@/types/task";
+
 import AddTaskDialog from "./AddTaskDialog";
 
 interface TaskItemProps {
@@ -18,16 +25,28 @@ const priorityStyles = {
 };
 
 export default function TaskItem({ task }: TaskItemProps) {
-  const toggleTask = useTaskStore((state) => state.toggleTask);
-  const deleteTask = useTaskStore((state) => state.deleteTask);
+  const status = getTaskStatus(task);
+
+  const toggleTask = useTaskStore(
+    (state) => state.toggleTask
+  );
+
+  const deleteTask = useTaskStore(
+    (state) => state.deleteTask
+  );
 
   const [editOpen, setEditOpen] = useState(false);
 
   return (
     <>
+      {/* Task Row */}
       <div
         className={`group relative grid grid-cols-[72px_1fr] gap-4 transition ${
-          task.completed ? "opacity-50" : ""
+          task.completed
+            ? "opacity-50"
+            : status === "current"
+              ? "scale-[1.01]"
+              : ""
         }`}
       >
         {/* Time */}
@@ -35,25 +54,47 @@ export default function TaskItem({ task }: TaskItemProps) {
           {task.startTime || "--:--"}
         </div>
 
-        {/* Task */}
+        {/* Task Content */}
         <div className="relative pb-3">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 transition hover:border-white/20 hover:bg-white/[0.04]">
+          <div
+            className={`rounded-2xl border p-4 transition ${
+              status === "current"
+                ? "border-white/30 bg-white/[0.07] shadow-lg shadow-white/5"
+                : "border-white/10 bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.04]"
+            }`}
+          >
             <div className="flex items-start justify-between gap-4">
+              {/* Left Content */}
               <div className="flex min-w-0 gap-3">
-                {/* Complete */}
+                {/* Complete Button */}
                 <button
+                  type="button"
                   onClick={() => toggleTask(task.id)}
                   className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
                     task.completed
                       ? "border-white bg-white text-black"
                       : "border-white/20 hover:border-white/50"
                   }`}
+                  title={
+                    task.completed
+                      ? "Mark incomplete"
+                      : "Mark complete"
+                  }
                 >
                   {task.completed && <Check size={13} />}
                 </button>
 
+                {/* Task Information */}
                 <div className="min-w-0">
-                  {/* Title */}
+                  {/* Current Task Indicator */}
+                  {status === "current" && (
+                    <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                      Now
+                    </div>
+                  )}
+
+                  {/* Task Title */}
                   <h4
                     className={`text-sm font-medium ${
                       task.completed
@@ -73,19 +114,27 @@ export default function TaskItem({ task }: TaskItemProps) {
 
                   {/* Metadata */}
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                    {/* Category */}
                     <span className="rounded-md bg-white/5 px-2 py-1 text-zinc-500">
                       {task.category}
                     </span>
 
-                    <span className="text-zinc-700">•</span>
-
-                    <span className="text-zinc-500">
-                      {task.startTime || "--:--"}
-                      {task.endTime && ` – ${task.endTime}`}
+                    <span className="text-zinc-700">
+                      •
                     </span>
 
-                    <span className="text-zinc-700">•</span>
+                    {/* Time */}
+                    <span className="text-zinc-500">
+                      {task.startTime || "--:--"}
+                      {task.endTime &&
+                        ` – ${task.endTime}`}
+                    </span>
 
+                    <span className="text-zinc-700">
+                      •
+                    </span>
+
+                    {/* Priority */}
                     <span className="flex items-center gap-1.5 text-zinc-500">
                       <span
                         className={`h-1.5 w-1.5 rounded-full ${
@@ -95,6 +144,20 @@ export default function TaskItem({ task }: TaskItemProps) {
 
                       {task.priority}
                     </span>
+
+                    {/* Missed */}
+                    {status === "missed" &&
+                      !task.completed && (
+                        <>
+                          <span className="text-zinc-700">
+                            •
+                          </span>
+
+                          <span className="font-medium text-red-400">
+                            missed
+                          </span>
+                        </>
+                      )}
                   </div>
                 </div>
               </div>
@@ -103,6 +166,7 @@ export default function TaskItem({ task }: TaskItemProps) {
               <div className="flex items-center gap-1">
                 {/* Edit */}
                 <button
+                  type="button"
                   onClick={() => setEditOpen(true)}
                   className="rounded-lg p-2 text-zinc-700 opacity-0 transition hover:bg-white/5 hover:text-white group-hover:opacity-100"
                   title="Edit task"
@@ -112,6 +176,7 @@ export default function TaskItem({ task }: TaskItemProps) {
 
                 {/* Delete */}
                 <button
+                  type="button"
                   onClick={() => deleteTask(task.id)}
                   className="rounded-lg p-2 text-zinc-700 opacity-0 transition hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
                   title="Delete task"
@@ -121,6 +186,7 @@ export default function TaskItem({ task }: TaskItemProps) {
 
                 {/* More */}
                 <button
+                  type="button"
                   className="rounded-lg p-2 text-zinc-700 opacity-0 transition hover:bg-white/5 hover:text-white group-hover:opacity-100"
                   title="More"
                 >
@@ -132,7 +198,7 @@ export default function TaskItem({ task }: TaskItemProps) {
         </div>
       </div>
 
-      {/* Edit dialog */}
+      {/* Edit Dialog */}
       {editOpen && (
         <AddTaskDialog
           editTask={task}
