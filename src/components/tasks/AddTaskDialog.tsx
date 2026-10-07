@@ -53,16 +53,16 @@ export default function AddTaskDialog({
     return new Date().toISOString().split("T")[0];
   };
 
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setDate(getToday());
-    setStartTime("");
-    setEndTime("");
-    setPriority("medium");
-    setCategory("development");
-  };
-
+ const resetForm = () => {
+  setTitle("");
+  setDescription("");
+  setDate(getToday());
+  setStartTime("");
+  setEndTime("");
+  setPriority("medium");
+  setCategory("development");
+  setReminder(10);
+};
   const closeDialog = () => {
     if (editTask) {
       onClose?.();
@@ -83,14 +83,15 @@ export default function AddTaskDialog({
     // EDIT EXISTING TASK
     if (editTask) {
       updateTask(editTask.id, {
-        title: title.trim(),
-        description: description.trim(),
-        date,
-        startTime,
-        endTime,
-        priority,
-        category,
-      });
+  title: title.trim(),
+  description: description.trim(),
+  date,
+  startTime,
+  endTime,
+  priority,
+  category,
+  reminder,
+});
 
       onClose?.();
       setOpen(false);
@@ -100,18 +101,18 @@ export default function AddTaskDialog({
 
     // CREATE NEW TASK
     addTask({
-      id: crypto.randomUUID(),
-      title: title.trim(),
-      description: description.trim(),
-      date,
-      startTime,
-      endTime,
-      priority,
-      category,
-      completed: false,
-      createdAt: new Date().toISOString(),
-    });
-
+  id: crypto.randomUUID(),
+  title: title.trim(),
+  description: description.trim(),
+  date,
+  startTime,
+  endTime,
+  priority,
+  category,
+  reminder,
+  completed: false,
+  createdAt: new Date().toISOString(),
+});
     resetForm();
     setOpen(false);
   };
