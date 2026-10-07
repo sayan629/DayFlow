@@ -1,10 +1,11 @@
 "use client";
 
 import AddTaskDialog from "@/components/tasks/AddTaskDialog";
-import TaskList from "@/components/tasks/TaskList";
+import AlarmEngine from "@/components/alarms/AlarmEngine";
 import NextTaskCard from "@/components/scheduler/NextTaskCard";
+import TaskList from "@/components/tasks/TaskList";
+
 import { useTaskStore } from "@/store/taskStore";
-import { useEffect, useState } from "react";
 
 import {
   Bell,
@@ -22,46 +23,73 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-
+import { useEffect, useState } from "react";
 
 const navigation = [
-  { label: "Dashboard", icon: Home, active: true },
-  { label: "Tasks", icon: ListTodo },
-  { label: "Calendar", icon: CalendarDays },
-  { label: "Alarms", icon: Bell },
-  { label: "Focus", icon: Target },
-  { label: "Analytics", icon: TrendingUp },
+  {
+    label: "Dashboard",
+    icon: Home,
+    active: true,
+  },
+  {
+    label: "Tasks",
+    icon: ListTodo,
+  },
+  {
+    label: "Calendar",
+    icon: CalendarDays,
+  },
+  {
+    label: "Alarms",
+    icon: Bell,
+  },
+  {
+    label: "Focus",
+    icon: Target,
+  },
+  {
+    label: "Analytics",
+    icon: TrendingUp,
+  },
 ];
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [today, setToday] = useState("");
+
   useEffect(() => {
-  setToday(new Date().toISOString().split("T")[0]);
-}, []);
+    setToday(new Date().toISOString().split("T")[0]);
+  }, []);
 
-const allTasks = useTaskStore((state) => state.tasks);
+  const allTasks = useTaskStore(
+    (state) => state.tasks
+  );
 
-const tasks = allTasks.filter(
-  (task) => task.date === today
-);
+  const tasks = allTasks.filter(
+    (task) => task.date === today
+  );
 
-const completedTasks = tasks.filter(
-  (task) => task.completed
-);
+  const completedTasks = tasks.filter(
+    (task) => task.completed
+  );
 
-const remainingTasks =
-  tasks.length - completedTasks.length;
+  const remainingTasks =
+    tasks.length - completedTasks.length;
 
-const completionPercentage =
-  tasks.length === 0
-    ? 0
-    : Math.round(
-        (completedTasks.length / tasks.length) * 100
-      );;
+  const completionPercentage =
+    tasks.length === 0
+      ? 0
+      : Math.round(
+          (completedTasks.length /
+            tasks.length) *
+            100
+        );
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
+      {/* Alarm Engine */}
+      <AlarmEngine />
+
       <div className="flex min-h-screen">
         {/* Sidebar */}
         <aside
@@ -108,12 +136,15 @@ const completionPercentage =
                     <Icon size={18} />
 
                     {sidebarOpen && (
-                      <span className="font-medium">{item.label}</span>
+                      <span className="font-medium">
+                        {item.label}
+                      </span>
                     )}
 
-                    {sidebarOpen && item.label === "Alarms" && (
-                      <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
-                    )}
+                    {sidebarOpen &&
+                      item.label === "Alarms" && (
+                        <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
+                      )}
                   </button>
                 );
               })}
@@ -124,20 +155,27 @@ const completionPercentage =
               <button className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white">
                 <Settings size={18} />
 
-                {sidebarOpen && <span>Settings</span>}
+                {sidebarOpen && (
+                  <span>Settings</span>
+                )}
               </button>
 
               {sidebarOpen && (
                 <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <Flame size={16} className="text-orange-400" />
+                    <Flame
+                      size={16}
+                      className="text-orange-400"
+                    />
+
                     <span className="text-sm font-medium">
                       7 day streak
                     </span>
                   </div>
 
                   <p className="text-xs leading-relaxed text-zinc-500">
-                    Keep completing your tasks to maintain your streak.
+                    Keep completing your tasks to
+                    maintain your streak.
                   </p>
                 </div>
               )}
@@ -151,7 +189,9 @@ const completionPercentage =
           <header className="flex h-20 items-center justify-between border-b border-white/10 px-5 md:px-8">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
+                onClick={() =>
+                  setSidebarOpen(!sidebarOpen)
+                }
                 className="rounded-xl p-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
               >
                 <Menu size={20} />
@@ -159,19 +199,23 @@ const completionPercentage =
 
               <div>
                 <p className="text-xs text-zinc-500">
-  {today
-    ? new Date(`${today}T00:00:00`).toLocaleDateString(
-        "en-US",
-        {
-          weekday: "long",
-        }
-      )
-    : ""}
-</p>
+                  {today
+                    ? new Date(
+                        `${today}T00:00:00`
+                      ).toLocaleDateString(
+                        "en-US",
+                        {
+                          weekday: "long",
+                        }
+                      )
+                    : ""}
+                </p>
 
                 <p className="text-sm font-medium text-zinc-300">
                   {today
-                    ? new Date(`${today}T00:00:00`).toLocaleDateString(
+                    ? new Date(
+                        `${today}T00:00:00`
+                      ).toLocaleDateString(
                         "en-US",
                         {
                           month: "long",
@@ -197,8 +241,13 @@ const completionPercentage =
                 </div>
 
                 <div className="hidden md:block">
-                  <p className="text-sm font-medium">Sayan</p>
-                  <p className="text-xs text-zinc-500">My workspace</p>
+                  <p className="text-sm font-medium">
+                    Sayan
+                  </p>
+
+                  <p className="text-xs text-zinc-500">
+                    My workspace
+                  </p>
                 </div>
               </div>
             </div>
@@ -220,7 +269,10 @@ const completionPercentage =
 
                   <p className="mt-2 text-sm text-zinc-500">
                     You have {tasks.length}{" "}
-                    {tasks.length === 1 ? "task" : "tasks"} planned for today.
+                    {tasks.length === 1
+                      ? "task"
+                      : "tasks"}{" "}
+                    planned for today.
                   </p>
                 </div>
 
@@ -232,14 +284,18 @@ const completionPercentage =
                 <StatCard
                   icon={<ListTodo size={19} />}
                   label="Today's Tasks"
-                  value={String(tasks.length).padStart(2, "0")}
+                  value={String(
+                    tasks.length
+                  ).padStart(2, "0")}
                   subtitle={`${remainingTasks} remaining`}
                 />
 
                 <StatCard
                   icon={<CheckCircle2 size={19} />}
                   label="Completed"
-                  value={String(completedTasks.length).padStart(2, "0")}
+                  value={String(
+                    completedTasks.length
+                  ).padStart(2, "0")}
                   subtitle={`${completionPercentage}% complete`}
                 />
 
@@ -267,7 +323,9 @@ const completionPercentage =
                 <section className="rounded-3xl border border-white/10 bg-white/[0.02]">
                   <div className="flex items-center justify-between border-b border-white/10 p-5 md:p-6">
                     <div>
-                      <h3 className="font-semibold">Today's Schedule</h3>
+                      <h3 className="font-semibold">
+                        Today's Schedule
+                      </h3>
 
                       <p className="mt-1 text-xs text-zinc-500">
                         Your timeline for today
@@ -291,14 +349,19 @@ const completionPercentage =
                     <div className="border-b border-white/10 p-5">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-semibold">Next Alarm</h3>
+                          <h3 className="font-semibold">
+                            Next Alarm
+                          </h3>
 
                           <p className="mt-1 text-xs text-zinc-500">
                             Your upcoming reminder
                           </p>
                         </div>
 
-                        <Bell size={18} className="text-zinc-500" />
+                        <Bell
+                          size={18}
+                          className="text-zinc-500"
+                        />
                       </div>
                     </div>
 
@@ -330,7 +393,9 @@ const completionPercentage =
                   <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold">Daily Progress</h3>
+                        <h3 className="font-semibold">
+                          Daily Progress
+                        </h3>
 
                         <p className="mt-1 text-xs text-zinc-500">
                           Keep going
@@ -352,8 +417,14 @@ const completionPercentage =
                     </div>
 
                     <div className="mt-4 flex justify-between text-xs text-zinc-500">
-                      <span>{completedTasks.length} completed</span>
-                      <span>{remainingTasks} remaining</span>
+                      <span>
+                        {completedTasks.length}{" "}
+                        completed
+                      </span>
+
+                      <span>
+                        {remainingTasks} remaining
+                      </span>
                     </div>
                   </section>
                 </div>
@@ -384,16 +455,25 @@ function StatCard({
           {icon}
         </div>
 
-        <MoreHorizontal size={17} className="text-zinc-600" />
+        <MoreHorizontal
+          size={17}
+          className="text-zinc-600"
+        />
       </div>
 
-      <p className="mt-5 text-xs text-zinc-500">{label}</p>
+      <p className="mt-5 text-xs text-zinc-500">
+        {label}
+      </p>
 
       <div className="mt-1 flex items-end justify-between">
-        <p className="text-2xl font-semibold tracking-tight">{value}</p>
+        <p className="text-2xl font-semibold tracking-tight">
+          {value}
+        </p>
       </div>
 
-      <p className="mt-1 text-xs text-zinc-600">{subtitle}</p>
+      <p className="mt-1 text-xs text-zinc-600">
+        {subtitle}
+      </p>
     </div>
   );
 }
