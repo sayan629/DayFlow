@@ -88,11 +88,17 @@ export default function TaskItem({ task }: TaskItemProps) {
                 <div className="min-w-0">
                   {/* Current Task Indicator */}
                   {status === "current" && (
-                    <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-                      Now
-                    </div>
-                  )}
+  <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white">
+    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+    Now
+  </div>
+)}
+
+{status === "upcoming" && task.startTime && (
+  <div className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+    Upcoming
+  </div>
+)}
 
                   {/* Task Title */}
                   <h4
