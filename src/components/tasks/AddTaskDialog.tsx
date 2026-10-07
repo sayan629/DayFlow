@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 
 import { useTaskStore } from "@/store/taskStore";
-import { Task, TaskCategory, TaskPriority } from "@/types/task";
+import {
+  Task,
+  TaskCategory,
+  TaskPriority,
+} from "@/types/task";
 
 interface AddTaskDialogProps {
   editTask?: Task;
@@ -15,54 +19,74 @@ export default function AddTaskDialog({
   editTask,
   onClose,
 }: AddTaskDialogProps) {
-  const addTask = useTaskStore((state) => state.addTask);
-  const updateTask = useTaskStore((state) => state.updateTask);
+  const addTask = useTaskStore(
+    (state) => state.addTask
+  );
+
+  const updateTask = useTaskStore(
+    (state) => state.updateTask
+  );
 
   const [open, setOpen] = useState(!!editTask);
 
-  const [title, setTitle] = useState(editTask?.title ?? "");
+  const [title, setTitle] = useState(
+    editTask?.title ?? ""
+  );
+
   const [description, setDescription] = useState(
     editTask?.description ?? ""
   );
-  const [date, setDate] = useState(editTask?.date ?? "");
+
+  const [date, setDate] = useState(
+    editTask?.date ?? ""
+  );
+
   const [startTime, setStartTime] = useState(
     editTask?.startTime ?? ""
   );
+
   const [endTime, setEndTime] = useState(
     editTask?.endTime ?? ""
   );
-  const [priority, setPriority] = useState<TaskPriority>(
-    editTask?.priority ?? "medium"
-  );
-  const [category, setCategory] = useState<TaskCategory>(
-    editTask?.category ?? "development"
-  );
 
-  const [reminder, setReminder] = useState<number>(
-  editTask?.reminder ?? 10
-);
+  const [priority, setPriority] =
+    useState<TaskPriority>(
+      editTask?.priority ?? "medium"
+    );
 
-  // Set today's date only in the browser after mount.
+  const [category, setCategory] =
+    useState<TaskCategory>(
+      editTask?.category ?? "development"
+    );
+
+  const [reminder, setReminder] =
+    useState<number>(
+      editTask?.reminder ?? 10
+    );
+
   useEffect(() => {
     if (!editTask) {
-      setDate(new Date().toISOString().split("T")[0]);
+      setDate(getToday());
     }
   }, [editTask]);
 
   const getToday = () => {
-    return new Date().toISOString().split("T")[0];
+    return new Date()
+      .toISOString()
+      .split("T")[0];
   };
 
- const resetForm = () => {
-  setTitle("");
-  setDescription("");
-  setDate(getToday());
-  setStartTime("");
-  setEndTime("");
-  setPriority("medium");
-  setCategory("development");
-  setReminder(10);
-};
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setDate(getToday());
+    setStartTime("");
+    setEndTime("");
+    setPriority("medium");
+    setCategory("development");
+    setReminder(10);
+  };
+
   const closeDialog = () => {
     if (editTask) {
       onClose?.();
@@ -73,25 +97,26 @@ export default function AddTaskDialog({
     setOpen(false);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = (
+    event: React.FormEvent
+  ) => {
     event.preventDefault();
 
     if (!title.trim()) {
       return;
     }
 
-    // EDIT EXISTING TASK
     if (editTask) {
       updateTask(editTask.id, {
-  title: title.trim(),
-  description: description.trim(),
-  date,
-  startTime,
-  endTime,
-  priority,
-  category,
-  reminder,
-});
+        title: title.trim(),
+        description: description.trim(),
+        date,
+        startTime,
+        endTime,
+        priority,
+        category,
+        reminder,
+      });
 
       onClose?.();
       setOpen(false);
@@ -99,27 +124,26 @@ export default function AddTaskDialog({
       return;
     }
 
-    // CREATE NEW TASK
     addTask({
-  id: crypto.randomUUID(),
-  title: title.trim(),
-  description: description.trim(),
-  date,
-  startTime,
-  endTime,
-  priority,
-  category,
-  reminder,
-  completed: false,
-  createdAt: new Date().toISOString(),
-});
+      id: crypto.randomUUID(),
+      title: title.trim(),
+      description: description.trim(),
+      date,
+      startTime,
+      endTime,
+      priority,
+      category,
+      reminder,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    });
+
     resetForm();
     setOpen(false);
   };
 
   return (
     <>
-      {/* CREATE BUTTON */}
       {!editTask && (
         <button
           onClick={() => {
@@ -133,16 +157,16 @@ export default function AddTaskDialog({
         </button>
       )}
 
-      {/* DIALOG */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-[#111114] shadow-2xl">
-
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
               <div>
                 <h2 className="text-lg font-semibold">
-                  {editTask ? "Edit Task" : "Create Task"}
+                  {editTask
+                    ? "Edit Task"
+                    : "Create Task"}
                 </h2>
 
                 <p className="mt-1 text-xs text-zinc-500">
@@ -175,7 +199,9 @@ export default function AddTaskDialog({
                 <input
                   autoFocus
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) =>
+                    setTitle(e.target.value)
+                  }
                   placeholder="e.g. Complete LeetCode problems"
                   className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/30"
                 />
@@ -194,7 +220,7 @@ export default function AddTaskDialog({
                   }
                   placeholder="Add some details..."
                   rows={3}
-                  className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/30"
+                  className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600"
                 />
               </div>
 
@@ -207,7 +233,9 @@ export default function AddTaskDialog({
                 <input
                   type="date"
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
+                  onChange={(e) =>
+                    setDate(e.target.value)
+                  }
                   className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
                 />
               </div>
@@ -257,14 +285,23 @@ export default function AddTaskDialog({
                     value={priority}
                     onChange={(e) =>
                       setPriority(
-                        e.target.value as TaskPriority
+                        e.target
+                          .value as TaskPriority
                       )
                     }
                     className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
                   >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                    <option value="low">
+                      Low
+                    </option>
+
+                    <option value="medium">
+                      Medium
+                    </option>
+
+                    <option value="high">
+                      High
+                    </option>
                   </select>
                 </div>
 
@@ -278,12 +315,15 @@ export default function AddTaskDialog({
                     value={category}
                     onChange={(e) =>
                       setCategory(
-                        e.target.value as TaskCategory
+                        e.target
+                          .value as TaskCategory
                       )
                     }
                     className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
                   >
-                    <option value="study">Study</option>
+                    <option value="study">
+                      Study
+                    </option>
 
                     <option value="development">
                       Development
@@ -304,7 +344,52 @@ export default function AddTaskDialog({
                 </div>
               </div>
 
-              {/* Buttons */}
+              {/* Reminder */}
+              <div>
+                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  Reminder
+                </label>
+
+                <select
+                  value={reminder}
+                  onChange={(e) =>
+                    setReminder(
+                      Number(e.target.value)
+                    )
+                  }
+                  className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                >
+                  <option value={0}>
+                    At start time
+                  </option>
+
+                  <option value={1}>
+                    1 minute before
+                  </option>
+
+                  <option value={5}>
+                    5 minutes before
+                  </option>
+
+                  <option value={10}>
+                    10 minutes before
+                  </option>
+
+                  <option value={15}>
+                    15 minutes before
+                  </option>
+
+                  <option value={30}>
+                    30 minutes before
+                  </option>
+
+                  <option value={60}>
+                    1 hour before
+                  </option>
+                </select>
+              </div>
+
+              {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
