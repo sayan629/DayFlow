@@ -1,0 +1,252 @@
+"use client";
+
+import { useState } from "react";
+import { Plus, X } from "lucide-react";
+
+import { useTaskStore } from "@/store/taskStore";
+import { TaskCategory, TaskPriority } from "@/types/task";
+
+export default function AddTaskDialog() {
+  const addTask = useTaskStore((state) => state.addTask);
+
+  const [open, setOpen] = useState(false);
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [date, setDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [priority, setPriority] = useState<TaskPriority>("medium");
+  const [category, setCategory] =
+    useState<TaskCategory>("development");
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setDate(new Date().toISOString().split("T")[0]);
+    setStartTime("");
+    setEndTime("");
+    setPriority("medium");
+    setCategory("development");
+  };
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!title.trim()) {
+      return;
+    }
+
+    addTask({
+      id: crypto.randomUUID(),
+      title: title.trim(),
+      description: description.trim(),
+      date,
+      startTime,
+      endTime,
+      priority,
+      category,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    });
+
+    resetForm();
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-200"
+      >
+        <Plus size={17} />
+        Add Task
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-[#111114] shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Create Task
+                </h2>
+
+                <p className="mt-1 text-xs text-zinc-500">
+                  Add something you want to accomplish.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  resetForm();
+                  setOpen(false);
+                }}
+                className="rounded-xl p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-5 p-6"
+            >
+              {/* Title */}
+              <div>
+                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  Task title
+                </label>
+
+                <input
+                  autoFocus
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Complete LeetCode problems"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/30"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  Description
+                </label>
+
+                <textarea
+                  value={description}
+                  onChange={(e) =>
+                    setDescription(e.target.value)
+                  }
+                  placeholder="Add some details..."
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/30"
+                />
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  Date
+                </label>
+
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                />
+              </div>
+
+              {/* Time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                    Start time
+                  </label>
+
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) =>
+                      setStartTime(e.target.value)
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                    End time
+                  </label>
+
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) =>
+                      setEndTime(e.target.value)
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                  />
+                </div>
+              </div>
+
+              {/* Priority + Category */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                    Priority
+                  </label>
+
+                  <select
+                    value={priority}
+                    onChange={(e) =>
+                      setPriority(
+                        e.target.value as TaskPriority
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                    Category
+                  </label>
+
+                  <select
+                    value={category}
+                    onChange={(e) =>
+                      setCategory(
+                        e.target.value as TaskCategory
+                      )
+                    }
+                    className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                  >
+                    <option value="study">Study</option>
+                    <option value="development">
+                      Development
+                    </option>
+                    <option value="personal">Personal</option>
+                    <option value="fitness">Fitness</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    setOpen(false);
+                  }}
+                  className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="flex-1 rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-200"
+                >
+                  Create Task
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
