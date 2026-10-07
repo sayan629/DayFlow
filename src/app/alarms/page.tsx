@@ -4,9 +4,8 @@ import { Bell, Menu } from "lucide-react";
 import { useState } from "react";
 
 import Sidebar from "@/components/layout/Sidebar";
-import CalendarView from "@/components/calendar/CalendarView";
 
-export default function CalendarPage() {
+export default function AlarmsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
@@ -34,7 +33,7 @@ export default function CalendarPage() {
                 </p>
 
                 <p className="text-sm font-medium text-zinc-300">
-                  Calendar
+                  Alarms
                 </p>
               </div>
             </div>
@@ -67,13 +66,44 @@ export default function CalendarPage() {
             </div>
           </header>
 
-          {/* Calendar Content */}
+          {/* Content */}
           <div className="flex-1 overflow-y-auto">
-            <main className="min-h-full p-5 md:p-8">
-              <div className="mx-auto max-w-[1500px]">
-                <CalendarView />
+            <div className="mx-auto max-w-[1500px] p-5 md:p-8">
+              <div className="mb-8">
+                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
+                  Workspace
+                </p>
+
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
+                  Alarms
+                </h1>
+
+                <p className="mt-2 text-sm text-zinc-500">
+                  Manage your upcoming reminders and alarms.
+                </p>
               </div>
-            </main>
+
+              {/* Empty state */}
+              <section className="flex min-h-[420px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.02]">
+                <div className="text-center">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+                    <Bell
+                      size={24}
+                      className="text-zinc-500"
+                    />
+                  </div>
+
+                  <h2 className="mt-5 text-lg font-semibold">
+                    No alarms yet
+                  </h2>
+
+                  <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-500">
+                    Your scheduled alarms and reminders
+                    will appear here.
+                  </p>
+                </div>
+              </section>
+            </div>
           </div>
         </section>
       </div>
