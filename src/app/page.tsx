@@ -70,6 +70,20 @@ const navigation = [
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const tasks = useTaskStore((state) => state.tasks);
+
+const completedTasks = tasks.filter(
+  (task) => task.completed
+);
+
+const remainingTasks = tasks.length - completedTasks.length;
+
+const completionPercentage =
+  tasks.length === 0
+    ? 0
+    : Math.round(
+        (completedTasks.length / tasks.length) * 100
+      );
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
