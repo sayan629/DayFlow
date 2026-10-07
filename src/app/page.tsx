@@ -3,6 +3,7 @@
 import AddTaskDialog from "@/components/tasks/AddTaskDialog";
 import TaskList from "@/components/tasks/TaskList";
 import { useTaskStore } from "@/store/taskStore";
+import { useEffect, useState } from "react";
 
 import {
   Bell,
@@ -20,7 +21,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import { useState } from "react";
+
 
 const navigation = [
   { label: "Dashboard", icon: Home, active: true },
@@ -33,17 +34,30 @@ const navigation = [
 
 export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [today, setToday] = useState("");
+  useEffect(() => {
+  setToday(new Date().toISOString().split("T")[0]);
+}, []);
 
-  const tasks = useTaskStore((state) => state.tasks);
+const allTasks = useTaskStore((state) => state.tasks);
 
-  const completedTasks = tasks.filter((task) => task.completed);
+const tasks = allTasks.filter(
+  (task) => task.date === today
+);
 
-  const remainingTasks = tasks.length - completedTasks.length;
+const completedTasks = tasks.filter(
+  (task) => task.completed
+);
 
-  const completionPercentage =
-    tasks.length === 0
-      ? 0
-      : Math.round((completedTasks.length / tasks.length) * 100);
+const remainingTasks =
+  tasks.length - completedTasks.length;
+
+const completionPercentage =
+  tasks.length === 0
+    ? 0
+    : Math.round(
+        (completedTasks.length / tasks.length) * 100
+      );;
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
