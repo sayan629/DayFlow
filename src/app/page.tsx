@@ -1,4 +1,5 @@
 "use client";
+import AddTaskDialog from "@/components/tasks/AddTaskDialog";
 
 import {
   Bell,
@@ -208,10 +209,7 @@ export default function HomePage() {
                   </p>
                 </div>
 
-                <button className="flex w-fit items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-200">
-                  <Plus size={17} />
-                  Add Task
-                </button>
+                <AddTaskDialog />
               </div>
 
               {/* Stats */}
