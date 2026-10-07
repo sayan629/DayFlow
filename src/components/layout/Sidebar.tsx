@@ -70,7 +70,7 @@ export default function Sidebar({
               <Clock3 size={19} />
             </div>
 
-          {open && (
+            {open && (
               <div>
                 <h1 className="text-lg font-semibold tracking-tight">
                   DayFlow
@@ -93,3 +93,65 @@ export default function Sidebar({
               item.href === "/"
                 ? pathname === "/"
                 : pathname === item.href;
+
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${
+                  isActive
+                    ? "bg-white text-black"
+                    : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <Icon size={18} />
+
+                {open && (
+                  <span className="font-medium">
+                    {item.label}
+                  </span>
+                )}
+
+                {open && item.label === "Alarms" && (
+                  <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom */}
+        <div className="border-t border-white/10 p-4">
+          <button
+            type="button"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+          >
+            <Settings size={18} />
+
+            {open && <span>Settings</span>}
+          </button>
+
+          {open && (
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Flame
+                  size={16}
+                  className="text-orange-400"
+                />
+
+                <span className="text-sm font-medium">
+                  7 day streak
+                </span>
+              </div>
+
+              <p className="text-xs leading-relaxed text-zinc-500">
+                Keep completing your tasks to maintain your
+                streak.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}
