@@ -157,10 +157,28 @@ const completionPercentage =
               </button>
 
               <div>
-                <p className="text-xs text-zinc-500">Wednesday</p>
+                <p className="text-xs text-zinc-500">
+  {today
+    ? new Date(`${today}T00:00:00`).toLocaleDateString(
+        "en-US",
+        {
+          weekday: "long",
+        }
+      )
+    : ""}
+</p>
 
                 <p className="text-sm font-medium text-zinc-300">
-                  October 7, 2026
+                  {today
+                    ? new Date(`${today}T00:00:00`).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "long",
+                          day: "numeric",
+                          year: "numeric",
+                        }
+                      )
+                    : ""}
                 </p>
               </div>
             </div>
