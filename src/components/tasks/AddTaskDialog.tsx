@@ -38,6 +38,10 @@ export default function AddTaskDialog({
     editTask?.category ?? "development"
   );
 
+  const [reminder, setReminder] = useState<number>(
+  editTask?.reminder ?? 10
+);
+
   // Set today's date only in the browser after mount.
   useEffect(() => {
     if (!editTask) {
