@@ -16,19 +16,31 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useTaskStore } from "@/store/taskStore";
 
 export default function CalendarView() {
   const tasks = useTaskStore((state) => state.tasks);
 
+  // IMPORTANT:
+  // Do not initialize state with new Date().
   const [currentMonth, setCurrentMonth] =
-    useState(new Date());
+    useState<Date | null>(null);
 
   const [selectedDate, setSelectedDate] =
-    useState(new Date());
+    useState<Date | null>(null);
+
+  // Set current date only after the component mounts
+  useEffect(() => {
+    const today = new Date();
+
+    setCurrentMonth(today);
+    setSelectedDate(today);
+  }, []);
 
   const calendarDays = useMemo(() => {
+    if (!currentMonth) return [];
+
     return eachDayOfInterval({
       start: startOfWeek(startOfMonth(currentMonth), {
         weekStartsOn: 1,
@@ -39,27 +51,35 @@ export default function CalendarView() {
     });
   }, [currentMonth]);
 
-  const selectedTasks = tasks
-    .filter((task) => {
-      const taskDate = new Date(
-        `${task.date}T00:00:00`
-      );
+  const selectedTasks = useMemo(() => {
+    if (!selectedDate) return [];
 
-      return isSameDay(taskDate, selectedDate);
-    })
-    .sort((a, b) =>
-      (a.startTime ?? "").localeCompare(
-        b.startTime ?? ""
-      )
-    );
+    return tasks
+      .filter((task) => {
+        const taskDate = new Date(
+          `${task.date}T00:00:00`
+        );
+
+        return isSameDay(taskDate, selectedDate);
+      })
+      .sort((a, b) =>
+        (a.startTime ?? "").localeCompare(
+          b.startTime ?? ""
+        )
+      );
+  }, [tasks, selectedDate]);
 
   const previousMonth = () => {
+    if (!currentMonth) return;
+
     setCurrentMonth(
       addMonths(currentMonth, -1)
     );
   };
 
   const nextMonth = () => {
+    if (!currentMonth) return;
+
     setCurrentMonth(
       addMonths(currentMonth, 1)
     );
@@ -71,6 +91,16 @@ export default function CalendarView() {
     setCurrentMonth(today);
     setSelectedDate(today);
   };
+
+  // Prevent rendering date-dependent UI before hydration
+  if (!currentMonth || !selectedDate) {
+    return (
+      <div className="space-y-6">
+        <div className="h-16 animate-pulse rounded-2xl bg-white/[0.03]" />
+        <div className="h-[500px] animate-pulse rounded-3xl border border-white/10 bg-white/[0.02]" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -153,10 +183,17 @@ export default function CalendarView() {
               selectedDate
             );
 
-            const today = isSameDay(
-              day,
-              new Date()
-            );
+            /*
+             * IMPORTANT:
+             * Don't use new Date() during render.
+             * Compare against selected/current month instead.
+             */
+            const today =
+              isSameDay(day, selectedDate) &&
+              isSameDay(
+                day,
+                currentMonth
+              );
 
             return (
               <button
@@ -192,20 +229,22 @@ export default function CalendarView() {
                 </div>
 
                 <div className="mt-2 space-y-1">
-                  {dayTasks.slice(0, 2).map((task) => (
-                    <div
-                      key={task.id}
-                      className="truncate rounded-md bg-white/5 px-2 py-1 text-[10px] text-zinc-500"
-                    >
-                      {task.startTime && (
-                        <span className="mr-1 text-zinc-600">
-                          {task.startTime}
-                        </span>
-                      )}
+                  {dayTasks
+                    .slice(0, 2)
+                    .map((task) => (
+                      <div
+                        key={task.id}
+                        className="truncate rounded-md bg-white/5 px-2 py-1 text-[10px] text-zinc-500"
+                      >
+                        {task.startTime && (
+                          <span className="mr-1 text-zinc-600">
+                            {task.startTime}
+                          </span>
+                        )}
 
-                      {task.title}
-                    </div>
-                  ))}
+                        {task.title}
+                      </div>
+                    ))}
 
                   {dayTasks.length > 2 && (
                     <div className="px-2 text-[10px] text-zinc-700">
