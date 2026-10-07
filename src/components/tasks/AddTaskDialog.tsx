@@ -4,26 +4,46 @@ import { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 
 import { useTaskStore } from "@/store/taskStore";
-import { TaskCategory, TaskPriority } from "@/types/task";
+import { Task, TaskCategory, TaskPriority } from "@/types/task";
 
-export default function AddTaskDialog() {
+interface AddTaskDialogProps {
+  editTask?: Task;
+  onClose?: () => void;
+}
+
+export default function AddTaskDialog({
+  editTask,
+  onClose,
+}: AddTaskDialogProps) {
   const addTask = useTaskStore((state) => state.addTask);
+  const updateTask = useTaskStore((state) => state.updateTask);
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!editTask);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [priority, setPriority] = useState<TaskPriority>("medium");
-  const [category, setCategory] =
-    useState<TaskCategory>("development");
+  const [title, setTitle] = useState(editTask?.title ?? "");
+  const [description, setDescription] = useState(
+    editTask?.description ?? ""
+  );
+  const [date, setDate] = useState(editTask?.date ?? "");
+  const [startTime, setStartTime] = useState(
+    editTask?.startTime ?? ""
+  );
+  const [endTime, setEndTime] = useState(
+    editTask?.endTime ?? ""
+  );
+  const [priority, setPriority] = useState<TaskPriority>(
+    editTask?.priority ?? "medium"
+  );
+  const [category, setCategory] = useState<TaskCategory>(
+    editTask?.category ?? "development"
+  );
 
   // Set today's date only in the browser after mount.
   useEffect(() => {
-    setDate(new Date().toISOString().split("T")[0]);
-  }, []);
+    if (!editTask) {
+      setDate(new Date().toISOString().split("T")[0]);
+    }
+  }, [editTask]);
 
   const getToday = () => {
     return new Date().toISOString().split("T")[0];
@@ -39,6 +59,16 @@ export default function AddTaskDialog() {
     setCategory("development");
   };
 
+  const closeDialog = () => {
+    if (editTask) {
+      onClose?.();
+      return;
+    }
+
+    resetForm();
+    setOpen(false);
+  };
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -46,6 +76,25 @@ export default function AddTaskDialog() {
       return;
     }
 
+    // EDIT EXISTING TASK
+    if (editTask) {
+      updateTask(editTask.id, {
+        title: title.trim(),
+        description: description.trim(),
+        date,
+        startTime,
+        endTime,
+        priority,
+        category,
+      });
+
+      onClose?.();
+      setOpen(false);
+
+      return;
+    }
+
+    // CREATE NEW TASK
     addTask({
       id: crypto.randomUUID(),
       title: title.trim(),
@@ -65,38 +114,42 @@ export default function AddTaskDialog() {
 
   return (
     <>
-      <button
-        onClick={() => {
-          setDate(getToday());
-          setOpen(true);
-        }}
-        className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-200"
-      >
-        <Plus size={17} />
-        Add Task
-      </button>
+      {/* CREATE BUTTON */}
+      {!editTask && (
+        <button
+          onClick={() => {
+            setDate(getToday());
+            setOpen(true);
+          }}
+          className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-200"
+        >
+          <Plus size={17} />
+          Add Task
+        </button>
+      )}
 
+      {/* DIALOG */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-[#111114] shadow-2xl">
+
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
               <div>
                 <h2 className="text-lg font-semibold">
-                  Create Task
+                  {editTask ? "Edit Task" : "Create Task"}
                 </h2>
 
                 <p className="mt-1 text-xs text-zinc-500">
-                  Add something you want to accomplish.
+                  {editTask
+                    ? "Update your task details."
+                    : "Add something you want to accomplish."}
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={() => {
-                  resetForm();
-                  setOpen(false);
-                }}
+                onClick={closeDialog}
                 className="rounded-xl p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
               >
                 <X size={18} />
@@ -189,6 +242,7 @@ export default function AddTaskDialog() {
 
               {/* Priority + Category */}
               <div className="grid grid-cols-2 gap-3">
+                {/* Priority */}
                 <div>
                   <label className="mb-2 block text-xs font-medium text-zinc-400">
                     Priority
@@ -209,6 +263,7 @@ export default function AddTaskDialog() {
                   </select>
                 </div>
 
+                {/* Category */}
                 <div>
                   <label className="mb-2 block text-xs font-medium text-zinc-400">
                     Category
@@ -229,9 +284,17 @@ export default function AddTaskDialog() {
                       Development
                     </option>
 
-                    <option value="personal">Personal</option>
-                    <option value="fitness">Fitness</option>
-                    <option value="other">Other</option>
+                    <option value="personal">
+                      Personal
+                    </option>
+
+                    <option value="fitness">
+                      Fitness
+                    </option>
+
+                    <option value="other">
+                      Other
+                    </option>
                   </select>
                 </div>
               </div>
@@ -240,10 +303,7 @@ export default function AddTaskDialog() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    resetForm();
-                    setOpen(false);
-                  }}
+                  onClick={closeDialog}
                   className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
                 >
                   Cancel
@@ -253,7 +313,9 @@ export default function AddTaskDialog() {
                   type="submit"
                   className="flex-1 rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-200"
                 >
-                  Create Task
+                  {editTask
+                    ? "Save Changes"
+                    : "Create Task"}
                 </button>
               </div>
             </form>
