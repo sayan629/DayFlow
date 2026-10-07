@@ -32,10 +32,10 @@ const navigation = [
     href: "/",
   },
   {
-    label: "Tasks",
-    icon: ListTodo,
-    href: "/",
-  },
+  label: "Tasks",
+  icon: ListTodo,
+  href: "/tasks",
+},
   {
     label: "Calendar",
     icon: CalendarDays,
