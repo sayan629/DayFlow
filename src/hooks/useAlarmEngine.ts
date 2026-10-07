@@ -2,11 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { useTaskStore } from "@/store/taskStore";
+import { useAlarmStore } from "@/store/alarmStore";
 
 export function useAlarmEngine() {
   const tasks = useTaskStore((state) => state.tasks);
   const notifiedTasks = useRef<Set<string>>(new Set());
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const startAlarm = useAlarmStore((state) => state.startAlarm);
 
   useEffect(() => {
     audioRef.current = new Audio("/sounds/alarm.mp3");
@@ -48,6 +50,8 @@ export function useAlarmEngine() {
 
           // 🔊 Play alarm music
           playAlarm();
+
+          startAlarm(task.id, task.title);
 
           // 🔔 Browser notification
           sendNotification(task.title, task.reminder);
