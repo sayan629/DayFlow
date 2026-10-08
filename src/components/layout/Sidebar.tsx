@@ -43,7 +43,7 @@ const navigation = [
   {
     label: "Focus",
     icon: Target,
-    href: "/",
+    href: "/focus",
   },
   {
     label: "Analytics",
