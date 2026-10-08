@@ -32,3 +32,26 @@ const today = new Date().toISOString().split("T")[0];
         : [...current, taskId]
     );
   };
+  if (alarmTasks.length === 0) {
+    return (
+      <section className="flex min-h-[360px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.02]">
+        <div className="text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+            <Bell
+              size={24}
+              className="text-zinc-500"
+            />
+          </div>
+
+          <h2 className="mt-5 text-lg font-semibold">
+            No alarms scheduled
+          </h2>
+
+          <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-500">
+            Create a task with a start time to see its
+            alarm here.
+          </p>
+        </div>
+      </section>
+    );
+  }
