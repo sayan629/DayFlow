@@ -18,5 +18,6 @@ export interface Task {
   category: TaskCategory;
   completed: boolean;
   reminder?: number;
+  alarmEnabled?: boolean;
   createdAt: string;
 }

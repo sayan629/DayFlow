@@ -134,6 +134,7 @@ export default function AddTaskDialog({
       priority,
       category,
       reminder,
+      alarmEnabled: true,
       completed: false,
       createdAt: new Date().toISOString(),
     });
