@@ -23,7 +23,6 @@ import {
 import { useEffect, useMemo, useState } from "react";
 
 import { useTaskStore } from "@/store/taskStore";
-
 import AddTaskDialog from "@/components/tasks/AddTaskDialog";
 
 export default function CalendarView() {
@@ -38,6 +37,7 @@ export default function CalendarView() {
     useState<Date | null>(null);
 
   const [addTaskOpen, setAddTaskOpen] = useState(false);
+
   const [editingTaskId, setEditingTaskId] =
     useState<string | null>(null);
 
@@ -111,7 +111,10 @@ export default function CalendarView() {
     setSelectedDate(today);
   };
 
-  const handleDelete = (taskId: string, title: string) => {
+  const handleDelete = (
+    taskId: string,
+    title: string
+  ) => {
     const confirmed = window.confirm(
       `Delete "${title}"?`
     );
@@ -255,19 +258,38 @@ export default function CalendarView() {
                     .map((task) => (
                       <div
                         key={task.id}
-                        className={`truncate rounded-md px-2 py-1 text-[10px] ${
-                          task.completed
-                            ? "bg-white/[0.02] text-zinc-700 line-through"
-                            : "bg-white/5 text-zinc-500"
-                        }`}
+                        className="flex items-center gap-1 truncate rounded-md bg-white/5 px-2 py-1 text-[10px]"
                       >
+                        {/* Priority indicator */}
+                        <span
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                            task.completed
+                              ? "bg-zinc-700"
+                              : task.priority === "high"
+                                ? "bg-red-400"
+                                : task.priority === "medium"
+                                  ? "bg-yellow-400"
+                                  : "bg-zinc-500"
+                          }`}
+                        />
+
+                        {/* Task time */}
                         {task.startTime && (
-                          <span className="mr-1 text-zinc-600">
+                          <span className="mr-1 shrink-0 text-zinc-600">
                             {task.startTime}
                           </span>
                         )}
 
-                        {task.title}
+                        {/* Task title */}
+                        <span
+                          className={`truncate ${
+                            task.completed
+                              ? "text-zinc-700 line-through"
+                              : "text-zinc-500"
+                          }`}
+                        >
+                          {task.title}
+                        </span>
                       </div>
                     ))}
 
