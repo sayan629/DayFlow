@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type FocusMode = "focus" | "shortBreak" | "longBreak";
+export type FocusMode =
+  | "focus"
+  | "shortBreak"
+  | "longBreak";
 
 interface FocusStore {
   mode: FocusMode;
@@ -31,16 +34,21 @@ export const useFocusStore = create<FocusStore>()(
       completedSessions: 0,
 
       start: () => {
-        set({ isRunning: true });
+        set({
+          isRunning: true,
+        });
       },
 
       pause: () => {
-        set({ isRunning: false });
+        set({
+          isRunning: false,
+        });
       },
 
       reset: () => {
         set((state) => ({
-          remainingSeconds: MODE_DURATION[state.mode],
+          remainingSeconds:
+            MODE_DURATION[state.mode],
           isRunning: false,
         }));
       },
@@ -48,20 +56,39 @@ export const useFocusStore = create<FocusStore>()(
       setMode: (mode) => {
         set({
           mode,
-          remainingSeconds: MODE_DURATION[mode],
+          remainingSeconds:
+            MODE_DURATION[mode],
           isRunning: false,
         });
       },
 
       completeSession: () => {
-        set((state) => ({
-          completedSessions:
-            state.mode === "focus"
-              ? state.completedSessions + 1
-              : state.completedSessions,
-          remainingSeconds: MODE_DURATION[state.mode],
-          isRunning: false,
-        }));
+        set((state) => {
+          if (state.mode === "focus") {
+            const nextSession =
+              state.completedSessions + 1;
+
+            const nextMode =
+              nextSession % 4 === 0
+                ? "longBreak"
+                : "shortBreak";
+
+            return {
+              completedSessions: nextSession,
+              mode: nextMode,
+              remainingSeconds:
+                MODE_DURATION[nextMode],
+              isRunning: false,
+            };
+          }
+
+          return {
+            mode: "focus",
+            remainingSeconds:
+              MODE_DURATION.focus,
+            isRunning: false,
+          };
+        });
       },
     }),
     {
