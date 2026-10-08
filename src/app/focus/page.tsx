@@ -2,24 +2,30 @@
 
 import {
   ArrowLeft,
+  Menu,
   Pause,
   Play,
   RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import Sidebar from "@/components/layout/Sidebar";
 import { useFocusStore } from "@/store/focusStore";
 
 export default function FocusPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   const mode = useFocusStore((state) => state.mode);
+
   const remainingSeconds = useFocusStore(
     (state) => state.remainingSeconds
   );
+
   const isRunning = useFocusStore(
     (state) => state.isRunning
   );
+
   const completedSessions = useFocusStore(
     (state) => state.completedSessions
   );
@@ -28,9 +34,6 @@ export default function FocusPage() {
   const pause = useFocusStore((state) => state.pause);
   const reset = useFocusStore((state) => state.reset);
   const setMode = useFocusStore((state) => state.setMode);
-  const completeSession = useFocusStore(
-    (state) => state.completeSession
-  );
 
   useEffect(() => {
     if (!isRunning) {
@@ -75,21 +78,47 @@ export default function FocusPage() {
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
       <div className="flex min-h-screen">
-        <Sidebar open={true} />
+        {/* Sidebar */}
+        <Sidebar open={sidebarOpen} />
 
+        {/* Main Area */}
         <section className="flex min-w-0 flex-1 flex-col">
           {/* Header */}
           <header className="flex h-20 items-center justify-between border-b border-white/10 px-5 md:px-8">
-            <div>
-              <p className="text-xs text-zinc-500">
-                Personal OS
-              </p>
+            {/* Left */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setSidebarOpen((open) => !open)
+                }
+                className="rounded-xl p-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                aria-label={
+                  sidebarOpen
+                    ? "Close sidebar"
+                    : "Open sidebar"
+                }
+                title={
+                  sidebarOpen
+                    ? "Close sidebar"
+                    : "Open sidebar"
+                }
+              >
+                <Menu size={20} />
+              </button>
 
-              <p className="text-sm font-medium text-zinc-300">
-                Focus
-              </p>
+              <div>
+                <p className="text-xs text-zinc-500">
+                  Personal OS
+                </p>
+
+                <p className="text-sm font-medium text-zinc-300">
+                  Focus
+                </p>
+              </div>
             </div>
 
+            {/* Right */}
             <Link
               href="/"
               className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
@@ -100,7 +129,7 @@ export default function FocusPage() {
           </header>
 
           {/* Content */}
-          <div className="flex flex-1 items-center justify-center p-5 md:p-8">
+          <div className="flex flex-1 items-center justify-center overflow-y-auto p-5 md:p-8">
             <div className="w-full max-w-2xl">
               {/* Heading */}
               <div className="text-center">
@@ -157,7 +186,9 @@ export default function FocusPage() {
 
                   {/* Status */}
                   <p className="mt-5 text-xs uppercase tracking-[0.2em] text-zinc-600">
-                    {isRunning ? "Session Running" : "Ready"}
+                    {isRunning
+                      ? "Session Running"
+                      : "Ready"}
                   </p>
 
                   {/* Controls */}
