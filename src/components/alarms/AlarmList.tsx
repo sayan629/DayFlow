@@ -73,3 +73,11 @@ const today = new Date().toISOString().split("T")[0];
               scheduled
             </p>
           </div>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
+            <Bell
+              size={17}
+              className="text-zinc-400"
+            />
+          </div>
+        </div>
+      </div>
