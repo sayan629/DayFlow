@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import Sidebar from "@/components/layout/Sidebar";
 import AlarmList from "@/components/alarms/AlarmList";
+import AlarmHistory from "@/components/alarms/AlarmHistory";
 
 export default function AlarmsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -83,27 +84,14 @@ export default function AlarmsPage() {
                   Manage your upcoming reminders and alarms.
                 </p>
               </div>
+
+              {/* Today's alarms */}
               <AlarmList />
-              {/* Empty state */}
-              <section className="flex min-h-[420px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.02]">
-                <div className="text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
-                    <Bell
-                      size={24}
-                      className="text-zinc-500"
-                    />
-                  </div>
 
-                  <h2 className="mt-5 text-lg font-semibold">
-                    No alarms yet
-                  </h2>
-
-                  <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-500">
-                    Your scheduled alarms and reminders
-                    will appear here.
-                  </p>
-                </div>
-              </section>
+              {/* Alarm history */}
+              <div className="mt-6">
+                <AlarmHistory />
+              </div>
             </div>
           </div>
         </section>
