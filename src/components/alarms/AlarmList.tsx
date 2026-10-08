@@ -98,3 +98,30 @@ const today = new Date().toISOString().split("T")[0];
               }`}
             >
             </div>
+            {/* Time */}
+              <div className="w-24 shrink-0">
+                <p className="text-lg font-semibold tracking-tight">
+                  {formatTime(task.startTime!)}
+                </p>
+
+                {task.endTime && (
+                  <p className="mt-1 text-[11px] text-zinc-600">
+                    until {formatTime(task.endTime)}
+                  </p>
+                )}
+              </div>
+
+              {/* Icon */}
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
+                {disabled ? (
+                  <BellOff
+                    size={17}
+                    className="text-zinc-600"
+                  />
+                ) : (
+                  <Clock3
+                    size={17}
+                    className="text-zinc-400"
+                  />
+                )}
+              </div>
