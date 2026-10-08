@@ -55,3 +55,21 @@ const today = new Date().toISOString().split("T")[0];
       </section>
     );
   }
+  return (
+    <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
+      {/* Header */}
+      <div className="border-b border-white/10 px-6 py-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold">
+              Today's Alarms
+            </h2>
+
+            <p className="mt-1 text-xs text-zinc-500">
+              {alarmTasks.length}{" "}
+              {alarmTasks.length === 1
+                ? "alarm"
+                : "alarms"}{" "}
+              scheduled
+            </p>
+          </div>
