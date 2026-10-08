@@ -11,7 +11,8 @@ export default function AlarmList() {
   const [disabledAlarms, setDisabledAlarms] = useState<string[]>(
     []
   );
-const today = new Date().toISOString().split("T")[0];
+
+  const today = new Date().toISOString().split("T")[0];
 
   const alarmTasks = useMemo(() => {
     return tasks
@@ -25,6 +26,7 @@ const today = new Date().toISOString().split("T")[0];
         (a.startTime ?? "").localeCompare(b.startTime ?? "")
       );
   }, [tasks, today]);
+
   const toggleAlarm = (taskId: string) => {
     setDisabledAlarms((current) =>
       current.includes(taskId)
@@ -32,6 +34,7 @@ const today = new Date().toISOString().split("T")[0];
         : [...current, taskId]
     );
   };
+
   if (alarmTasks.length === 0) {
     return (
       <section className="flex min-h-[360px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.02]">
@@ -55,6 +58,7 @@ const today = new Date().toISOString().split("T")[0];
       </section>
     );
   }
+
   return (
     <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
       {/* Header */}
@@ -73,6 +77,7 @@ const today = new Date().toISOString().split("T")[0];
               scheduled
             </p>
           </div>
+
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
             <Bell
               size={17}
@@ -81,7 +86,8 @@ const today = new Date().toISOString().split("T")[0];
           </div>
         </div>
       </div>
-       {/* Alarm list */}
+
+      {/* Alarm list */}
       <div className="divide-y divide-white/10">
         {alarmTasks.map((task) => {
           const disabled = disabledAlarms.includes(
@@ -97,8 +103,7 @@ const today = new Date().toISOString().split("T")[0];
                   : "hover:bg-white/[0.02]"
               }`}
             >
-            </div>
-            {/* Time */}
+              {/* Time */}
               <div className="w-24 shrink-0">
                 <p className="text-lg font-semibold tracking-tight">
                   {formatTime(task.startTime!)}
@@ -126,7 +131,7 @@ const today = new Date().toISOString().split("T")[0];
                 )}
               </div>
 
-               {/* Details */}
+              {/* Details */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="truncate text-sm font-medium">
@@ -141,7 +146,7 @@ const today = new Date().toISOString().split("T")[0];
                   )}
                 </div>
 
-                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
                   <span className="capitalize">
                     {task.category}
                   </span>
