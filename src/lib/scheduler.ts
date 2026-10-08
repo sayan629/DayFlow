@@ -104,9 +104,6 @@ export function getNextTask(
         return false;
       }
 
-    
-
-
       if (task.date !== today) {
         return false;
       }
@@ -131,4 +128,73 @@ export function getNextTask(
     );
 
   return upcomingTasks[0] ?? null;
+}
+
+export function getNextAlarm(
+  tasks: Task[]
+): Task | null {
+  const now = new Date();
+
+  const today = now.toISOString().split("T")[0];
+
+  const currentMinutes =
+    now.getHours() * 60 + now.getMinutes();
+
+  const upcomingAlarms = tasks
+    .filter((task) => {
+      if (task.completed) {
+        return false;
+      }
+
+      if (task.alarmEnabled === false) {
+        return false;
+      }
+
+      if (!task.startTime) {
+        return false;
+      }
+
+      if (task.date !== today) {
+        return false;
+      }
+
+      if (task.reminder === undefined) {
+        return false;
+      }
+
+      const [hour, minute] = task.startTime
+        .split(":")
+        .map(Number);
+
+      const taskMinutes =
+        hour * 60 + minute;
+
+      const alarmMinutes =
+        taskMinutes - task.reminder;
+
+      return alarmMinutes > currentMinutes;
+    })
+    .sort((a, b) => {
+      const [aHour, aMinute] = (a.startTime ?? "00:00")
+        .split(":")
+        .map(Number);
+
+      const [bHour, bMinute] = (b.startTime ?? "00:00")
+        .split(":")
+        .map(Number);
+
+      const aAlarm =
+        aHour * 60 +
+        aMinute -
+        (a.reminder ?? 0);
+
+      const bAlarm =
+        bHour * 60 +
+        bMinute -
+        (b.reminder ?? 0);
+
+      return aAlarm - bAlarm;
+    });
+
+  return upcomingAlarms[0] ?? null;
 }
