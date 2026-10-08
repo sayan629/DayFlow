@@ -1,7 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Bell, CalendarDays, Clock3, Plus, X } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { useTaskStore } from "@/store/taskStore";
 import {
@@ -12,33 +29,58 @@ import {
 
 interface AddTaskDialogProps {
   editTask?: Task;
+  defaultDate?: string;
   onClose?: () => void;
+}
+
+const priorityOptions: {
+  value: TaskPriority;
+  label: string;
+}[] = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];
+
+const categoryOptions: {
+  value: TaskCategory;
+  label: string;
+}[] = [
+  { value: "study", label: "Study" },
+  { value: "development", label: "Development" },
+  { value: "personal", label: "Personal" },
+  { value: "fitness", label: "Fitness" },
+  { value: "other", label: "Other" },
+];
+
+const reminderOptions = [
+  { value: 0, label: "At task time" },
+  { value: 1, label: "1 minute before" },
+  { value: 5, label: "5 minutes before" },
+  { value: 10, label: "10 minutes before" },
+  { value: 15, label: "15 minutes before" },
+  { value: 30, label: "30 minutes before" },
+  { value: 60, label: "1 hour before" },
+];
+
+function getToday() {
+  return new Date().toISOString().split("T")[0];
 }
 
 export default function AddTaskDialog({
   editTask,
+  defaultDate,
   onClose,
 }: AddTaskDialogProps) {
-  const addTask = useTaskStore(
-    (state) => state.addTask
-  );
+  const { addTask, updateTask } = useTaskStore();
 
-  const updateTask = useTaskStore(
-    (state) => state.updateTask
-  );
+  const [open, setOpen] = useState(false);
 
-  const [open, setOpen] = useState(!!editTask);
-
-  const [title, setTitle] = useState(
-    editTask?.title ?? ""
-  );
-
-  const [description, setDescription] = useState(
-    editTask?.description ?? ""
-  );
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
 
   const [date, setDate] = useState(
-    editTask?.date ?? ""
+    editTask?.date ?? defaultDate ?? ""
   );
 
   const [startTime, setStartTime] = useState(
@@ -49,60 +91,63 @@ export default function AddTaskDialog({
     editTask?.endTime ?? ""
   );
 
-  const [priority, setPriority] =
-    useState<TaskPriority>(
-      editTask?.priority ?? "medium"
-    );
+  const [priority, setPriority] = useState<TaskPriority>(
+    editTask?.priority ?? "medium"
+  );
 
-  const [category, setCategory] =
-    useState<TaskCategory>(
-      editTask?.category ?? "development"
-    );
+  const [category, setCategory] = useState<TaskCategory>(
+    editTask?.category ?? "other"
+  );
 
-  const [reminder, setReminder] =
-    useState<number>(
-      editTask?.reminder ?? 10
-    );
+  const [reminder, setReminder] = useState(
+    editTask?.reminder ?? 0
+  );
 
   useEffect(() => {
-    if (!editTask) {
-      setDate(getToday());
-    }
-  }, [editTask]);
+    if (editTask) {
+      setTitle(editTask.title);
+      setDescription(editTask.description ?? "");
+      setDate(editTask.date);
+      setStartTime(editTask.startTime ?? "");
+      setEndTime(editTask.endTime ?? "");
+      setPriority(editTask.priority);
+      setCategory(editTask.category);
+      setReminder(editTask.reminder ?? 0);
 
-  const getToday = () => {
-    return new Date()
-      .toISOString()
-      .split("T")[0];
-  };
+      setOpen(true);
+      return;
+    }
+
+    setDate(defaultDate ?? getToday());
+  }, [editTask, defaultDate]);
 
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setDate(getToday());
+    setDate(defaultDate ?? getToday());
     setStartTime("");
     setEndTime("");
     setPriority("medium");
-    setCategory("development");
-    setReminder(10);
+    setCategory("other");
+    setReminder(0);
   };
 
-  const closeDialog = () => {
-    if (editTask) {
-      onClose?.();
+  const handleClose = () => {
+    setOpen(false);
+
+    if (!editTask) {
+      resetForm();
+    }
+
+    onClose?.();
+  };
+
+  const handleSubmit = () => {
+    if (!title.trim()) {
       return;
     }
 
-    resetForm();
-    setOpen(false);
-  };
-
-  const handleSubmit = (
-    event: React.FormEvent
-  ) => {
-    event.preventDefault();
-
-    if (!title.trim()) {
+    if (!date) {
       return;
     }
 
@@ -118,9 +163,7 @@ export default function AddTaskDialog({
         reminder,
       });
 
-      onClose?.();
-      setOpen(false);
-
+      handleClose();
       return;
     }
 
@@ -139,281 +182,246 @@ export default function AddTaskDialog({
       createdAt: new Date().toISOString(),
     });
 
-    resetForm();
-    setOpen(false);
+    handleClose();
   };
 
   return (
     <>
       {!editTask && (
-        <button
+        <Button
           type="button"
           onClick={() => {
-            setDate(getToday());
+            setDate(defaultDate ?? getToday());
             setOpen(true);
           }}
-          className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-200"
+          className="gap-2"
         >
-          <Plus size={17} />
+          <Plus size={16} />
           Add Task
-        </button>
+        </Button>
       )}
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#111114] shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-              <div>
-                <h2 className="text-lg font-semibold">
-                  {editTask
-                    ? "Edit Task"
-                    : "Create Task"}
-                </h2>
+      <Dialog
+        open={open}
+        onOpenChange={(value) => {
+          if (!value) {
+            handleClose();
+          } else {
+            setOpen(true);
+          }
+        }}
+      >
+        <DialogContent className="border-white/10 bg-[#111114] text-white sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {editTask ? "Edit Task" : "Add New Task"}
+            </DialogTitle>
+          </DialogHeader>
 
-                <p className="mt-1 text-xs text-zinc-500">
-                  {editTask
-                    ? "Update your task details."
-                    : "Add something you want to accomplish."}
-                </p>
-              </div>
+          <div className="space-y-5">
+            {/* Title */}
+            <div className="space-y-2">
+              <Label htmlFor="task-title">Title</Label>
 
-              <button
-                type="button"
-                onClick={closeDialog}
-                className="rounded-xl p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
-              >
-                <X size={18} />
-              </button>
+              <Input
+                id="task-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="What do you need to do?"
+                className="border-white/10 bg-white/[0.03]"
+              />
             </div>
 
-            {/* Form */}
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-4 p-5"
-            >
-              {/* Title */}
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
-                  Task title
-                </label>
+            {/* Description */}
+            <div className="space-y-2">
+              <Label htmlFor="task-description">
+                Description
+              </Label>
 
-                <input
-                  autoFocus
-                  value={title}
+              <textarea
+                id="task-description"
+                value={description}
+                onChange={(e) =>
+                  setDescription(e.target.value)
+                }
+                placeholder="Add some details..."
+                rows={3}
+                className="w-full resize-none rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-white/20"
+              />
+            </div>
+
+            {/* Date */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="task-date"
+                className="flex items-center gap-2"
+              >
+                <CalendarDays size={15} />
+                Date
+              </Label>
+
+              <Input
+                id="task-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="border-white/10 bg-white/[0.03]"
+              />
+            </div>
+
+            {/* Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="task-start-time"
+                  className="flex items-center gap-2"
+                >
+                  <Clock3 size={15} />
+                  Start Time
+                </Label>
+
+                <Input
+                  id="task-start-time"
+                  type="time"
+                  value={startTime}
                   onChange={(e) =>
-                    setTitle(e.target.value)
+                    setStartTime(e.target.value)
                   }
-                  placeholder="e.g. Complete LeetCode problems"
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/30"
+                  className="border-white/10 bg-white/[0.03]"
                 />
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
-                  Description
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="task-end-time">
+                  End Time
+                </Label>
 
-                <textarea
-                  value={description}
+                <Input
+                  id="task-end-time"
+                  type="time"
+                  value={endTime}
                   onChange={(e) =>
-                    setDescription(e.target.value)
+                    setEndTime(e.target.value)
                   }
-                  placeholder="Add some details..."
-                  rows={2}
-                  className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600"
+                  className="border-white/10 bg-white/[0.03]"
                 />
               </div>
+            </div>
 
-              {/* Date */}
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
-                  Date
-                </label>
+            {/* Priority + Category */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Priority</Label>
 
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) =>
-                    setDate(e.target.value)
+                <Select
+                  value={priority}
+                  onValueChange={(value) =>
+                    setPriority(value as TaskPriority)
                   }
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
-                />
+                >
+                  <SelectTrigger className="border-white/10 bg-white/[0.03]">
+                    <SelectValue />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {priorityOptions.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Time */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
-                    Start time
-                  </label>
+              <div className="space-y-2">
+                <Label>Category</Label>
 
-                  <input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) =>
-                      setStartTime(e.target.value)
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
-                    End time
-                  </label>
-
-                  <input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) =>
-                      setEndTime(e.target.value)
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
-                  />
-                </div>
-              </div>
-
-              {/* Priority + Category */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Priority */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
-                    Priority
-                  </label>
-
-                  <select
-                    value={priority}
-                    onChange={(e) =>
-                      setPriority(
-                        e.target
-                          .value as TaskPriority
-                      )
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
-                  >
-                    <option value="low">
-                      Low
-                    </option>
-
-                    <option value="medium">
-                      Medium
-                    </option>
-
-                    <option value="high">
-                      High
-                    </option>
-                  </select>
-                </div>
-
-                {/* Category */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
-                    Category
-                  </label>
-
-                  <select
-                    value={category}
-                    onChange={(e) =>
-                      setCategory(
-                        e.target
-                          .value as TaskCategory
-                      )
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
-                  >
-                    <option value="study">
-                      Study
-                    </option>
-
-                    <option value="development">
-                      Development
-                    </option>
-
-                    <option value="personal">
-                      Personal
-                    </option>
-
-                    <option value="fitness">
-                      Fitness
-                    </option>
-
-                    <option value="other">
-                      Other
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Reminder */}
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
-                  Reminder
-                </label>
-
-                <select
-                  value={reminder}
-                  onChange={(e) =>
-                    setReminder(
-                      Number(e.target.value)
-                    )
+                <Select
+                  value={category}
+                  onValueChange={(value) =>
+                    setCategory(value as TaskCategory)
                   }
-                  className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
                 >
-                  <option value={0}>
-                    At start time
-                  </option>
+                  <SelectTrigger className="border-white/10 bg-white/[0.03]">
+                    <SelectValue />
+                  </SelectTrigger>
 
-                  <option value={1}>
-                    1 minute before
-                  </option>
-
-                  <option value={5}>
-                    5 minutes before
-                  </option>
-
-                  <option value={10}>
-                    10 minutes before
-                  </option>
-
-                  <option value={15}>
-                    15 minutes before
-                  </option>
-
-                  <option value={30}>
-                    30 minutes before
-                  </option>
-
-                  <option value={60}>
-                    1 hour before
-                  </option>
-                </select>
+                  <SelectContent>
+                    {categoryOptions.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
 
-              {/* Actions */}
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={closeDialog}
-                  className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
-                >
-                  Cancel
-                </button>
+            {/* Reminder */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="task-reminder"
+                className="flex items-center gap-2"
+              >
+                <Bell size={15} />
+                Reminder
+              </Label>
 
-                <button
-                  type="submit"
-                  className="flex-1 rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-200"
+              <Select
+                value={String(reminder)}
+                onValueChange={(value) =>
+                  setReminder(Number(value))
+                }
+              >
+                <SelectTrigger
+                  id="task-reminder"
+                  className="border-white/10 bg-white/[0.03]"
                 >
-                  {editTask
-                    ? "Save Changes"
-                    : "Create Task"}
-                </button>
-              </div>
-            </form>
+                  <SelectValue />
+                </SelectTrigger>
+
+                <SelectContent>
+                  {reminderOptions.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      value={String(option.value)}
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                className="border-white/10 bg-transparent"
+              >
+                <X size={16} className="mr-2" />
+                Cancel
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={!title.trim() || !date}
+              >
+                {editTask ? "Save Changes" : "Create Task"}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

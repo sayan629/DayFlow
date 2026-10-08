@@ -1,9 +1,13 @@
 "use client";
 
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Pencil,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import {
   addMonths,
@@ -16,21 +20,27 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import { useTaskStore } from "@/store/taskStore";
+
+import AddTaskDialog from "@/components/tasks/AddTaskDialog";
 
 export default function CalendarView() {
   const tasks = useTaskStore((state) => state.tasks);
+  const toggleTask = useTaskStore((state) => state.toggleTask);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
 
-  // IMPORTANT:
-  // Do not initialize state with new Date().
   const [currentMonth, setCurrentMonth] =
     useState<Date | null>(null);
 
   const [selectedDate, setSelectedDate] =
     useState<Date | null>(null);
 
-  // Set current date only after the component mounts
+  const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] =
+    useState<string | null>(null);
+
   useEffect(() => {
     const today = new Date();
 
@@ -69,6 +79,15 @@ export default function CalendarView() {
       );
   }, [tasks, selectedDate]);
 
+  const editingTask = useMemo(() => {
+    if (!editingTaskId) return null;
+
+    return (
+      tasks.find((task) => task.id === editingTaskId) ??
+      null
+    );
+  }, [tasks, editingTaskId]);
+
   const previousMonth = () => {
     if (!currentMonth) return;
 
@@ -92,11 +111,21 @@ export default function CalendarView() {
     setSelectedDate(today);
   };
 
-  // Prevent rendering date-dependent UI before hydration
+  const handleDelete = (taskId: string, title: string) => {
+    const confirmed = window.confirm(
+      `Delete "${title}"?`
+    );
+
+    if (!confirmed) return;
+
+    deleteTask(taskId);
+  };
+
   if (!currentMonth || !selectedDate) {
     return (
       <div className="space-y-6">
         <div className="h-16 animate-pulse rounded-2xl bg-white/[0.03]" />
+
         <div className="h-[500px] animate-pulse rounded-3xl border border-white/10 bg-white/[0.02]" />
       </div>
     );
@@ -104,8 +133,7 @@ export default function CalendarView() {
 
   return (
     <div className="space-y-6">
-
-      {/* Calendar header */}
+      {/* Calendar Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
@@ -130,6 +158,7 @@ export default function CalendarView() {
             type="button"
             onClick={previousMonth}
             className="rounded-xl border border-white/10 p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+            aria-label="Previous month"
           >
             <ChevronLeft size={17} />
           </button>
@@ -138,6 +167,7 @@ export default function CalendarView() {
             type="button"
             onClick={nextMonth}
             className="rounded-xl border border-white/10 p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+            aria-label="Next month"
           >
             <ChevronRight size={17} />
           </button>
@@ -146,7 +176,6 @@ export default function CalendarView() {
 
       {/* Calendar */}
       <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
-
         {/* Weekdays */}
         <div className="grid grid-cols-7 border-b border-white/10">
           {[
@@ -183,17 +212,9 @@ export default function CalendarView() {
               selectedDate
             );
 
-            /*
-             * IMPORTANT:
-             * Don't use new Date() during render.
-             * Compare against selected/current month instead.
-             */
             const today =
               isSameDay(day, selectedDate) &&
-              isSameDay(
-                day,
-                currentMonth
-              );
+              isSameDay(day, currentMonth);
 
             return (
               <button
@@ -234,7 +255,11 @@ export default function CalendarView() {
                     .map((task) => (
                       <div
                         key={task.id}
-                        className="truncate rounded-md bg-white/5 px-2 py-1 text-[10px] text-zinc-500"
+                        className={`truncate rounded-md px-2 py-1 text-[10px] ${
+                          task.completed
+                            ? "bg-white/[0.02] text-zinc-700 line-through"
+                            : "bg-white/5 text-zinc-500"
+                        }`}
                       >
                         {task.startTime && (
                           <span className="mr-1 text-zinc-600">
@@ -258,34 +283,75 @@ export default function CalendarView() {
         </div>
       </div>
 
-      {/* Selected date */}
+      {/* Selected Date */}
       <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
+        <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+              Selected day
+            </p>
 
-        <div className="border-b border-white/10 px-6 py-5">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-            Selected day
-          </p>
+            <h2 className="mt-1 text-lg font-semibold text-white">
+              {format(
+                selectedDate,
+                "EEEE, MMMM d"
+              )}
+            </h2>
+          </div>
 
-          <h2 className="mt-1 text-lg font-semibold text-white">
-            {format(
-              selectedDate,
-              "EEEE, MMMM d"
-            )}
-          </h2>
+          <button
+            type="button"
+            onClick={() => setAddTaskOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-zinc-200"
+          >
+            <Plus size={15} />
+            Add Task
+          </button>
         </div>
 
         <div className="p-5">
           {selectedTasks.length === 0 ? (
-            <div className="flex min-h-[120px] items-center justify-center text-sm text-zinc-600">
-              No tasks scheduled for this day.
+            <div className="flex min-h-[120px] flex-col items-center justify-center text-center">
+              <p className="text-sm text-zinc-600">
+                No tasks scheduled for this day.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setAddTaskOpen(true)}
+                className="mt-3 text-xs text-zinc-400 underline underline-offset-4 transition hover:text-white"
+              >
+                Create a task
+              </button>
             </div>
           ) : (
             <div className="space-y-2">
               {selectedTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4"
+                  className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/20"
                 >
+                  {/* Complete */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      toggleTask(task.id)
+                    }
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${
+                      task.completed
+                        ? "border-white bg-white text-black"
+                        : "border-white/10 text-transparent hover:border-white/30"
+                    }`}
+                    title={
+                      task.completed
+                        ? "Mark incomplete"
+                        : "Mark complete"
+                    }
+                  >
+                    <Check size={16} />
+                  </button>
+
+                  {/* Icon */}
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
                     <Clock3
                       size={17}
@@ -293,7 +359,8 @@ export default function CalendarView() {
                     />
                   </div>
 
-                  <div className="min-w-0">
+                  {/* Task Info */}
+                  <div className="min-w-0 flex-1">
                     <h3
                       className={`text-sm font-medium ${
                         task.completed
@@ -306,11 +373,42 @@ export default function CalendarView() {
 
                     <p className="mt-1 text-xs text-zinc-600">
                       {task.startTime ?? "--:--"}
+
                       {task.endTime &&
                         ` – ${task.endTime}`}
+
                       {" • "}
+
                       {task.category}
                     </p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditingTaskId(task.id)
+                      }
+                      className="rounded-lg p-2 text-zinc-600 transition hover:bg-white/5 hover:text-white"
+                      title="Edit task"
+                    >
+                      <Pencil size={15} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleDelete(
+                          task.id,
+                          task.title
+                        )
+                      }
+                      className="rounded-lg p-2 text-zinc-600 transition hover:bg-red-500/10 hover:text-red-400"
+                      title="Delete task"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -318,6 +416,25 @@ export default function CalendarView() {
           )}
         </div>
       </section>
+
+      {/* Add Task Dialog */}
+      {addTaskOpen && (
+        <AddTaskDialog
+          defaultDate={format(
+            selectedDate,
+            "yyyy-MM-dd"
+          )}
+          onClose={() => setAddTaskOpen(false)}
+        />
+      )}
+
+      {/* Edit Task Dialog */}
+      {editingTask && (
+        <AddTaskDialog
+          editTask={editingTask}
+          onClose={() => setEditingTaskId(null)}
+        />
+      )}
     </div>
   );
 }
