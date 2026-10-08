@@ -16,6 +16,7 @@ interface FocusStore {
   pause: () => void;
   reset: () => void;
   setMode: (mode: FocusMode) => void;
+  setTestDuration: (seconds: number) => void;
   completeSession: () => void;
 }
 
@@ -58,6 +59,13 @@ export const useFocusStore = create<FocusStore>()(
           mode,
           remainingSeconds:
             MODE_DURATION[mode],
+          isRunning: false,
+        });
+      },
+
+      setTestDuration: (seconds) => {
+        set({
+          remainingSeconds: seconds,
           isRunning: false,
         });
       },

@@ -34,6 +34,9 @@ export default function FocusPage() {
   const pause = useFocusStore((state) => state.pause);
   const reset = useFocusStore((state) => state.reset);
   const setMode = useFocusStore((state) => state.setMode);
+  const setTestDuration = useFocusStore(
+    (state) => state.setTestDuration
+  );
 
   useEffect(() => {
     if (!isRunning) {
@@ -219,6 +222,15 @@ export default function FocusPage() {
                       <RotateCcw size={17} />
                     </button>
                   </div>
+
+                  {/* Developer Test Control */}
+                  <button
+                    type="button"
+                    onClick={() => setTestDuration(10)}
+                    className="mt-4 text-xs text-zinc-600 transition hover:text-zinc-300"
+                  >
+                    Test 10s
+                  </button>
                 </div>
               </div>
 
