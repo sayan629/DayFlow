@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ArrowLeft,
   Bell,
   CheckCircle2,
   ListTodo,
@@ -30,33 +29,30 @@ export default function TasksPage() {
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
       <div className="flex min-h-screen">
-        {/* Sidebar */}
         <Sidebar open={sidebarOpen} />
 
-        {/* Main */}
         <section className="flex min-w-0 flex-1 flex-col">
           {/* Header */}
           <header className="flex h-20 items-center justify-between border-b border-white/10 px-5 md:px-8">
-            {/* Left */}
+            {/* Left side */}
             <div className="flex items-center gap-3">
-              {/* Back Button */}
-              <button
-                type="button"
-                onClick={() => window.history.back()}
-                className="rounded-xl p-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
-                aria-label="Go back"
-              >
-                <ArrowLeft size={20} />
-              </button>
-
-              {/* Sidebar Button */}
+              {/* Sidebar Toggle */}
               <button
                 type="button"
                 onClick={() =>
-                  setSidebarOpen(!sidebarOpen)
+                  setSidebarOpen((open) => !open)
                 }
                 className="rounded-xl p-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
-                aria-label="Toggle sidebar"
+                aria-label={
+                  sidebarOpen
+                    ? "Close sidebar"
+                    : "Open sidebar"
+                }
+                title={
+                  sidebarOpen
+                    ? "Close sidebar"
+                    : "Open sidebar"
+                }
               >
                 <Menu size={20} />
               </button>
@@ -72,17 +68,20 @@ export default function TasksPage() {
               </div>
             </div>
 
-            {/* Right */}
+            {/* Right side */}
             <div className="flex items-center gap-3">
+              {/* Notification */}
               <button
                 type="button"
                 className="relative rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                aria-label="Notifications"
               >
                 <Bell size={18} />
 
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-500" />
               </button>
 
+              {/* Profile */}
               <div className="flex items-center gap-3 border-l border-white/10 pl-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-zinc-300 to-zinc-600 text-sm font-semibold text-black">
                   S
@@ -101,7 +100,7 @@ export default function TasksPage() {
             </div>
           </header>
 
-          {/* Content */}
+          {/* Main Content */}
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-[1500px] p-5 md:p-8">
               {/* Page Header */}
@@ -116,8 +115,7 @@ export default function TasksPage() {
                   </h1>
 
                   <p className="mt-2 text-sm text-zinc-500">
-                    Manage everything you need to get
-                    done.
+                    Manage everything you need to get done.
                   </p>
                 </div>
 
@@ -141,9 +139,7 @@ export default function TasksPage() {
                 <StatCard
                   icon={<CheckCircle2 size={19} />}
                   label="Completed"
-                  value={String(
-                    completedTasks.length
-                  )}
+                  value={String(completedTasks.length)}
                 />
               </div>
 
