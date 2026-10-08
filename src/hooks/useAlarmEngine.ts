@@ -6,11 +6,21 @@ import { useTaskStore } from "@/store/taskStore";
 
 export function useAlarmEngine() {
   const tasks = useTaskStore((state) => state.tasks);
-  const startAlarm = useAlarmStore((state) => state.startAlarm);
+  const startAlarm = useAlarmStore(
+    (state) => state.startAlarm
+  );
 
-  const notifiedTasks = useRef<Set<string>>(new Set());
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const snoozeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notifiedTasks = useRef<Set<string>>(
+    new Set()
+  );
+
+  const audioRef =
+    useRef<HTMLAudioElement | null>(null);
+
+  const snoozeTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
 
   // Create alarm audio
   useEffect(() => {
@@ -79,12 +89,13 @@ export function useAlarmEngine() {
         audio.currentTime = 0;
       }
 
-      // Clear previous snooze if one exists
+      // Clear previous snooze
       if (snoozeTimeoutRef.current) {
         clearTimeout(snoozeTimeoutRef.current);
       }
 
-      const alarmState = useAlarmStore.getState();
+      const alarmState =
+        useAlarmStore.getState();
 
       const taskId = alarmState.taskId;
       const taskTitle = alarmState.taskTitle;
@@ -95,7 +106,26 @@ export function useAlarmEngine() {
 
       // Wait for snooze duration
       snoozeTimeoutRef.current = setTimeout(() => {
-        const currentAudio = audioRef.current;
+        const currentAudio =
+          audioRef.current;
+
+        // Check whether the task still exists
+        // and whether its alarm is still enabled.
+        const currentTask =
+          useTaskStore
+            .getState()
+            .tasks.find(
+              (task) => task.id === taskId
+            );
+
+        if (
+          !currentTask ||
+          currentTask.completed ||
+          currentTask.alarmEnabled === false
+        ) {
+          snoozeTimeoutRef.current = null;
+          return;
+        }
 
         if (currentAudio) {
           currentAudio.currentTime = 0;
@@ -134,17 +164,36 @@ export function useAlarmEngine() {
     const checkAlarms = () => {
       const now = new Date();
 
-      const today = now.toISOString().split("T")[0];
+      const today = now
+        .toISOString()
+        .split("T")[0];
 
       const currentMinutes =
-        now.getHours() * 60 + now.getMinutes();
+        now.getHours() * 60 +
+        now.getMinutes();
 
       tasks.forEach((task) => {
-        if (task.completed) return;
-        if (task.alarmEnabled === false) return;
-        if (task.date !== today) return;
-        if (!task.startTime) return;
+        // Ignore completed tasks
+        if (task.completed) {
+          return;
+        }
 
+        // Ignore disabled alarms
+        if (task.alarmEnabled === false) {
+          return;
+        }
+
+        // Only check today's tasks
+        if (task.date !== today) {
+          return;
+        }
+
+        // Task must have a start time
+        if (!task.startTime) {
+          return;
+        }
+
+        // Task must have a reminder value
         if (
           task.reminder === undefined ||
           task.reminder === null
@@ -153,7 +202,9 @@ export function useAlarmEngine() {
         }
 
         const [hour, minute] =
-          task.startTime.split(":").map(Number);
+          task.startTime
+            .split(":")
+            .map(Number);
 
         const taskMinutes =
           hour * 60 + minute;
@@ -164,17 +215,42 @@ export function useAlarmEngine() {
         const notificationKey =
           `${task.id}-${task.date}-${task.startTime}-${task.reminder}`;
 
-          if (
-            currentMinutes >= reminderMinutes &&
-            !notifiedTasks.current.has(notificationKey)
-          ) {
-          notifiedTasks.current.add(notificationKey);
+        /*
+         * Allow the alarm to trigger:
+         *
+         * exactly at the reminder time
+         * OR
+         * up to 2 minutes afterwards.
+         *
+         * This protects against small browser/timer delays
+         * while preventing very old reminders from firing.
+         */
+        const minutesLate =
+          currentMinutes -
+          reminderMinutes;
 
-          // 🔊 Start music
+        const withinGraceWindow =
+          minutesLate >= 0 &&
+          minutesLate <= 2;
+
+        if (
+          withinGraceWindow &&
+          !notifiedTasks.current.has(
+            notificationKey
+          )
+        ) {
+          notifiedTasks.current.add(
+            notificationKey
+          );
+
+          // 🔊 Start alarm sound
           playAlarm();
 
           // 🔔 Start alarm state
-          startAlarm(task.id, task.title);
+          startAlarm(
+            task.id,
+            task.title
+          );
 
           // 🖥️ Desktop notification
           sendNotification(
@@ -185,8 +261,10 @@ export function useAlarmEngine() {
       });
     };
 
+    // Check immediately
     checkAlarms();
 
+    // Check every second
     const interval = setInterval(
       checkAlarms,
       1000
@@ -200,7 +278,9 @@ export function useAlarmEngine() {
   function playAlarm() {
     const audio = audioRef.current;
 
-    if (!audio) return;
+    if (!audio) {
+      return;
+    }
 
     audio.currentTime = 0;
 
@@ -233,7 +313,10 @@ function sendNotification(
             : "minutes"
         }.`;
 
-  if (Notification.permission === "granted") {
+  if (
+    Notification.permission ===
+    "granted"
+  ) {
     new Notification("DayFlow 🔔", {
       body: message,
       icon: "/favicon.ico",
@@ -242,7 +325,9 @@ function sendNotification(
     return;
   }
 
-  if (Notification.permission !== "denied") {
+  if (
+    Notification.permission !== "denied"
+  ) {
     Notification.requestPermission().then(
       (permission) => {
         if (permission === "granted") {
