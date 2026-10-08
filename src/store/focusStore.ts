@@ -11,12 +11,14 @@ interface FocusStore {
   remainingSeconds: number;
   isRunning: boolean;
   completedSessions: number;
+  selectedTaskId: string | null;
 
   start: () => void;
   pause: () => void;
   reset: () => void;
   setMode: (mode: FocusMode) => void;
   setTestDuration: (seconds: number) => void;
+  setSelectedTask: (taskId: string | null) => void;
   completeSession: () => void;
 }
 
@@ -33,6 +35,7 @@ export const useFocusStore = create<FocusStore>()(
       remainingSeconds: MODE_DURATION.focus,
       isRunning: false,
       completedSessions: 0,
+      selectedTaskId: null,
 
       start: () => {
         set({
@@ -67,6 +70,12 @@ export const useFocusStore = create<FocusStore>()(
         set({
           remainingSeconds: seconds,
           isRunning: false,
+        });
+      },
+
+      setSelectedTask: (taskId) => {
+        set({
+          selectedTaskId: taskId,
         });
       },
 
