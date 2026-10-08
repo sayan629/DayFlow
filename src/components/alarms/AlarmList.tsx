@@ -11,3 +11,17 @@ export default function AlarmList() {
   const [disabledAlarms, setDisabledAlarms] = useState<string[]>(
     []
   );
+const today = new Date().toISOString().split("T")[0];
+
+  const alarmTasks = useMemo(() => {
+    return tasks
+      .filter(
+        (task) =>
+          task.date === today &&
+          task.startTime &&
+          !task.completed
+      )
+      .sort((a, b) =>
+        (a.startTime ?? "").localeCompare(b.startTime ?? "")
+      );
+  }, [tasks, today]);
