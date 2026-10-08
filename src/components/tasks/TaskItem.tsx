@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { useScheduler } from "@/hooks/useScheduler";
 import { getTaskStatus } from "@/lib/scheduler";
 import { useTaskStore } from "@/store/taskStore";
 import { Task } from "@/types/task";
@@ -27,7 +28,11 @@ const priorityStyles = {
 };
 
 export default function TaskItem({ task }: TaskItemProps) {
-  const status = getTaskStatus(task);
+  const now = useScheduler();
+
+  const status = now
+    ? getTaskStatus(task)
+    : "upcoming";
 
   const toggleTask = useTaskStore(
     (state) => state.toggleTask
@@ -248,7 +253,9 @@ export default function TaskItem({ task }: TaskItemProps) {
                 {/* More */}
                 <button
                   type="button"
-                  onClick={() => setMenuOpen((open) => !open)}
+                  onClick={() =>
+                    setMenuOpen((open) => !open)
+                  }
                   className="rounded-lg p-2 text-zinc-700 opacity-0 transition hover:bg-white/5 hover:text-white group-hover:opacity-100"
                   title="More options"
                   aria-label="More options"
@@ -298,6 +305,7 @@ export default function TaskItem({ task }: TaskItemProps) {
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
                     >
                       <Check size={14} />
+
                       {task.completed
                         ? "Mark incomplete"
                         : "Mark complete"}

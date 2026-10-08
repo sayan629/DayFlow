@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import { useScheduler } from "@/hooks/useScheduler";
 import {
   getNextTask,
+  getTaskStatus,
 } from "@/lib/scheduler";
 import { useTaskStore } from "@/store/taskStore";
 
@@ -25,6 +26,14 @@ export default function NextTaskCard() {
 
     return getNextTask(tasks);
   }, [tasks, now]);
+
+  const taskStatus = useMemo(() => {
+  if (!nextTask || !now) {
+    return null;
+  }
+
+  return getTaskStatus(nextTask);
+}, [nextTask, now]);
 
   const countdown = useMemo(() => {
     if (!nextTask?.startTime || !now) {
@@ -115,9 +124,13 @@ export default function NextTaskCard() {
 
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-                    Upcoming
-                  </span>
+                 <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+  {taskStatus === "current"
+    ? "Current"
+    : taskStatus === "missed"
+      ? "Missed"
+      : "Upcoming"}
+</span>
                 </div>
 
                 <h3 className="mt-1 truncate text-lg font-semibold text-white">
