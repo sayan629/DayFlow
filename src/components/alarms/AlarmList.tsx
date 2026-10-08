@@ -81,3 +81,20 @@ const today = new Date().toISOString().split("T")[0];
           </div>
         </div>
       </div>
+       {/* Alarm list */}
+      <div className="divide-y divide-white/10">
+        {alarmTasks.map((task) => {
+          const disabled = disabledAlarms.includes(
+            task.id
+          );
+
+          return (
+            <div
+              key={task.id}
+              className={`flex items-center gap-4 px-6 py-5 transition ${
+                disabled
+                  ? "opacity-50"
+                  : "hover:bg-white/[0.02]"
+              }`}
+            >
+            </div>
