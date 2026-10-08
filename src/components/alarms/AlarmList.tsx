@@ -25,3 +25,10 @@ const today = new Date().toISOString().split("T")[0];
         (a.startTime ?? "").localeCompare(b.startTime ?? "")
       );
   }, [tasks, today]);
+  const toggleAlarm = (taskId: string) => {
+    setDisabledAlarms((current) =>
+      current.includes(taskId)
+        ? current.filter((id) => id !== taskId)
+        : [...current, taskId]
+    );
+  };
