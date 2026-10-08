@@ -4,6 +4,7 @@ import { Bell, Menu } from "lucide-react";
 import { useState } from "react";
 
 import Sidebar from "@/components/layout/Sidebar";
+import AlarmList from "@/components/alarms/AlarmList";
 
 export default function AlarmsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -82,7 +83,7 @@ export default function AlarmsPage() {
                   Manage your upcoming reminders and alarms.
                 </p>
               </div>
-
+              <AlarmList />
               {/* Empty state */}
               <section className="flex min-h-[420px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.02]">
                 <div className="text-center">
