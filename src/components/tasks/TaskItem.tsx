@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  Bell,
+  BellOff,
   Check,
   MoreHorizontal,
   Pencil,
@@ -35,7 +37,32 @@ export default function TaskItem({ task }: TaskItemProps) {
     (state) => state.deleteTask
   );
 
+  const updateTask = useTaskStore(
+    (state) => state.updateTask
+  );
+
   const [editOpen, setEditOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const alarmEnabled = task.alarmEnabled !== false;
+
+  const handleDelete = () => {
+    const confirmed = window.confirm(
+      `Delete "${task.title}"?`
+    );
+
+    if (!confirmed) return;
+
+    deleteTask(task.id);
+  };
+
+  const handleToggleAlarm = () => {
+    updateTask(task.id, {
+      alarmEnabled: !alarmEnabled,
+    });
+
+    setMenuOpen(false);
+  };
 
   return (
     <>
@@ -86,19 +113,20 @@ export default function TaskItem({ task }: TaskItemProps) {
 
                 {/* Task Information */}
                 <div className="min-w-0">
-                  {/* Current Task Indicator */}
+                  {/* Current Task */}
                   {status === "current" && (
-  <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white">
-    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-    Now
-  </div>
-)}
+                    <div className="mb-2 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wider text-white">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                      Now
+                    </div>
+                  )}
 
-{status === "upcoming" && task.startTime && (
-  <div className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-    Upcoming
-  </div>
-)}
+                  {/* Upcoming */}
+                  {status === "upcoming" && task.startTime && (
+                    <div className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                      Upcoming
+                    </div>
+                  )}
 
                   {/* Task Title */}
                   <h4
@@ -151,6 +179,33 @@ export default function TaskItem({ task }: TaskItemProps) {
                       {task.priority}
                     </span>
 
+                    {/* Alarm */}
+                    {task.startTime && (
+                      <>
+                        <span className="text-zinc-700">
+                          •
+                        </span>
+
+                        <span
+                          className={`flex items-center gap-1 ${
+                            alarmEnabled
+                              ? "text-zinc-500"
+                              : "text-zinc-700"
+                          }`}
+                        >
+                          {alarmEnabled ? (
+                            <Bell size={12} />
+                          ) : (
+                            <BellOff size={12} />
+                          )}
+
+                          {alarmEnabled
+                            ? "Alarm on"
+                            : "Alarm off"}
+                        </span>
+                      </>
+                    )}
+
                     {/* Missed */}
                     {status === "missed" &&
                       !task.completed && (
@@ -169,7 +224,7 @@ export default function TaskItem({ task }: TaskItemProps) {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-1">
+              <div className="relative flex shrink-0 items-center gap-1">
                 {/* Edit */}
                 <button
                   type="button"
@@ -183,7 +238,7 @@ export default function TaskItem({ task }: TaskItemProps) {
                 {/* Delete */}
                 <button
                   type="button"
-                  onClick={() => deleteTask(task.id)}
+                  onClick={handleDelete}
                   className="rounded-lg p-2 text-zinc-700 opacity-0 transition hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
                   title="Delete task"
                 >
@@ -193,11 +248,76 @@ export default function TaskItem({ task }: TaskItemProps) {
                 {/* More */}
                 <button
                   type="button"
+                  onClick={() => setMenuOpen((open) => !open)}
                   className="rounded-lg p-2 text-zinc-700 opacity-0 transition hover:bg-white/5 hover:text-white group-hover:opacity-100"
-                  title="More"
+                  title="More options"
+                  aria-label="More options"
                 >
                   <MoreHorizontal size={16} />
                 </button>
+
+                {/* More Menu */}
+                {menuOpen && (
+                  <div className="absolute right-0 top-10 z-50 w-44 overflow-hidden rounded-xl border border-white/10 bg-[#151518] p-1 shadow-2xl">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditOpen(true);
+                        setMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                    >
+                      <Pencil size={14} />
+                      Edit task
+                    </button>
+
+                    {task.startTime && (
+                      <button
+                        type="button"
+                        onClick={handleToggleAlarm}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                      >
+                        {alarmEnabled ? (
+                          <BellOff size={14} />
+                        ) : (
+                          <Bell size={14} />
+                        )}
+
+                        {alarmEnabled
+                          ? "Disable alarm"
+                          : "Enable alarm"}
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleTask(task.id);
+                        setMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                    >
+                      <Check size={14} />
+                      {task.completed
+                        ? "Mark incomplete"
+                        : "Mark complete"}
+                    </button>
+
+                    <div className="my-1 border-t border-white/5" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleDelete();
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-red-400 transition hover:bg-red-500/10"
+                    >
+                      <Trash2 size={14} />
+                      Delete task
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
