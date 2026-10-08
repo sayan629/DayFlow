@@ -125,3 +125,18 @@ const today = new Date().toISOString().split("T")[0];
                   />
                 )}
               </div>
+
+               {/* Details */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="truncate text-sm font-medium">
+                    {task.title}
+                  </h3>
+
+                  {task.completed && (
+                    <CheckCircle2
+                      size={14}
+                      className="text-zinc-500"
+                    />
+                  )}
+                </div>
