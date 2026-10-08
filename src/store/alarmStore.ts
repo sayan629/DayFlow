@@ -72,6 +72,7 @@ export const useAlarmStore = create<AlarmStore>()(
 
       stopAlarm: () => {
         const state = get();
+        const stoppedAt = new Date().toISOString();
 
         if (typeof window !== "undefined") {
           window.dispatchEvent(
@@ -86,15 +87,17 @@ export const useAlarmStore = create<AlarmStore>()(
             taskTitle: state.taskTitle,
             status: "stopped",
             triggeredAt:
-              state.triggeredAt ??
-              new Date().toISOString(),
-            stoppedAt: new Date().toISOString(),
+              state.triggeredAt ?? stoppedAt,
+            stoppedAt,
           };
 
           set({
             isRinging: false,
+            taskId: null,
+            taskTitle: null,
             status: "stopped",
-            stoppedAt: historyItem.stoppedAt,
+            stoppedAt,
+            snoozedUntil: null,
             history: [
               historyItem,
               ...state.history,
@@ -103,8 +106,11 @@ export const useAlarmStore = create<AlarmStore>()(
         } else {
           set({
             isRinging: false,
+            taskId: null,
+            taskTitle: null,
             status: "stopped",
-            stoppedAt: new Date().toISOString(),
+            stoppedAt,
+            snoozedUntil: null,
           });
         }
       },
@@ -142,6 +148,8 @@ export const useAlarmStore = create<AlarmStore>()(
 
           set({
             isRinging: false,
+            taskId: null,
+            taskTitle: null,
             status: "snoozed",
             snoozedUntil,
             history: [
@@ -152,6 +160,8 @@ export const useAlarmStore = create<AlarmStore>()(
         } else {
           set({
             isRinging: false,
+            taskId: null,
+            taskTitle: null,
             status: "snoozed",
             snoozedUntil,
           });
@@ -166,6 +176,12 @@ export const useAlarmStore = create<AlarmStore>()(
     }),
     {
       name: "dayflow-alarm-store",
+
+      // Only persist history.
+      // Current ringing state must NOT survive refresh.
+      partialize: (state) => ({
+        history: state.history,
+      }),
     }
   )
 );
