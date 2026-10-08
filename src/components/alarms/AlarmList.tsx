@@ -17,9 +17,11 @@ import { useTaskStore } from "@/store/taskStore";
 export default function AlarmList() {
   const tasks = useTaskStore((state) => state.tasks);
 
+  const updateTask = useTaskStore(
+    (state) => state.updateTask
+  );
+
   const [today, setToday] = useState("");
-  const [disabledAlarms, setDisabledAlarms] =
-    useState<string[]>([]);
 
   useEffect(() => {
     setToday(
@@ -46,12 +48,13 @@ export default function AlarmList() {
       );
   }, [tasks, today]);
 
-  const toggleAlarm = (taskId: string) => {
-    setDisabledAlarms((current) =>
-      current.includes(taskId)
-        ? current.filter((id) => id !== taskId)
-        : [...current, taskId]
-    );
+  const toggleAlarm = (
+    taskId: string,
+    enabled: boolean
+  ) => {
+    updateTask(taskId, {
+      alarmEnabled: !enabled,
+    });
   };
 
   if (!today) {
@@ -119,9 +122,8 @@ export default function AlarmList() {
       {/* Alarm list */}
       <div className="divide-y divide-white/10">
         {alarmTasks.map((task) => {
-          const disabled = disabledAlarms.includes(
-            task.id
-          );
+          const disabled =
+            task.alarmEnabled === false;
 
           return (
             <div
@@ -196,7 +198,10 @@ export default function AlarmList() {
               <button
                 type="button"
                 onClick={() =>
-                  toggleAlarm(task.id)
+                  toggleAlarm(
+                    task.id,
+                    task.alarmEnabled !== false
+                  )
                 }
                 className={`relative h-7 w-12 shrink-0 rounded-full transition ${
                   disabled
@@ -230,14 +235,15 @@ function formatTime(time: string) {
     .split(":")
     .map(Number);
 
-  const date = new Date();
+  const period = hours >= 12 ? "PM" : "AM";
 
-  date.setHours(hours, minutes, 0, 0);
+  const displayHours =
+    hours % 12 || 12;
 
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return `${displayHours}:${String(minutes).padStart(
+    2,
+    "0"
+  )} ${period}`;
 }
 
 function formatReminder(minutes: number) {
