@@ -1,20 +1,37 @@
 "use client";
 
-import { Bell, BellOff, CheckCircle2, Clock3 } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  Bell,
+  BellOff,
+  CheckCircle2,
+  Clock3,
+} from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { useTaskStore } from "@/store/taskStore";
 
 export default function AlarmList() {
   const tasks = useTaskStore((state) => state.tasks);
 
-  const [disabledAlarms, setDisabledAlarms] = useState<string[]>(
-    []
-  );
+  const [today, setToday] = useState("");
+  const [disabledAlarms, setDisabledAlarms] =
+    useState<string[]>([]);
 
-  const today = new Date().toISOString().split("T")[0];
+  useEffect(() => {
+    setToday(
+      new Date().toISOString().split("T")[0]
+    );
+  }, []);
 
   const alarmTasks = useMemo(() => {
+    if (!today) {
+      return [];
+    }
+
     return tasks
       .filter(
         (task) =>
@@ -23,7 +40,9 @@ export default function AlarmList() {
           !task.completed
       )
       .sort((a, b) =>
-        (a.startTime ?? "").localeCompare(b.startTime ?? "")
+        (a.startTime ?? "").localeCompare(
+          b.startTime ?? ""
+        )
       );
   }, [tasks, today]);
 
@@ -34,6 +53,16 @@ export default function AlarmList() {
         : [...current, taskId]
     );
   };
+
+  if (!today) {
+    return (
+      <section className="flex min-h-[360px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.02]">
+        <p className="text-sm text-zinc-500">
+          Loading alarms...
+        </p>
+      </section>
+    );
+  }
 
   if (alarmTasks.length === 0) {
     return (
@@ -197,7 +226,9 @@ export default function AlarmList() {
 }
 
 function formatTime(time: string) {
-  const [hours, minutes] = time.split(":").map(Number);
+  const [hours, minutes] = time
+    .split(":")
+    .map(Number);
 
   const date = new Date();
 
