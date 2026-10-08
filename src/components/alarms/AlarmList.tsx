@@ -140,3 +140,78 @@ const today = new Date().toISOString().split("T")[0];
                     />
                   )}
                 </div>
+
+                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                  <span className="capitalize">
+                    {task.category}
+                  </span>
+
+                  <span className="text-zinc-700">
+                    •
+                  </span>
+
+                  <span>
+                    {formatReminder(
+                      task.reminder ?? 0
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Toggle */}
+              <button
+                type="button"
+                onClick={() =>
+                  toggleAlarm(task.id)
+                }
+                className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+                  disabled
+                    ? "bg-white/10"
+                    : "bg-white"
+                }`}
+                aria-label={
+                  disabled
+                    ? "Enable alarm"
+                    : "Disable alarm"
+                }
+              >
+                <span
+                  className={`absolute top-1 h-5 w-5 rounded-full transition-all ${
+                    disabled
+                      ? "left-1 bg-zinc-500"
+                      : "left-6 bg-black"
+                  }`}
+                />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function formatTime(time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+
+  const date = new Date();
+
+  date.setHours(hours, minutes, 0, 0);
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatReminder(minutes: number) {
+  if (minutes === 0) {
+    return "At start time";
+  }
+
+  if (minutes === 60) {
+    return "1 hour before";
+  }
+
+  return `${minutes} min before`;
+}
