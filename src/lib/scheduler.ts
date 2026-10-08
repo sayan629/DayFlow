@@ -104,6 +104,10 @@ export function getNextTask(
         return false;
       }
 
+      if (task.alarmEnabled === false) {
+  return false;
+}
+
       if (task.date !== today) {
         return false;
       }

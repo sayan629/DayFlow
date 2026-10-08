@@ -141,6 +141,7 @@ export function useAlarmEngine() {
 
       tasks.forEach((task) => {
         if (task.completed) return;
+        if (task.alarmEnabled === false) return;
         if (task.date !== today) return;
         if (!task.startTime) return;
 
@@ -163,10 +164,10 @@ export function useAlarmEngine() {
         const notificationKey =
           `${task.id}-${task.date}-${task.startTime}-${task.reminder}`;
 
-        if (
-          currentMinutes === reminderMinutes &&
-          !notifiedTasks.current.has(notificationKey)
-        ) {
+          if (
+            currentMinutes >= reminderMinutes &&
+            !notifiedTasks.current.has(notificationKey)
+          ) {
           notifiedTasks.current.add(notificationKey);
 
           // 🔊 Start music
