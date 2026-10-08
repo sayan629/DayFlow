@@ -1,6 +1,11 @@
 "use client";
 
-import { Bell, CheckCircle2, ListTodo, Menu } from "lucide-react";
+import {
+  Bell,
+  CheckCircle2,
+  ListTodo,
+  Menu,
+} from "lucide-react";
 import { useState } from "react";
 
 import Sidebar from "@/components/layout/Sidebar";
