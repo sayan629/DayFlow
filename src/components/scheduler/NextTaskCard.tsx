@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  CheckCircle2,
   Clock3,
   ListTodo,
 } from "lucide-react";
@@ -9,7 +10,7 @@ import { useMemo } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
 import {
-  getNextTask,
+  getNextScheduledTask,
   getTaskStatus,
 } from "@/lib/scheduler";
 import { useTaskStore } from "@/store/taskStore";
@@ -17,34 +18,51 @@ import { useTaskStore } from "@/store/taskStore";
 export default function NextTaskCard() {
   const now = useScheduler();
 
-  const tasks = useTaskStore((state) => state.tasks);
+  const tasks = useTaskStore(
+    (state) => state.tasks
+  );
 
+  const toggleTask = useTaskStore(
+    (state) => state.toggleTask
+  );
+
+  /*
+   * Find the next scheduled task.
+   */
   const nextTask = useMemo(() => {
     if (!now) {
       return null;
     }
 
-    return getNextTask(tasks);
+    return getNextScheduledTask(tasks, now);
   }, [tasks, now]);
 
+  /*
+   * Determine the live status of the task.
+   */
   const taskStatus = useMemo(() => {
-  if (!nextTask || !now) {
-    return null;
-  }
+    if (!nextTask || !now) {
+      return null;
+    }
 
-  return getTaskStatus(nextTask);
-}, [nextTask, now]);
+    return getTaskStatus(nextTask);
+  }, [nextTask, now]);
 
+  /*
+   * Calculate countdown using the scheduler's current
+   * time instead of calling new Date() during render.
+   */
   const countdown = useMemo(() => {
     if (!nextTask?.startTime || !now) {
       return null;
     }
 
-    const [hours, minutes] = nextTask.startTime
-      .split(":")
-      .map(Number);
+    const [hours, minutes] =
+      nextTask.startTime
+        .split(":")
+        .map(Number);
 
-    const taskTime = new Date();
+    const taskTime = new Date(now);
 
     taskTime.setHours(
       hours,
@@ -54,7 +72,8 @@ export default function NextTaskCard() {
     );
 
     const difference =
-      taskTime.getTime() - now.getTime();
+      taskTime.getTime() -
+      now.getTime();
 
     if (difference <= 0) {
       return "Starting now";
@@ -90,8 +109,48 @@ export default function NextTaskCard() {
     )}`;
   }, [nextTask, now]);
 
+  /*
+   * Status presentation.
+   */
+  const statusConfig = useMemo(() => {
+    switch (taskStatus) {
+      case "current":
+        return {
+          label: "Current",
+          className:
+            "border-emerald-400/20 bg-emerald-400/10 text-emerald-400",
+        };
+
+      case "missed":
+        return {
+          label: "Missed",
+          className:
+            "border-amber-400/20 bg-amber-400/10 text-amber-400",
+        };
+
+      case "completed":
+        return {
+          label: "Completed",
+          className:
+            "border-zinc-400/20 bg-zinc-400/10 text-zinc-400",
+        };
+
+      default:
+        return {
+          label: "Upcoming",
+          className:
+            "border-blue-400/20 bg-blue-400/10 text-blue-400",
+        };
+    }
+  }, [taskStatus]);
+
+  if (!now) {
+    return null;
+  }
+
   return (
     <div className="mb-6 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
         <div>
           <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
@@ -114,31 +173,40 @@ export default function NextTaskCard() {
       {nextTask ? (
         <div className="p-6">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            {/* Task information */}
             <div className="flex min-w-0 items-start gap-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                <ListTodo
-                  size={19}
-                  className="text-zinc-400"
-                />
+                {taskStatus === "completed" ? (
+                  <CheckCircle2
+                    size={19}
+                    className="text-emerald-400"
+                  />
+                ) : (
+                  <ListTodo
+                    size={19}
+                    className="text-zinc-400"
+                  />
+                )}
               </div>
 
               <div className="min-w-0">
+                {/* Status */}
                 <div className="flex items-center gap-2">
-                 <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-  {taskStatus === "current"
-    ? "Current"
-    : taskStatus === "missed"
-      ? "Missed"
-      : "Upcoming"}
-</span>
+                  <span
+                    className={`rounded-md border px-2 py-1 text-[9px] font-semibold uppercase tracking-wider ${statusConfig.className}`}
+                  >
+                    {statusConfig.label}
+                  </span>
                 </div>
 
-                <h3 className="mt-1 truncate text-lg font-semibold text-white">
+                {/* Title */}
+                <h3 className="mt-2 truncate text-lg font-semibold text-white">
                   {nextTask.title}
                 </h3>
 
+                {/* Metadata */}
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                  <span className="rounded-md bg-white/5 px-2 py-1">
+                  <span className="rounded-md bg-white/5 px-2 py-1 capitalize">
                     {nextTask.category}
                   </span>
 
@@ -164,14 +232,55 @@ export default function NextTaskCard() {
               </div>
             </div>
 
-            <div className="shrink-0 rounded-2xl border border-white/10 bg-black/20 px-5 py-3 sm:min-w-[150px] sm:text-right">
-              <p className="text-[10px] uppercase tracking-wider text-zinc-600">
-                Starts in
-              </p>
+            {/* Countdown / Action */}
+            <div className="flex shrink-0 items-center gap-3">
+              {taskStatus === "current" ? (
+                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-5 py-3 text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-emerald-400/60">
+                    In progress
+                  </p>
 
-              <p className="mt-1 font-mono text-xl font-semibold text-white">
-                {countdown ?? "--:--"}
-              </p>
+                  <p className="mt-1 font-mono text-lg font-semibold text-emerald-400">
+                    NOW
+                  </p>
+                </div>
+              ) : taskStatus === "missed" ? (
+                <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 px-5 py-3 text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-amber-400/60">
+                    Status
+                  </p>
+
+                  <p className="mt-1 font-mono text-lg font-semibold text-amber-400">
+                    MISSED
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-3 text-right sm:min-w-[150px]">
+                  <p className="text-[10px] uppercase tracking-wider text-zinc-600">
+                    Starts in
+                  </p>
+
+                  <p className="mt-1 font-mono text-xl font-semibold text-white">
+                    {countdown ?? "--:--"}
+                  </p>
+                </div>
+              )}
+
+              {/* Complete button */}
+              {!nextTask.completed &&
+                taskStatus !== "missed" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      toggleTask(nextTask.id)
+                    }
+                    className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-zinc-500 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+                    aria-label="Complete task"
+                    title="Complete task"
+                  >
+                    <CheckCircle2 size={18} />
+                  </button>
+                )}
             </div>
           </div>
         </div>

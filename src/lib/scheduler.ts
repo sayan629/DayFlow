@@ -6,7 +6,24 @@ export type TaskStatus =
   | "completed"
   | "missed";
 
-export function getTaskStatus(task: Task): TaskStatus {
+function getTodayString(now: Date) {
+  return now.toISOString().split("T")[0];
+}
+
+function getMinutes(time: string) {
+  const [hour, minute] = time.split(":").map(Number);
+
+  return hour * 60 + minute;
+}
+
+function getCurrentMinutes(now: Date) {
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+export function getTaskStatus(
+  task: Task,
+  now = new Date()
+): TaskStatus {
   if (task.completed) {
     return "completed";
   }
@@ -15,42 +32,37 @@ export function getTaskStatus(task: Task): TaskStatus {
     return "upcoming";
   }
 
-  const now = new Date();
-
-  const today = now.toISOString().split("T")[0];
+  const today = getTodayString(now);
 
   if (task.date !== today) {
     return "upcoming";
   }
 
   const currentMinutes =
-    now.getHours() * 60 + now.getMinutes();
-
-  const [startHour, startMinute] = task.startTime
-    .split(":")
-    .map(Number);
+    getCurrentMinutes(now);
 
   const startMinutes =
-    startHour * 60 + startMinute;
+    getMinutes(task.startTime);
 
+  /*
+   * No end time:
+   *
+   * Before start  → upcoming
+   * At/after start → current
+   *
+   * We don't mark it missed because there is
+   * no defined end time.
+   */
   if (!task.endTime) {
     if (currentMinutes < startMinutes) {
       return "upcoming";
     }
 
-    if (currentMinutes === startMinutes) {
-      return "current";
-    }
-
-    return "missed";
+    return "current";
   }
 
-  const [endHour, endMinute] = task.endTime
-    .split(":")
-    .map(Number);
-
   const endMinutes =
-    endHour * 60 + endMinute;
+    getMinutes(task.endTime);
 
   if (currentMinutes < startMinutes) {
     return "upcoming";
@@ -66,60 +78,43 @@ export function getTaskStatus(task: Task): TaskStatus {
   return "missed";
 }
 
-export function getMinutesUntilTask(
-  task: Task
-): number | null {
-  if (!task.startTime) {
-    return null;
-  }
-
-  const now = new Date();
-
-  const [hour, minute] = task.startTime
-    .split(":")
-    .map(Number);
-
-  const taskDate = new Date();
-
-  taskDate.setHours(hour, minute, 0, 0);
-
-  return Math.round(
-    (taskDate.getTime() - now.getTime()) / 60000
+/*
+ * Returns the task that is currently active.
+ */
+export function getActiveTask(
+  tasks: Task[],
+  now = new Date()
+): Task | null {
+  return (
+    tasks.find(
+      (task) =>
+        getTaskStatus(task, now) ===
+        "current"
+    ) ?? null
   );
 }
 
+/*
+ * Returns the next task that has not started yet.
+ */
 export function getNextTask(
-  tasks: Task[]
+  tasks: Task[],
+  now = new Date()
 ): Task | null {
-  const now = new Date();
-
-  const today = now.toISOString().split("T")[0];
-
+  const today = getTodayString(now);
   const currentMinutes =
-    now.getHours() * 60 + now.getMinutes();
+    getCurrentMinutes(now);
 
   const upcomingTasks = tasks
     .filter((task) => {
-      if (task.completed) {
-        return false;
-      }
+      if (task.completed) return false;
+      if (task.date !== today) return false;
+      if (!task.startTime) return false;
 
-      if (task.date !== today) {
-        return false;
-      }
+      const startMinutes =
+        getMinutes(task.startTime);
 
-      if (!task.startTime) {
-        return false;
-      }
-
-      const [hour, minute] = task.startTime
-        .split(":")
-        .map(Number);
-
-      const taskMinutes =
-        hour * 60 + minute;
-
-      return taskMinutes > currentMinutes;
+      return startMinutes > currentMinutes;
     })
     .sort((a, b) =>
       (a.startTime ?? "").localeCompare(
@@ -130,68 +125,110 @@ export function getNextTask(
   return upcomingTasks[0] ?? null;
 }
 
-export function getNextAlarm(
-  tasks: Task[]
+/*
+ * Returns the next scheduled task, including
+ * the currently active task.
+ *
+ * Priority:
+ * 1. Current task
+ * 2. Upcoming task
+ */
+export function getNextScheduledTask(
+  tasks: Task[],
+  now = new Date()
 ): Task | null {
-  const now = new Date();
+  const activeTask = getActiveTask(
+    tasks,
+    now
+  );
 
-  const today = now.toISOString().split("T")[0];
+  if (activeTask) {
+    return activeTask;
+  }
 
+  return getNextTask(tasks, now);
+}
+
+/*
+ * Minutes until a task starts.
+ */
+export function getMinutesUntilTask(
+  task: Task,
+  now = new Date()
+): number | null {
+  if (!task.startTime) {
+    return null;
+  }
+
+  const [hour, minute] =
+    task.startTime.split(":").map(Number);
+
+  const taskDate = new Date(now);
+
+  taskDate.setHours(
+    hour,
+    minute,
+    0,
+    0
+  );
+
+  return Math.round(
+    (taskDate.getTime() -
+      now.getTime()) /
+      60000
+  );
+}
+
+/*
+ * Returns the next alarm scheduled for today.
+ */
+export function getNextAlarm(
+  tasks: Task[],
+  now = new Date()
+): Task | null {
+  const today = getTodayString(now);
   const currentMinutes =
-    now.getHours() * 60 + now.getMinutes();
+    getCurrentMinutes(now);
 
   const upcomingAlarms = tasks
     .filter((task) => {
-      if (task.completed) {
-        return false;
-      }
-
+      if (task.completed) return false;
       if (task.alarmEnabled === false) {
         return false;
       }
 
-      if (!task.startTime) {
+      if (!task.startTime) return false;
+      if (task.date !== today) return false;
+
+      if (
+        task.reminder === undefined ||
+        task.reminder === null
+      ) {
         return false;
       }
 
-      if (task.date !== today) {
-        return false;
-      }
-
-      if (task.reminder === undefined) {
-        return false;
-      }
-
-      const [hour, minute] = task.startTime
-        .split(":")
-        .map(Number);
-
-      const taskMinutes =
-        hour * 60 + minute;
+      const startMinutes =
+        getMinutes(task.startTime);
 
       const alarmMinutes =
-        taskMinutes - task.reminder;
+        startMinutes - task.reminder;
 
       return alarmMinutes > currentMinutes;
     })
     .sort((a, b) => {
-      const [aHour, aMinute] = (a.startTime ?? "00:00")
-        .split(":")
-        .map(Number);
+      const aStart = getMinutes(
+        a.startTime ?? "00:00"
+      );
 
-      const [bHour, bMinute] = (b.startTime ?? "00:00")
-        .split(":")
-        .map(Number);
+      const bStart = getMinutes(
+        b.startTime ?? "00:00"
+      );
 
       const aAlarm =
-        aHour * 60 +
-        aMinute -
-        (a.reminder ?? 0);
+        aStart - (a.reminder ?? 0);
 
       const bAlarm =
-        bHour * 60 +
-        bMinute -
-        (b.reminder ?? 0);
+        bStart - (b.reminder ?? 0);
 
       return aAlarm - bAlarm;
     });
