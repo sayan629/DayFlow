@@ -3,10 +3,12 @@
 import {
   ArrowLeft,
   CheckCircle2,
+  Clock3,
   Menu,
   Pause,
   Play,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -21,34 +23,32 @@ export default function FocusPage() {
 
   // Focus store
   const mode = useFocusStore((state) => state.mode);
-
   const remainingSeconds = useFocusStore(
     (state) => state.remainingSeconds
   );
-
-  const isRunning = useFocusStore(
-    (state) => state.isRunning
-  );
-
+  const isRunning = useFocusStore((state) => state.isRunning);
   const completedSessions = useFocusStore(
     (state) => state.completedSessions
   );
-
   const selectedTaskId = useFocusStore(
     (state) => state.selectedTaskId
+  );
+  const sessionHistory = useFocusStore(
+    (state) => state.sessionHistory
   );
 
   const start = useFocusStore((state) => state.start);
   const pause = useFocusStore((state) => state.pause);
   const reset = useFocusStore((state) => state.reset);
   const setMode = useFocusStore((state) => state.setMode);
-
   const setTestDuration = useFocusStore(
     (state) => state.setTestDuration
   );
-
   const setSelectedTask = useFocusStore(
     (state) => state.setSelectedTask
+  );
+  const clearSessionHistory = useFocusStore(
+    (state) => state.clearSessionHistory
   );
 
   // Task store
@@ -190,8 +190,8 @@ export default function FocusPage() {
           </header>
 
           {/* Content */}
-          <div className="flex flex-1 items-center justify-center overflow-y-auto p-5 md:p-8">
-            <div className="w-full max-w-2xl">
+          <div className="flex-1 overflow-y-auto p-5 md:p-8">
+            <div className="mx-auto w-full max-w-2xl">
               {/* Heading */}
               <div className="text-center">
                 <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
@@ -428,6 +428,123 @@ export default function FocusPage() {
                         : "Long Break"}
                   </p>
                 </div>
+              </div>
+
+              {/* Focus History */}
+              <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.02] p-5 md:p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">
+                      Focus History
+                    </p>
+
+                    <p className="mt-1 text-xs text-zinc-600">
+                      Your completed focus sessions.
+                    </p>
+                  </div>
+
+                  {sessionHistory.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearSessionHistory}
+                      className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-500 transition hover:bg-white/5 hover:text-red-400"
+                    >
+                      <Trash2 size={14} />
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {sessionHistory.length === 0 ? (
+                  <div className="mt-5 rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center">
+                    <Clock3
+                      size={22}
+                      className="mx-auto text-zinc-700"
+                    />
+
+                    <p className="mt-3 text-sm text-zinc-500">
+                      No focus sessions yet.
+                    </p>
+
+                    <p className="mt-1 text-xs text-zinc-700">
+                      Complete a focus session and it
+                      will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-5 space-y-2">
+                    {sessionHistory.map((session) => {
+                      const durationMinutes =
+                        Math.floor(
+                          session.durationSeconds /
+                            60
+                        );
+
+                      const durationSeconds =
+                        session.durationSeconds %
+                        60;
+
+                      const completedAt =
+                        new Date(
+                          session.completedAt
+                        );
+
+                      return (
+                        <div
+                          key={session.id}
+                          className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2
+                                size={15}
+                                className="shrink-0 text-zinc-600"
+                              />
+
+                              <p className="truncate text-sm font-medium text-zinc-300">
+                                {session.taskTitle ??
+                                  "Focus Session"}
+                              </p>
+                            </div>
+
+                            <p className="mt-1 pl-6 text-[11px] text-zinc-600">
+                              {completedAt.toLocaleDateString(
+                                undefined,
+                                {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                }
+                              )}{" "}
+                              ·{" "}
+                              {completedAt.toLocaleTimeString(
+                                undefined,
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
+                            </p>
+                          </div>
+
+                          <div className="shrink-0 text-right">
+                            <p className="font-mono text-xs text-zinc-400">
+                              {durationMinutes}m{" "}
+                              {String(
+                                durationSeconds
+                              ).padStart(2, "0")}
+                              s
+                            </p>
+
+                            <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-zinc-700">
+                              Focus
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
