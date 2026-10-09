@@ -22,6 +22,7 @@ interface FocusStore {
   isRunning: boolean;
   completedSessions: number;
   selectedTaskId: string | null;
+  sessionStartedAt: string | null;
   sessionHistory: FocusSession[];
 
   start: () => void;
@@ -48,12 +49,18 @@ export const useFocusStore = create<FocusStore>()(
       isRunning: false,
       completedSessions: 0,
       selectedTaskId: null,
+      sessionStartedAt: null,
       sessionHistory: [],
 
       start: () => {
-        set({
+        set((state) => ({
           isRunning: true,
-        });
+          sessionStartedAt:
+            state.mode === "focus"
+              ? state.sessionStartedAt ??
+                new Date().toISOString()
+              : null,
+        }));
       },
 
       pause: () => {
@@ -67,6 +74,7 @@ export const useFocusStore = create<FocusStore>()(
           remainingSeconds:
             MODE_DURATION[state.mode],
           isRunning: false,
+          sessionStartedAt: null,
         }));
       },
 
@@ -76,6 +84,7 @@ export const useFocusStore = create<FocusStore>()(
           remainingSeconds:
             MODE_DURATION[mode],
           isRunning: false,
+          sessionStartedAt: null,
         });
       },
 
@@ -83,6 +92,7 @@ export const useFocusStore = create<FocusStore>()(
         set({
           remainingSeconds: seconds,
           isRunning: false,
+          sessionStartedAt: null,
         });
       },
 
@@ -101,14 +111,26 @@ export const useFocusStore = create<FocusStore>()(
             const nextSession =
               state.completedSessions + 1;
 
+            const startedAt =
+              state.sessionStartedAt ??
+              completedAt;
+
+            const elapsedSeconds = Math.max(
+              1,
+              Math.round(
+                (new Date(completedAt).getTime() -
+                  new Date(startedAt).getTime()) /
+                  1000
+              )
+            );
+
             const session: FocusSession = {
               id: crypto.randomUUID(),
               taskId: state.selectedTaskId,
               taskTitle: null,
-              mode: state.mode,
-              durationSeconds:
-                MODE_DURATION.focus,
-              startedAt: completedAt,
+              mode: "focus",
+              durationSeconds: elapsedSeconds,
+              startedAt,
               completedAt,
             };
 
@@ -123,6 +145,7 @@ export const useFocusStore = create<FocusStore>()(
               remainingSeconds:
                 MODE_DURATION[nextMode],
               isRunning: false,
+              sessionStartedAt: null,
               sessionHistory: [
                 session,
                 ...state.sessionHistory,
@@ -135,6 +158,7 @@ export const useFocusStore = create<FocusStore>()(
             remainingSeconds:
               MODE_DURATION.focus,
             isRunning: false,
+            sessionStartedAt: null,
           };
         });
       },
