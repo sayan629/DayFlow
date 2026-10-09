@@ -11,6 +11,7 @@ import { useMemo } from "react";
 import { useScheduler } from "@/hooks/useScheduler";
 import {
   getNextScheduledTask,
+  getTaskProgress,
   getTaskStatus,
 } from "@/lib/scheduler";
 import { useTaskStore } from "@/store/taskStore";
@@ -26,9 +27,6 @@ export default function NextTaskCard() {
     (state) => state.toggleTask
   );
 
-  /*
-   * Find the next scheduled task.
-   */
   const nextTask = useMemo(() => {
     if (!now) {
       return null;
@@ -37,21 +35,22 @@ export default function NextTaskCard() {
     return getNextScheduledTask(tasks, now);
   }, [tasks, now]);
 
-  /*
-   * Determine the live status of the task.
-   */
   const taskStatus = useMemo(() => {
     if (!nextTask || !now) {
       return null;
     }
 
-    return getTaskStatus(nextTask);
+    return getTaskStatus(nextTask, now);
   }, [nextTask, now]);
 
-  /*
-   * Calculate countdown using the scheduler's current
-   * time instead of calling new Date() during render.
-   */
+  const progress = useMemo(() => {
+    if (!nextTask || !now) {
+      return 0;
+    }
+
+    return getTaskProgress(nextTask, now);
+  }, [nextTask, now]);
+
   const countdown = useMemo(() => {
     if (!nextTask?.startTime || !now) {
       return null;
@@ -109,9 +108,6 @@ export default function NextTaskCard() {
     )}`;
   }, [nextTask, now]);
 
-  /*
-   * Status presentation.
-   */
   const statusConfig = useMemo(() => {
     switch (taskStatus) {
       case "current":
@@ -229,6 +225,29 @@ export default function NextTaskCard() {
                     {nextTask.priority}
                   </span>
                 </div>
+
+                {/* Live task progress */}
+                {taskStatus === "current" &&
+                  nextTask.endTime && (
+                    <div className="mt-4 max-w-md">
+                      <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-zinc-600">
+                        <span>Progress</span>
+
+                        <span>
+                          {Math.round(progress)}%
+                        </span>
+                      </div>
+
+                      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-white transition-all duration-1000"
+                          style={{
+                            width: `${progress}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
               </div>
             </div>
 

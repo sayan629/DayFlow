@@ -17,7 +17,10 @@ function getMinutes(time: string) {
 }
 
 function getCurrentMinutes(now: Date) {
-  return now.getHours() * 60 + now.getMinutes();
+  return (
+    now.getHours() * 60 +
+    now.getMinutes()
+  );
 }
 
 export function getTaskStatus(
@@ -47,7 +50,7 @@ export function getTaskStatus(
   /*
    * No end time:
    *
-   * Before start  → upcoming
+   * Before start → upcoming
    * At/after start → current
    *
    * We don't mark it missed because there is
@@ -88,8 +91,7 @@ export function getActiveTask(
   return (
     tasks.find(
       (task) =>
-        getTaskStatus(task, now) ===
-        "current"
+        getTaskStatus(task, now) === "current"
     ) ?? null
   );
 }
@@ -102,6 +104,7 @@ export function getNextTask(
   now = new Date()
 ): Task | null {
   const today = getTodayString(now);
+
   const currentMinutes =
     getCurrentMinutes(now);
 
@@ -126,12 +129,9 @@ export function getNextTask(
 }
 
 /*
- * Returns the next scheduled task, including
- * the currently active task.
- *
- * Priority:
- * 1. Current task
- * 2. Upcoming task
+ * Returns the current task first.
+ * If there is no current task, returns
+ * the next upcoming task.
  */
 export function getNextScheduledTask(
   tasks: Task[],
@@ -150,7 +150,8 @@ export function getNextScheduledTask(
 }
 
 /*
- * Minutes until a task starts.
+ * Returns the number of minutes until
+ * a task starts.
  */
 export function getMinutesUntilTask(
   task: Task,
@@ -180,6 +181,56 @@ export function getMinutesUntilTask(
 }
 
 /*
+ * Returns the live progress percentage
+ * of a currently scheduled task.
+ */
+export function getTaskProgress(
+  task: Task,
+  now = new Date()
+) {
+  if (!task.startTime || !task.endTime) {
+    return 0;
+  }
+
+  if (task.date !== getTodayString(now)) {
+    return 0;
+  }
+
+  const startMinutes =
+    getMinutes(task.startTime);
+
+  const endMinutes =
+    getMinutes(task.endTime);
+
+  const currentMinutes =
+    now.getHours() * 60 +
+    now.getMinutes() +
+    now.getSeconds() / 60;
+
+  if (currentMinutes <= startMinutes) {
+    return 0;
+  }
+
+  if (currentMinutes >= endMinutes) {
+    return 100;
+  }
+
+  const elapsed =
+    currentMinutes - startMinutes;
+
+  const duration =
+    endMinutes - startMinutes;
+
+  return Math.min(
+    100,
+    Math.max(
+      0,
+      (elapsed / duration) * 100
+    )
+  );
+}
+
+/*
  * Returns the next alarm scheduled for today.
  */
 export function getNextAlarm(
@@ -187,18 +238,25 @@ export function getNextAlarm(
   now = new Date()
 ): Task | null {
   const today = getTodayString(now);
+
   const currentMinutes =
     getCurrentMinutes(now);
 
   const upcomingAlarms = tasks
     .filter((task) => {
       if (task.completed) return false;
+
       if (task.alarmEnabled === false) {
         return false;
       }
 
-      if (!task.startTime) return false;
-      if (task.date !== today) return false;
+      if (!task.startTime) {
+        return false;
+      }
+
+      if (task.date !== today) {
+        return false;
+      }
 
       if (
         task.reminder === undefined ||
