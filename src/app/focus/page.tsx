@@ -225,11 +225,21 @@ export default function FocusPage() {
                     <>
                       <select
                         value={selectedTaskId ?? ""}
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const taskId =
+                            event.target.value;
+
+                          const task =
+                            todayTasks.find(
+                              (item) =>
+                                item.id === taskId
+                            );
+
                           setSelectedTask(
-                            event.target.value || null
-                          )
-                        }
+                            taskId || null,
+                            task?.title ?? null
+                          );
+                        }}
                         disabled={isRunning}
                         className="h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-zinc-300 outline-none transition focus:border-white/20 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -290,7 +300,9 @@ export default function FocusPage() {
                   <div className="flex rounded-2xl border border-white/10 bg-black/20 p-1">
                     <ModeButton
                       active={mode === "focus"}
-                      onClick={() => setMode("focus")}
+                      onClick={() =>
+                        setMode("focus")
+                      }
                     >
                       Focus
                     </ModeButton>

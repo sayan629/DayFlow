@@ -22,6 +22,7 @@ interface FocusStore {
   isRunning: boolean;
   completedSessions: number;
   selectedTaskId: string | null;
+  selectedTaskTitle: string | null;
   sessionStartedAt: string | null;
   sessionHistory: FocusSession[];
 
@@ -30,7 +31,10 @@ interface FocusStore {
   reset: () => void;
   setMode: (mode: FocusMode) => void;
   setTestDuration: (seconds: number) => void;
-  setSelectedTask: (taskId: string | null) => void;
+  setSelectedTask: (
+    taskId: string | null,
+    taskTitle?: string | null
+  ) => void;
   completeSession: () => void;
   clearSessionHistory: () => void;
 }
@@ -48,13 +52,17 @@ export const useFocusStore = create<FocusStore>()(
       remainingSeconds: MODE_DURATION.focus,
       isRunning: false,
       completedSessions: 0,
+
       selectedTaskId: null,
+      selectedTaskTitle: null,
+
       sessionStartedAt: null,
       sessionHistory: [],
 
       start: () => {
         set((state) => ({
           isRunning: true,
+
           sessionStartedAt:
             state.mode === "focus"
               ? state.sessionStartedAt ??
@@ -96,9 +104,14 @@ export const useFocusStore = create<FocusStore>()(
         });
       },
 
-      setSelectedTask: (taskId) => {
+      setSelectedTask: (
+        taskId,
+        taskTitle = null
+      ) => {
         set({
           selectedTaskId: taskId,
+          selectedTaskTitle:
+            taskId ? taskTitle ?? null : null,
         });
       },
 
@@ -127,9 +140,10 @@ export const useFocusStore = create<FocusStore>()(
             const session: FocusSession = {
               id: crypto.randomUUID(),
               taskId: state.selectedTaskId,
-              taskTitle: null,
+              taskTitle: state.selectedTaskTitle,
               mode: "focus",
-              durationSeconds: elapsedSeconds,
+              durationSeconds:
+                elapsedSeconds,
               startedAt,
               completedAt,
             };
@@ -140,12 +154,18 @@ export const useFocusStore = create<FocusStore>()(
                 : "shortBreak";
 
             return {
-              completedSessions: nextSession,
+              completedSessions:
+                nextSession,
+
               mode: nextMode,
+
               remainingSeconds:
                 MODE_DURATION[nextMode],
+
               isRunning: false,
+
               sessionStartedAt: null,
+
               sessionHistory: [
                 session,
                 ...state.sessionHistory,
