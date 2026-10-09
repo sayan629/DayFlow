@@ -362,7 +362,9 @@ export default function FocusPage() {
                         <Play size={17} />
                       )}
 
-                      {isRunning ? "Pause" : "Start"}
+                      {isRunning
+                        ? "Pause"
+                        : "Start"}
                     </button>
 
                     <button
@@ -379,7 +381,9 @@ export default function FocusPage() {
                   {/* Developer Test Control */}
                   <button
                     type="button"
-                    onClick={() => setTestDuration(10)}
+                    onClick={() =>
+                      setTestDuration(10)
+                    }
                     className="mt-4 text-xs text-zinc-600 transition hover:text-zinc-300"
                   >
                     Test 10s
