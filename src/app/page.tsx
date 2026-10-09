@@ -7,44 +7,60 @@ import {
   Menu,
   Target,
 } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 
 import Sidebar from "@/components/layout/Sidebar";
 import AddTaskDialog from "@/components/tasks/AddTaskDialog";
 import TaskList from "@/components/tasks/TaskList";
 import NextTaskCard from "@/components/scheduler/NextTaskCard";
+
 import { useScheduler } from "@/hooks/useScheduler";
 import { getNextAlarm } from "@/lib/scheduler";
 import { useTaskStore } from "@/store/taskStore";
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [today, setToday] = useState("");
 
+  /*
+   * Current time comes from the scheduler instead of
+   * calling new Date() during render.
+   *
+   * This is required for Next.js 16 Cache Components.
+   */
   const now = useScheduler();
 
   const tasks = useTaskStore((state) => state.tasks);
 
-  useEffect(() => {
-    setToday(new Date().toISOString().split("T")[0]);
-  }, []);
+  const today = now
+    ? now.toISOString().split("T")[0]
+    : null;
 
   const todayTasks = useMemo(() => {
     if (!today) {
       return [];
     }
 
-    return tasks.filter((task) => task.date === today);
+    return tasks.filter(
+      (task) => task.date === today
+    );
   }, [tasks, today]);
 
-  const completedTasks = todayTasks.filter(
-    (task) => task.completed
-  );
+  const completedTasks = useMemo(() => {
+    return todayTasks.filter(
+      (task) => task.completed
+    );
+  }, [todayTasks]);
 
-  const activeTasks = todayTasks.filter(
-    (task) => !task.completed
-  );
+  const activeTasks = useMemo(() => {
+    return todayTasks.filter(
+      (task) => !task.completed
+    );
+  }, [todayTasks]);
 
+  /*
+   * Find the next alarm whenever the task list or
+   * current scheduler time changes.
+   */
   const nextAlarm = useMemo(() => {
     if (!now) {
       return null;
@@ -53,6 +69,10 @@ export default function Dashboard() {
     return getNextAlarm(tasks);
   }, [tasks, now]);
 
+  /*
+   * Convert the task start time + reminder into
+   * the actual time when the alarm will ring.
+   */
   const alarmTime = useMemo(() => {
     if (!nextAlarm?.startTime) {
       return null;
@@ -68,7 +88,8 @@ export default function Dashboard() {
       (nextAlarm.reminder ?? 0);
 
     const normalizedMinutes =
-      (alarmMinutes + 24 * 60) % (24 * 60);
+      (alarmMinutes + 24 * 60) %
+      (24 * 60);
 
     const alarmHour = Math.floor(
       normalizedMinutes / 60
@@ -95,18 +116,29 @@ export default function Dashboard() {
         )
       : 0;
 
+  /*
+   * Prevent the initial prerender from rendering
+   * current-time-dependent UI.
+   */
+  if (!now) {
+    return null;
+  }
+
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
       <div className="flex min-h-screen">
         <Sidebar open={sidebarOpen} />
 
         <section className="flex min-w-0 flex-1 flex-col">
+          {/* Header */}
           <header className="flex h-20 items-center justify-between border-b border-white/10 px-5 md:px-8">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() =>
-                  setSidebarOpen((open) => !open)
+                  setSidebarOpen(
+                    (open) => !open
+                  )
                 }
                 className="rounded-xl p-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
                 aria-label="Toggle sidebar"
@@ -155,6 +187,7 @@ export default function Dashboard() {
             </div>
           </header>
 
+          {/* Main content */}
           <div className="flex-1 overflow-y-auto">
             <div className="mx-auto max-w-[1500px] p-5 md:p-8">
               {/* Page Header */}
@@ -180,14 +213,18 @@ export default function Dashboard() {
               <div className="mb-6 grid gap-4 sm:grid-cols-3">
                 <StatCard
                   icon={<Clock3 size={19} />}
-                  label="Today's Tasks"
-                  value={String(todayTasks.length)}
+                  label="Today&apos;s Tasks"
+                  value={String(
+                    todayTasks.length
+                  )}
                 />
 
                 <StatCard
                   icon={<Target size={19} />}
                   label="Active"
-                  value={String(activeTasks.length)}
+                  value={String(
+                    activeTasks.length
+                  )}
                 />
 
                 <StatCard
@@ -268,7 +305,8 @@ export default function Dashboard() {
                       </h3>
 
                       <p className="mt-1 text-xs text-zinc-600">
-                        You have no active alarms scheduled for today.
+                        You have no active alarms
+                        scheduled for today.
                       </p>
                     </div>
                   </div>
@@ -284,7 +322,7 @@ export default function Dashboard() {
                     </p>
 
                     <h2 className="mt-1 text-sm font-medium text-zinc-300">
-                      Today's completion
+                      Today&apos;s completion
                     </h2>
                   </div>
 
@@ -312,7 +350,7 @@ export default function Dashboard() {
               <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
                 <div className="border-b border-white/10 px-6 py-5">
                   <h2 className="font-semibold">
-                    Today's Tasks
+                    Today&apos;s Tasks
                   </h2>
 
                   <p className="mt-1 text-xs text-zinc-600">

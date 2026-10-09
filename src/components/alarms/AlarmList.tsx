@@ -6,13 +6,10 @@ import {
   CheckCircle2,
   Clock3,
 } from "lucide-react";
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useMemo } from "react";
 
 import { useTaskStore } from "@/store/taskStore";
+import { useScheduler } from "@/hooks/useScheduler";
 
 export default function AlarmList() {
   const tasks = useTaskStore((state) => state.tasks);
@@ -21,13 +18,18 @@ export default function AlarmList() {
     (state) => state.updateTask
   );
 
-  const [today, setToday] = useState("");
+  /*
+   * Get the current time through the scheduler.
+   *
+   * Do not use new Date() directly during render.
+   * Next.js 16 Cache Components treats current-time
+   * values during prerender as unstable.
+   */
+  const now = useScheduler();
 
-  useEffect(() => {
-    setToday(
-      new Date().toISOString().split("T")[0]
-    );
-  }, []);
+  const today = now
+    ? now.toISOString().split("T")[0]
+    : null;
 
   const alarmTasks = useMemo(() => {
     if (!today) {
@@ -57,14 +59,12 @@ export default function AlarmList() {
     });
   };
 
-  if (!today) {
-    return (
-      <section className="flex min-h-[360px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.02]">
-        <p className="text-sm text-zinc-500">
-          Loading alarms...
-        </p>
-      </section>
-    );
+  /*
+   * Wait until the scheduler provides the current
+   * date. This happens after the initial prerender.
+   */
+  if (!now) {
+    return null;
   }
 
   if (alarmTasks.length === 0) {
@@ -98,7 +98,7 @@ export default function AlarmList() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-semibold">
-              Today's Alarms
+              Today&apos;s Alarms
             </h2>
 
             <p className="mt-1 text-xs text-zinc-500">
@@ -142,7 +142,8 @@ export default function AlarmList() {
 
                 {task.endTime && (
                   <p className="mt-1 text-[11px] text-zinc-600">
-                    until {formatTime(task.endTime)}
+                    until{" "}
+                    {formatTime(task.endTime)}
                   </p>
                 )}
               </div>

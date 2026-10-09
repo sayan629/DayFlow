@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useAlarmStore } from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
 
 export function useAlarmEngine() {
   const tasks = useTaskStore((state) => state.tasks);
+
   const startAlarm = useAlarmStore(
     (state) => state.startAlarm
   );
@@ -37,10 +38,29 @@ export function useAlarmEngine() {
 
       if (snoozeTimeoutRef.current) {
         clearTimeout(snoozeTimeoutRef.current);
+        snoozeTimeoutRef.current = null;
       }
 
       audioRef.current = null;
     };
+  }, []);
+
+  // Play alarm sound
+  const playAlarm = useCallback(() => {
+    const audio = audioRef.current;
+
+    if (!audio) {
+      return;
+    }
+
+    audio.currentTime = 0;
+
+    audio.play().catch((error) => {
+      console.warn(
+        "Could not play alarm sound:",
+        error
+      );
+    });
   }, []);
 
   // Stop alarm
@@ -75,11 +95,13 @@ export function useAlarmEngine() {
   // Snooze alarm
   useEffect(() => {
     const handleSnoozeAlarm = (event: Event) => {
-      const customEvent = event as CustomEvent<{
-        minutes: number;
-      }>;
+      const customEvent =
+        event as CustomEvent<{
+          minutes: number;
+        }>;
 
-      const minutes = customEvent.detail.minutes;
+      const minutes =
+        customEvent.detail.minutes;
 
       // Stop current alarm sound
       const audio = audioRef.current;
@@ -98,52 +120,59 @@ export function useAlarmEngine() {
         useAlarmStore.getState();
 
       const taskId = alarmState.taskId;
-      const taskTitle = alarmState.taskTitle;
+      const taskTitle =
+        alarmState.taskTitle;
 
       if (!taskId || !taskTitle) {
         return;
       }
 
       // Wait for snooze duration
-      snoozeTimeoutRef.current = setTimeout(() => {
-        const currentAudio =
-          audioRef.current;
+      snoozeTimeoutRef.current =
+        setTimeout(() => {
+          const currentAudio =
+            audioRef.current;
 
-        // Check whether the task still exists
-        // and whether its alarm is still enabled.
-        const currentTask =
-          useTaskStore
+          // Check whether task still exists
+          // and whether its alarm is enabled.
+          const currentTask =
+            useTaskStore
+              .getState()
+              .tasks.find(
+                (task) => task.id === taskId
+              );
+
+          if (
+            !currentTask ||
+            currentTask.completed ||
+            currentTask.alarmEnabled === false
+          ) {
+            snoozeTimeoutRef.current = null;
+            return;
+          }
+
+          if (currentAudio) {
+            currentAudio.currentTime = 0;
+
+            currentAudio
+              .play()
+              .catch((error) => {
+                console.warn(
+                  "Could not play snoozed alarm:",
+                  error
+                );
+              });
+          }
+
+          useAlarmStore
             .getState()
-            .tasks.find(
-              (task) => task.id === taskId
+            .startAlarm(
+              taskId,
+              taskTitle
             );
 
-        if (
-          !currentTask ||
-          currentTask.completed ||
-          currentTask.alarmEnabled === false
-        ) {
           snoozeTimeoutRef.current = null;
-          return;
-        }
-
-        if (currentAudio) {
-          currentAudio.currentTime = 0;
-
-          currentAudio.play().catch((error) => {
-            console.warn(
-              "Could not play snoozed alarm:",
-              error
-            );
-          });
-        }
-
-        useAlarmStore
-          .getState()
-          .startAlarm(taskId, taskTitle);
-
-        snoozeTimeoutRef.current = null;
-      }, minutes * 60 * 1000);
+        }, minutes * 60 * 1000);
     };
 
     window.addEventListener(
@@ -217,7 +246,6 @@ export function useAlarmEngine() {
 
         /*
          * Allow the alarm to trigger:
-         *
          * exactly at the reminder time
          * OR
          * up to 2 minutes afterwards.
@@ -273,24 +301,7 @@ export function useAlarmEngine() {
     return () => {
       clearInterval(interval);
     };
-  }, [tasks, startAlarm]);
-
-  function playAlarm() {
-    const audio = audioRef.current;
-
-    if (!audio) {
-      return;
-    }
-
-    audio.currentTime = 0;
-
-    audio.play().catch((error) => {
-      console.warn(
-        "Could not play alarm sound:",
-        error
-      );
-    });
-  }
+  }, [tasks, startAlarm, playAlarm]);
 }
 
 function sendNotification(

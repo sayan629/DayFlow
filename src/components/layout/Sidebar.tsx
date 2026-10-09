@@ -12,7 +12,6 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 interface SidebarProps {
@@ -55,12 +54,6 @@ const navigation = [
 export default function Sidebar({ open }: SidebarProps) {
   const pathname = usePathname();
 
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
     <aside
       className={`${
@@ -94,15 +87,10 @@ export default function Sidebar({ open }: SidebarProps) {
           {navigation.map((item) => {
             const Icon = item.icon;
 
-            /*
-             * Keep the server and first client render identical.
-             * Active route is calculated only after hydration.
-             */
-            const isActive = mounted
-              ? item.href === "/"
+            const isActive =
+              item.href === "/"
                 ? pathname === "/"
-                : pathname === item.href
-              : false;
+                : pathname === item.href;
 
             return (
               <Link

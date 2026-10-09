@@ -182,7 +182,7 @@ export default function TasksPage() {
               <section className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
                 <div className="border-b border-white/10 px-6 py-5">
                   <h2 className="font-semibold">
-                    Today's Tasks
+                    Today&apos;s Tasks
                   </h2>
 
                   <p className="mt-1 text-xs text-zinc-600">

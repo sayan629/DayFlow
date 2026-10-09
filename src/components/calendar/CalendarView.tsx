@@ -9,6 +9,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+
 import {
   addMonths,
   eachDayOfInterval,
@@ -20,49 +21,85 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { useEffect, useMemo, useState } from "react";
+
+import { useMemo, useState } from "react";
 
 import { useTaskStore } from "@/store/taskStore";
 import AddTaskDialog from "@/components/tasks/AddTaskDialog";
+import { useScheduler } from "@/hooks/useScheduler";
 
 export default function CalendarView() {
   const tasks = useTaskStore((state) => state.tasks);
-  const toggleTask = useTaskStore((state) => state.toggleTask);
-  const deleteTask = useTaskStore((state) => state.deleteTask);
 
-  const [currentMonth, setCurrentMonth] =
-    useState<Date | null>(null);
+  const toggleTask = useTaskStore(
+    (state) => state.toggleTask
+  );
+
+  const deleteTask = useTaskStore(
+    (state) => state.deleteTask
+  );
+
+  /*
+   * useScheduler provides the current time after mount.
+   * This avoids new Date() during prerender.
+   */
+  const now = useScheduler();
+
+  const [monthOffset, setMonthOffset] =
+    useState(0);
 
   const [selectedDate, setSelectedDate] =
     useState<Date | null>(null);
 
-  const [addTaskOpen, setAddTaskOpen] = useState(false);
+  const [addTaskOpen, setAddTaskOpen] =
+    useState(false);
 
   const [editingTaskId, setEditingTaskId] =
     useState<string | null>(null);
 
-  useEffect(() => {
-    const today = new Date();
+  /*
+   * Hooks MUST always execute in the same order.
+   * Therefore all useMemo calls stay before any return.
+   */
+  const currentMonth = useMemo(() => {
+    if (!now) return null;
 
-    setCurrentMonth(today);
-    setSelectedDate(today);
-  }, []);
+    return addMonths(now, monthOffset);
+  }, [now, monthOffset]);
+
+  const activeSelectedDate = useMemo(() => {
+    if (selectedDate) {
+      return selectedDate;
+    }
+
+    return now;
+  }, [selectedDate, now]);
 
   const calendarDays = useMemo(() => {
-    if (!currentMonth) return [];
+    if (!currentMonth) {
+      return [];
+    }
 
     return eachDayOfInterval({
-      start: startOfWeek(startOfMonth(currentMonth), {
-        weekStartsOn: 1,
-      }),
-      end: endOfWeek(endOfMonth(currentMonth), {
-        weekStartsOn: 1,
-      }),
+      start: startOfWeek(
+        startOfMonth(currentMonth),
+        {
+          weekStartsOn: 1,
+        }
+      ),
+      end: endOfWeek(
+        endOfMonth(currentMonth),
+        {
+          weekStartsOn: 1,
+        }
+      ),
     });
   }, [currentMonth]);
 
   const selectedTasks = useMemo(() => {
-    if (!selectedDate) return [];
+    if (!activeSelectedDate) {
+      return [];
+    }
 
     return tasks
       .filter((task) => {
@@ -70,45 +107,43 @@ export default function CalendarView() {
           `${task.date}T00:00:00`
         );
 
-        return isSameDay(taskDate, selectedDate);
+        return isSameDay(
+          taskDate,
+          activeSelectedDate
+        );
       })
       .sort((a, b) =>
         (a.startTime ?? "").localeCompare(
           b.startTime ?? ""
         )
       );
-  }, [tasks, selectedDate]);
+  }, [tasks, activeSelectedDate]);
 
   const editingTask = useMemo(() => {
-    if (!editingTaskId) return null;
+    if (!editingTaskId) {
+      return null;
+    }
 
     return (
-      tasks.find((task) => task.id === editingTaskId) ??
-      null
+      tasks.find(
+        (task) => task.id === editingTaskId
+      ) ?? null
     );
   }, [tasks, editingTaskId]);
 
   const previousMonth = () => {
-    if (!currentMonth) return;
-
-    setCurrentMonth(
-      addMonths(currentMonth, -1)
-    );
+    setMonthOffset((offset) => offset - 1);
   };
 
   const nextMonth = () => {
-    if (!currentMonth) return;
-
-    setCurrentMonth(
-      addMonths(currentMonth, 1)
-    );
+    setMonthOffset((offset) => offset + 1);
   };
 
   const goToToday = () => {
-    const today = new Date();
+    if (!now) return;
 
-    setCurrentMonth(today);
-    setSelectedDate(today);
+    setMonthOffset(0);
+    setSelectedDate(now);
   };
 
   const handleDelete = (
@@ -119,19 +154,19 @@ export default function CalendarView() {
       `Delete "${title}"?`
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      return;
+    }
 
     deleteTask(taskId);
   };
 
-  if (!currentMonth || !selectedDate) {
-    return (
-      <div className="space-y-6">
-        <div className="h-16 animate-pulse rounded-2xl bg-white/[0.03]" />
-
-        <div className="h-[500px] animate-pulse rounded-3xl border border-white/10 bg-white/[0.02]" />
-      </div>
-    );
+  /*
+   * Scheduler has not produced the current time yet.
+   * All hooks have already executed above.
+   */
+  if (!now || !currentMonth || !activeSelectedDate) {
+    return null;
   }
 
   return (
@@ -144,7 +179,10 @@ export default function CalendarView() {
           </p>
 
           <h1 className="mt-1 text-2xl font-semibold text-white">
-            {format(currentMonth, "MMMM yyyy")}
+            {format(
+              currentMonth,
+              "MMMM yyyy"
+            )}
           </h1>
         </div>
 
@@ -202,30 +240,44 @@ export default function CalendarView() {
         {/* Days */}
         <div className="grid grid-cols-7">
           {calendarDays.map((day) => {
-            const dayTasks = tasks.filter((task) => {
-              const taskDate = new Date(
-                `${task.date}T00:00:00`
-              );
+            const dayTasks = tasks.filter(
+              (task) => {
+                const taskDate = new Date(
+                  `${task.date}T00:00:00`
+                );
 
-              return isSameDay(taskDate, day);
-            });
+                return isSameDay(
+                  taskDate,
+                  day
+                );
+              }
+            );
 
             const selected = isSameDay(
               day,
-              selectedDate
+              activeSelectedDate
             );
 
+            /*
+             * Use the scheduler's current time.
+             * Do NOT use new Date() here.
+             */
             const today =
-              isSameDay(day, selectedDate) &&
-              isSameDay(day, currentMonth);
+              isSameDay(day, now) &&
+              isSameMonth(day, currentMonth);
 
             return (
               <button
                 key={day.toISOString()}
                 type="button"
-                onClick={() => setSelectedDate(day)}
+                onClick={() =>
+                  setSelectedDate(day)
+                }
                 className={`min-h-[105px] border-b border-r border-white/5 p-2 text-left transition hover:bg-white/[0.04] ${
-                  !isSameMonth(day, currentMonth)
+                  !isSameMonth(
+                    day,
+                    currentMonth
+                  )
                     ? "opacity-30"
                     : ""
                 } ${
@@ -260,27 +312,26 @@ export default function CalendarView() {
                         key={task.id}
                         className="flex items-center gap-1 truncate rounded-md bg-white/5 px-2 py-1 text-[10px]"
                       >
-                        {/* Priority indicator */}
                         <span
                           className={`h-1.5 w-1.5 shrink-0 rounded-full ${
                             task.completed
                               ? "bg-zinc-700"
-                              : task.priority === "high"
+                              : task.priority ===
+                                  "high"
                                 ? "bg-red-400"
-                                : task.priority === "medium"
+                                : task.priority ===
+                                    "medium"
                                   ? "bg-yellow-400"
                                   : "bg-zinc-500"
                           }`}
                         />
 
-                        {/* Task time */}
                         {task.startTime && (
                           <span className="mr-1 shrink-0 text-zinc-600">
                             {task.startTime}
                           </span>
                         )}
 
-                        {/* Task title */}
                         <span
                           className={`truncate ${
                             task.completed
@@ -315,7 +366,7 @@ export default function CalendarView() {
 
             <h2 className="mt-1 text-lg font-semibold text-white">
               {format(
-                selectedDate,
+                activeSelectedDate,
                 "EEEE, MMMM d"
               )}
             </h2>
@@ -323,7 +374,9 @@ export default function CalendarView() {
 
           <button
             type="button"
-            onClick={() => setAddTaskOpen(true)}
+            onClick={() =>
+              setAddTaskOpen(true)
+            }
             className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-medium text-black transition hover:bg-zinc-200"
           >
             <Plus size={15} />
@@ -335,12 +388,15 @@ export default function CalendarView() {
           {selectedTasks.length === 0 ? (
             <div className="flex min-h-[120px] flex-col items-center justify-center text-center">
               <p className="text-sm text-zinc-600">
-                No tasks scheduled for this day.
+                No tasks scheduled for this
+                day.
               </p>
 
               <button
                 type="button"
-                onClick={() => setAddTaskOpen(true)}
+                onClick={() =>
+                  setAddTaskOpen(true)
+                }
                 className="mt-3 text-xs text-zinc-400 underline underline-offset-4 transition hover:text-white"
               >
                 Create a task
@@ -353,7 +409,6 @@ export default function CalendarView() {
                   key={task.id}
                   className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-white/20"
                 >
-                  {/* Complete */}
                   <button
                     type="button"
                     onClick={() =>
@@ -373,7 +428,6 @@ export default function CalendarView() {
                     <Check size={16} />
                   </button>
 
-                  {/* Icon */}
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
                     <Clock3
                       size={17}
@@ -381,7 +435,6 @@ export default function CalendarView() {
                     />
                   </div>
 
-                  {/* Task Info */}
                   <div className="min-w-0 flex-1">
                     <h3
                       className={`text-sm font-medium ${
@@ -405,12 +458,13 @@ export default function CalendarView() {
                     </p>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() =>
-                        setEditingTaskId(task.id)
+                        setEditingTaskId(
+                          task.id
+                        )
                       }
                       className="rounded-lg p-2 text-zinc-600 transition hover:bg-white/5 hover:text-white"
                       title="Edit task"
@@ -443,10 +497,12 @@ export default function CalendarView() {
       {addTaskOpen && (
         <AddTaskDialog
           defaultDate={format(
-            selectedDate,
+            activeSelectedDate,
             "yyyy-MM-dd"
           )}
-          onClose={() => setAddTaskOpen(false)}
+          onClose={() =>
+            setAddTaskOpen(false)
+          }
         />
       )}
 
@@ -454,7 +510,9 @@ export default function CalendarView() {
       {editingTask && (
         <AddTaskDialog
           editTask={editingTask}
-          onClose={() => setEditingTaskId(null)}
+          onClose={() =>
+            setEditingTaskId(null)
+          }
         />
       )}
     </div>

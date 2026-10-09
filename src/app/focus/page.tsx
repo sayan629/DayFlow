@@ -14,27 +14,32 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { subDays } from "date-fns";
 
 import Sidebar from "@/components/layout/Sidebar";
 import { useFocusStore } from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
+import { useScheduler } from "@/hooks/useScheduler";
 
 export default function FocusPage() {
-  const [sidebarOpen, setSidebarOpen] =
-    useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const [today, setToday] = useState("");
+  // ------------------------------------------------
+  // Current time
+  // ------------------------------------------------
 
-  /*
-   * ------------------------------------------------
-   * Focus store
-   * ------------------------------------------------
-   */
+  const now = useScheduler();
 
-  const mode = useFocusStore(
-    (state) => state.mode
-  );
+  const today = now
+    ? now.toISOString().split("T")[0]
+    : null;
+
+  // ------------------------------------------------
+  // Focus store
+  // ------------------------------------------------
+
+  const mode = useFocusStore((state) => state.mode);
 
   const remainingSeconds = useFocusStore(
     (state) => state.remainingSeconds
@@ -56,17 +61,11 @@ export default function FocusPage() {
     (state) => state.sessionHistory
   );
 
-  const start = useFocusStore(
-    (state) => state.start
-  );
+  const start = useFocusStore((state) => state.start);
 
-  const pause = useFocusStore(
-    (state) => state.pause
-  );
+  const pause = useFocusStore((state) => state.pause);
 
-  const reset = useFocusStore(
-    (state) => state.reset
-  );
+  const reset = useFocusStore((state) => state.reset);
 
   const setMode = useFocusStore(
     (state) => state.setMode
@@ -80,50 +79,29 @@ export default function FocusPage() {
     (state) => state.setSelectedTask
   );
 
-  const completeSession = useFocusStore(
-    (state) => state.completeSession
+  const clearSessionHistory = useFocusStore(
+    (state) => state.clearSessionHistory
   );
 
-  const clearSessionHistory =
-    useFocusStore(
-      (state) => state.clearSessionHistory
-    );
+  // ------------------------------------------------
+  // Task store
+  // ------------------------------------------------
 
-  /*
-   * ------------------------------------------------
-   * Task store
-   * ------------------------------------------------
-   */
-
-  const tasks = useTaskStore(
-    (state) => state.tasks
-  );
+  const tasks = useTaskStore((state) => state.tasks);
 
   const updateTask = useTaskStore(
     (state) => state.updateTask
   );
 
-  /*
-   * ------------------------------------------------
-   * Today's date
-   * ------------------------------------------------
-   */
-
-  useEffect(() => {
-    setToday(
-      new Date()
-        .toISOString()
-        .split("T")[0]
-    );
-  }, []);
-
-  /*
-   * ------------------------------------------------
-   * Today's incomplete tasks
-   * ------------------------------------------------
-   */
+  // ------------------------------------------------
+  // Today's incomplete tasks
+  // ------------------------------------------------
 
   const todayTasks = useMemo(() => {
+    if (!today) {
+      return [];
+    }
+
     return tasks
       .filter(
         (task) =>
@@ -137,34 +115,28 @@ export default function FocusPage() {
       );
   }, [tasks, today]);
 
-  /*
-   * ------------------------------------------------
-   * Currently selected task
-   * ------------------------------------------------
-   */
+  // ------------------------------------------------
+  // Currently selected task
+  // ------------------------------------------------
 
   const selectedTask = useMemo(() => {
     return todayTasks.find(
-      (task) =>
-        task.id === selectedTaskId
+      (task) => task.id === selectedTaskId
     );
   }, [todayTasks, selectedTaskId]);
 
-  /*
-   * ------------------------------------------------
-   * Remove selected task if completed/deleted
-   * ------------------------------------------------
-   */
+  // ------------------------------------------------
+  // Remove selected task if completed/deleted
+  // ------------------------------------------------
 
-  useEffect(() => {
+  useMemo(() => {
     if (
       selectedTaskId &&
       !todayTasks.some(
-        (task) =>
-          task.id === selectedTaskId
+        (task) => task.id === selectedTaskId
       )
     ) {
-      setSelectedTask(null);
+      setSelectedTask(null, null);
     }
   }, [
     selectedTaskId,
@@ -172,26 +144,22 @@ export default function FocusPage() {
     setSelectedTask,
   ]);
 
-  /*
-   * ------------------------------------------------
-   * Timer
-   * ------------------------------------------------
-   */
+  // ------------------------------------------------
+  // Timer
+  // ------------------------------------------------
 
-  useEffect(() => {
+  useMemo(() => {
     if (!isRunning) {
       return;
     }
 
     const interval = setInterval(() => {
-      const current =
-        useFocusStore.getState();
+      const current = useFocusStore.getState();
 
       if (current.remainingSeconds <= 1) {
-        /*
-         * When a FOCUS session finishes,
-         * automatically complete the selected task.
-         */
+        // When a FOCUS session finishes,
+        // automatically complete the selected task.
+
         if (
           current.mode === "focus" &&
           current.selectedTaskId
@@ -204,10 +172,8 @@ export default function FocusPage() {
           );
         }
 
-        /*
-         * Save the focus session and move
-         * to the appropriate break.
-         */
+        // Save the focus session and move
+        // to the appropriate break.
         current.completeSession();
 
         return;
@@ -219,34 +185,29 @@ export default function FocusPage() {
       });
     }, 1000);
 
-    return () =>
-      clearInterval(interval);
+    return () => clearInterval(interval);
   }, [isRunning, updateTask]);
 
-  /*
-   * ------------------------------------------------
-   * Timer formatting
-   * ------------------------------------------------
-   */
+  // ------------------------------------------------
+  // Timer formatting
+  // ------------------------------------------------
 
   const minutes = Math.floor(
     remainingSeconds / 60
   );
 
-  const seconds =
-    remainingSeconds % 60;
+  const seconds = remainingSeconds % 60;
 
   const formattedTime = `${String(
     minutes
-  ).padStart(2, "0")}:${String(
-    seconds
-  ).padStart(2, "0")}`;
+  ).padStart(2, "0")}:${String(seconds).padStart(
+    2,
+    "0"
+  )}`;
 
-  /*
-   * ------------------------------------------------
-   * Mode label
-   * ------------------------------------------------
-   */
+  // ------------------------------------------------
+  // Mode label
+  // ------------------------------------------------
 
   const modeLabel =
     mode === "focus"
@@ -255,15 +216,12 @@ export default function FocusPage() {
         ? "Short Break"
         : "Long Break";
 
-  /*
-   * =================================================
-   * PRODUCTIVITY STATISTICS
-   * =================================================
-   */
+  // =================================================
+  // PRODUCTIVITY STATISTICS
+  // =================================================
 
-  /*
-   * Today's completed focus sessions
-   */
+  // Today's completed focus sessions
+
   const todaySessions = useMemo(() => {
     if (!today) {
       return [];
@@ -272,15 +230,12 @@ export default function FocusPage() {
     return sessionHistory.filter(
       (session) =>
         session.mode === "focus" &&
-        session.completedAt.startsWith(
-          today
-        )
+        session.completedAt.startsWith(today)
     );
   }, [sessionHistory, today]);
 
-  /*
-   * Total focus seconds today
-   */
+  // Total focus seconds today
+
   const todayFocusSeconds = useMemo(() => {
     return todaySessions.reduce(
       (total, session) =>
@@ -289,9 +244,8 @@ export default function FocusPage() {
     );
   }, [todaySessions]);
 
-  /*
-   * Focus time display
-   */
+  // Focus time display
+
   const todayFocusTime = useMemo(() => {
     const totalMinutes = Math.floor(
       todayFocusSeconds / 60
@@ -301,8 +255,7 @@ export default function FocusPage() {
       totalMinutes / 60
     );
 
-    const minutes =
-      totalMinutes % 60;
+    const minutes = totalMinutes % 60;
 
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
@@ -311,12 +264,8 @@ export default function FocusPage() {
     return `${minutes}m`;
   }, [todayFocusSeconds]);
 
-  /*
-   * Today's completed tasks
-   *
-   * Task.date represents the scheduled
-   * date in the current task model.
-   */
+  // Today's completed tasks
+
   const completedToday = useMemo(() => {
     if (!today) {
       return 0;
@@ -329,17 +278,15 @@ export default function FocusPage() {
     ).length;
   }, [tasks, today]);
 
-  /*
-   * ------------------------------------------------
-   * Focus streak
-   * ------------------------------------------------
-   *
-   * Counts consecutive calendar days with
-   * at least one completed focus session.
-   */
+  // ------------------------------------------------
+  // Focus streak
+  // ------------------------------------------------
 
   const focusStreak = useMemo(() => {
-    if (sessionHistory.length === 0) {
+    if (
+      sessionHistory.length === 0 ||
+      !now
+    ) {
       return 0;
     }
 
@@ -350,32 +297,30 @@ export default function FocusPage() {
             session.mode === "focus"
         )
         .map((session) =>
-          session.completedAt
-            .split("T")[0]
+          session.completedAt.split("T")[0]
         )
     );
 
     let streak = 0;
 
-    const date = new Date();
+    let date = now;
 
-    /*
-     * If there was no session today,
-     * allow the streak to continue from
-     * yesterday.
-     */
-    const todayKey =
-      date.toISOString().split("T")[0];
+    // If there was no session today,
+    // allow the streak to continue from
+    // yesterday.
+
+    const todayKey = date
+      .toISOString()
+      .split("T")[0];
 
     if (!completedDates.has(todayKey)) {
-      date.setDate(
-        date.getDate() - 1
-      );
+      date = subDays(date, 1);
     }
 
     while (true) {
-      const key =
-        date.toISOString().split("T")[0];
+      const key = date
+        .toISOString()
+        .split("T")[0];
 
       if (!completedDates.has(key)) {
         break;
@@ -383,19 +328,15 @@ export default function FocusPage() {
 
       streak += 1;
 
-      date.setDate(
-        date.getDate() - 1
-      );
+      date = subDays(date, 1);
     }
 
     return streak;
-  }, [sessionHistory]);
+  }, [sessionHistory, now]);
 
-  /*
-   * ------------------------------------------------
-   * Statistics cards
-   * ------------------------------------------------
-   */
+  // ------------------------------------------------
+  // Statistics cards
+  // ------------------------------------------------
 
   const stats = [
     {
@@ -427,11 +368,9 @@ export default function FocusPage() {
     },
   ];
 
-  /*
-   * ------------------------------------------------
-   * Render
-   * ------------------------------------------------
-   */
+  // ------------------------------------------------
+  // Render
+  // ------------------------------------------------
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
@@ -530,8 +469,7 @@ export default function FocusPage() {
                         }
                         onChange={(event) => {
                           const taskId =
-                            event.target
-                              .value;
+                            event.target.value;
 
                           const task =
                             todayTasks.find(
@@ -611,7 +549,9 @@ export default function FocusPage() {
 
                   <div className="flex rounded-2xl border border-white/10 bg-black/20 p-1">
                     <ModeButton
-                      active={mode === "focus"}
+                      active={
+                        mode === "focus"
+                      }
                       onClick={() =>
                         setMode("focus")
                       }
@@ -789,7 +729,8 @@ export default function FocusPage() {
                   <p className="mt-2 text-lg font-semibold">
                     {mode === "focus"
                       ? "Focus"
-                      : mode === "shortBreak"
+                      : mode ===
+                          "shortBreak"
                         ? "Short Break"
                         : "Long Break"}
                   </p>
@@ -887,8 +828,7 @@ export default function FocusPage() {
                                   undefined,
                                   {
                                     day: "2-digit",
-                                    month:
-                                      "short",
+                                    month: "short",
                                     year: "numeric",
                                   }
                                 )}{" "}

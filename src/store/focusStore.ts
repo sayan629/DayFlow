@@ -16,6 +16,14 @@ export interface FocusSession {
   completedAt: string;
 }
 
+export interface TaskFocusStats {
+  taskId: string;
+  taskTitle: string;
+  sessions: number;
+  totalSeconds: number;
+  lastFocusedAt: string | null;
+}
+
 interface FocusStore {
   mode: FocusMode;
   remainingSeconds: number;
@@ -48,6 +56,49 @@ const MODE_DURATION: Record<FocusMode, number> = {
   shortBreak: 5 * 60,
   longBreak: 15 * 60,
 };
+
+export function getTaskFocusStats(
+  sessionHistory: FocusSession[],
+  taskId: string
+): TaskFocusStats | null {
+  const taskSessions = sessionHistory.filter(
+    (session) =>
+      session.mode === "focus" &&
+      session.taskId === taskId
+  );
+
+  if (taskSessions.length === 0) {
+    return null;
+  }
+
+  const totalSeconds = taskSessions.reduce(
+    (total, session) =>
+      total + session.durationSeconds,
+    0
+  );
+
+  const latestSession = taskSessions.reduce(
+    (latest, session) => {
+      if (!latest) return session;
+
+      return new Date(session.completedAt).getTime() >
+        new Date(latest.completedAt).getTime()
+        ? session
+        : latest;
+    },
+    null as FocusSession | null
+  );
+
+  return {
+    taskId,
+    taskTitle:
+      taskSessions[0].taskTitle ?? "Focus Session",
+    sessions: taskSessions.length,
+    totalSeconds,
+    lastFocusedAt:
+      latestSession?.completedAt ?? null,
+  };
+}
 
 export const useFocusStore = create<FocusStore>()(
   persist(

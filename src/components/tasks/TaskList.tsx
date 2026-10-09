@@ -1,39 +1,35 @@
 "use client";
 
-import { ListTodo, Search, SlidersHorizontal, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  ListTodo,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 
 import { useTaskStore } from "@/store/taskStore";
 import TaskItem from "./TaskItem";
-import { TaskCategory, TaskPriority } from "@/types/task";
+import {
+  TaskCategory,
+  TaskPriority,
+} from "@/types/task";
 
 export default function TaskList() {
   const tasks = useTaskStore((state) => state.tasks);
 
-  const [today, setToday] = useState("");
+  const today = new Date().toISOString().split("T")[0];
 
   const [search, setSearch] = useState("");
-  const [priority, setPriority] = useState<
-    TaskPriority | "all"
-  >("all");
+  const [priority, setPriority] =
+    useState<TaskPriority | "all">("all");
 
-  const [category, setCategory] = useState<
-    TaskCategory | "all"
-  >("all");
+  const [category, setCategory] =
+    useState<TaskCategory | "all">("all");
 
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Get today's date only after browser mount.
-  // This prevents Next.js hydration/prerender issues.
-  useEffect(() => {
-    setToday(new Date().toISOString().split("T")[0]);
-  }, []);
-
   const filteredTasks = useMemo(() => {
-    if (!today) {
-      return [];
-    }
-
     return tasks
       .filter((task) => task.date === today)
       .filter((task) => {
@@ -45,7 +41,9 @@ export default function TaskList() {
 
         return (
           task.title.toLowerCase().includes(query) ||
-          task.description?.toLowerCase().includes(query)
+          task.description
+            ?.toLowerCase()
+            .includes(query)
         );
       })
       .filter((task) => {
@@ -81,17 +79,6 @@ export default function TaskList() {
     setCategory("all");
   };
 
-  // Prevent rendering date-dependent content before hydration.
-  if (!today) {
-    return (
-      <div className="flex min-h-[300px] items-center justify-center">
-        <div className="text-xs text-zinc-600">
-          Loading schedule...
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div>
       {/* Search + Filter Header */}
@@ -106,7 +93,9 @@ export default function TaskList() {
 
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
               placeholder="Search today's tasks..."
               className="w-full rounded-xl border border-white/10 bg-white/[0.025] py-2.5 pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/20"
             />
@@ -114,7 +103,10 @@ export default function TaskList() {
 
           {/* Filter Button */}
           <button
-            onClick={() => setFiltersOpen((value) => !value)}
+            type="button"
+            onClick={() =>
+              setFiltersOpen((value) => !value)
+            }
             className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm transition ${
               filtersOpen || hasActiveFilters
                 ? "border-white/20 bg-white/10 text-white"
@@ -165,9 +157,10 @@ export default function TaskList() {
                   <option value="all">
                     All priorities
                   </option>
-
                   <option value="high">High</option>
-                  <option value="medium">Medium</option>
+                  <option value="medium">
+                    Medium
+                  </option>
                   <option value="low">Low</option>
                 </select>
               </div>
@@ -192,21 +185,16 @@ export default function TaskList() {
                   <option value="all">
                     All categories
                   </option>
-
                   <option value="study">Study</option>
-
                   <option value="development">
                     Development
                   </option>
-
                   <option value="personal">
                     Personal
                   </option>
-
                   <option value="fitness">
                     Fitness
                   </option>
-
                   <option value="other">Other</option>
                 </select>
               </div>
@@ -215,6 +203,7 @@ export default function TaskList() {
             {/* Clear */}
             {hasActiveFilters && (
               <button
+                type="button"
                 onClick={clearFilters}
                 className="mt-4 flex items-center gap-2 text-xs text-zinc-500 transition hover:text-white"
               >
@@ -250,6 +239,7 @@ export default function TaskList() {
 
           {hasActiveFilters && (
             <button
+              type="button"
               onClick={clearFilters}
               className="mt-4 rounded-lg border border-white/10 px-3 py-2 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
             >
@@ -260,7 +250,10 @@ export default function TaskList() {
       ) : (
         <div className="space-y-1">
           {filteredTasks.map((task) => (
-            <TaskItem key={task.id} task={task} />
+            <TaskItem
+              key={task.id}
+              task={task}
+            />
           ))}
         </div>
       )}

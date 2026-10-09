@@ -6,14 +6,16 @@ export function useScheduler() {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
-    // Set the current time only after the component mounts
-    setNow(new Date());
+    const timeout = setTimeout(() => {
+      setNow(new Date());
+    }, 0);
 
     const interval = setInterval(() => {
       setNow(new Date());
     }, 1000);
 
     return () => {
+      clearTimeout(timeout);
       clearInterval(interval);
     };
   }, []);
