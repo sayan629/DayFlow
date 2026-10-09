@@ -17,6 +17,7 @@ import NextTaskCard from "@/components/scheduler/NextTaskCard";
 import { useScheduler } from "@/hooks/useScheduler";
 import { getNextAlarm } from "@/lib/scheduler";
 import { useTaskStore } from "@/store/taskStore";
+import TodayTimeline from "@/components/dashboard/TodayTimeline";
 
 export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -238,6 +239,7 @@ export default function Dashboard() {
 
               {/* Next Task */}
               <NextTaskCard />
+              <TodayTimeline />
 
               {/* Next Alarm */}
               <section className="mb-6 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
