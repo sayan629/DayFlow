@@ -2,20 +2,24 @@
 
 import {
   ArrowLeft,
+  CheckCircle2,
   Menu,
   Pause,
   Play,
   RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Sidebar from "@/components/layout/Sidebar";
 import { useFocusStore } from "@/store/focusStore";
+import { useTaskStore } from "@/store/taskStore";
 
 export default function FocusPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [today, setToday] = useState("");
 
+  // Focus store
   const mode = useFocusStore((state) => state.mode);
 
   const remainingSeconds = useFocusStore(
@@ -30,14 +34,70 @@ export default function FocusPage() {
     (state) => state.completedSessions
   );
 
+  const selectedTaskId = useFocusStore(
+    (state) => state.selectedTaskId
+  );
+
   const start = useFocusStore((state) => state.start);
   const pause = useFocusStore((state) => state.pause);
   const reset = useFocusStore((state) => state.reset);
   const setMode = useFocusStore((state) => state.setMode);
+
   const setTestDuration = useFocusStore(
     (state) => state.setTestDuration
   );
 
+  const setSelectedTask = useFocusStore(
+    (state) => state.setSelectedTask
+  );
+
+  // Task store
+  const tasks = useTaskStore((state) => state.tasks);
+
+  // Get today's date after mount
+  useEffect(() => {
+    setToday(new Date().toISOString().split("T")[0]);
+  }, []);
+
+  // Today's incomplete tasks
+  const todayTasks = useMemo(() => {
+    return tasks
+      .filter(
+        (task) =>
+          task.date === today &&
+          !task.completed
+      )
+      .sort((a, b) =>
+        (a.startTime ?? "").localeCompare(
+          b.startTime ?? ""
+        )
+      );
+  }, [tasks, today]);
+
+  // Currently selected task
+  const selectedTask = useMemo(() => {
+    return todayTasks.find(
+      (task) => task.id === selectedTaskId
+    );
+  }, [todayTasks, selectedTaskId]);
+
+  // Remove selected task if it no longer exists
+  useEffect(() => {
+    if (
+      selectedTaskId &&
+      !todayTasks.some(
+        (task) => task.id === selectedTaskId
+      )
+    ) {
+      setSelectedTask(null);
+    }
+  }, [
+    selectedTaskId,
+    todayTasks,
+    setSelectedTask,
+  ]);
+
+  // Timer
   useEffect(() => {
     if (!isRunning) {
       return;
@@ -88,7 +148,6 @@ export default function FocusPage() {
         <section className="flex min-w-0 flex-1 flex-col">
           {/* Header */}
           <header className="flex h-20 items-center justify-between border-b border-white/10 px-5 md:px-8">
-            {/* Left */}
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -121,7 +180,6 @@ export default function FocusPage() {
               </div>
             </div>
 
-            {/* Right */}
             <Link
               href="/"
               className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
@@ -149,8 +207,84 @@ export default function FocusPage() {
                 </p>
               </div>
 
+              {/* Task Selector */}
+              {mode === "focus" && (
+                <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <CheckCircle2
+                      size={16}
+                      className="text-zinc-500"
+                    />
+
+                    <p className="text-xs font-medium uppercase tracking-[0.15em] text-zinc-500">
+                      Focus Task
+                    </p>
+                  </div>
+
+                  {todayTasks.length > 0 ? (
+                    <>
+                      <select
+                        value={selectedTaskId ?? ""}
+                        onChange={(event) =>
+                          setSelectedTask(
+                            event.target.value || null
+                          )
+                        }
+                        disabled={isRunning}
+                        className="h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-zinc-300 outline-none transition focus:border-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option
+                          value=""
+                          className="bg-[#111113]"
+                        >
+                          Select a task to focus on
+                        </option>
+
+                        {todayTasks.map((task) => (
+                          <option
+                            key={task.id}
+                            value={task.id}
+                            className="bg-[#111113]"
+                          >
+                            {task.startTime
+                              ? `${task.startTime} · `
+                              : ""}
+                            {task.title}
+                          </option>
+                        ))}
+                      </select>
+
+                      {selectedTask && (
+                        <div className="mt-3 rounded-xl bg-white/[0.03] px-3 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.15em] text-zinc-600">
+                            Focusing on
+                          </p>
+
+                          <p className="mt-1 truncate text-sm font-medium text-zinc-300">
+                            {selectedTask.title}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-center">
+                      <p className="text-sm text-zinc-500">
+                        No incomplete tasks for today.
+                      </p>
+
+                      <Link
+                        href="/tasks"
+                        className="mt-2 inline-block text-xs text-zinc-400 transition hover:text-white"
+                      >
+                        Create a task →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Timer */}
-              <div className="mt-10 rounded-[2rem] border border-white/10 bg-white/[0.025] p-8 md:p-12">
+              <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.025] p-8 md:p-12">
                 <div className="flex flex-col items-center">
                   {/* Mode Selector */}
                   <div className="flex rounded-2xl border border-white/10 bg-black/20 p-1">
@@ -180,8 +314,23 @@ export default function FocusPage() {
                     </ModeButton>
                   </div>
 
+                  {/* Selected Task */}
+                  {mode === "focus" &&
+                    selectedTask && (
+                      <div className="mt-8 flex max-w-md items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5">
+                        <CheckCircle2
+                          size={15}
+                          className="shrink-0 text-zinc-500"
+                        />
+
+                        <span className="truncate text-xs text-zinc-400">
+                          {selectedTask.title}
+                        </span>
+                      </div>
+                    )}
+
                   {/* Time */}
-                  <div className="mt-12">
+                  <div className="mt-10">
                     <p className="font-mono text-7xl font-semibold tracking-tight md:text-9xl">
                       {formattedTime}
                     </p>
@@ -201,7 +350,11 @@ export default function FocusPage() {
                       onClick={
                         isRunning ? pause : start
                       }
-                      className="flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-sm font-medium text-black transition hover:bg-zinc-200"
+                      disabled={
+                        mode === "focus" &&
+                        !selectedTaskId
+                      }
+                      className="flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-sm font-medium text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isRunning ? (
                         <Pause size={17} />
