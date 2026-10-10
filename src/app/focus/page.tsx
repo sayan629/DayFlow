@@ -15,23 +15,28 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { subDays } from "date-fns";
 
 import Sidebar from "@/components/layout/Sidebar";
 import { useScheduler } from "@/hooks/useScheduler";
-import { useFocusStore } from "@/store/focusStore";
+import {
+  useFocusStore,
+} from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
 
 export default function FocusPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  // ------------------------------------------------
-  // URL task selection + current time
-  // ------------------------------------------------
+  const [sidebarOpen, setSidebarOpen] =
+    useState(true);
 
   const searchParams = useSearchParams();
-  const taskIdFromUrl = searchParams.get("taskId");
+
+  const taskIdFromUrl =
+    searchParams.get("taskId");
 
   const now = useScheduler();
 
@@ -39,11 +44,13 @@ export default function FocusPage() {
     ? now.toISOString().split("T")[0]
     : null;
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Focus store
-  // ------------------------------------------------
+  // --------------------------------------------------
 
-  const mode = useFocusStore((state) => state.mode);
+  const mode = useFocusStore(
+    (state) => state.mode
+  );
 
   const remainingSeconds = useFocusStore(
     (state) => state.remainingSeconds
@@ -61,15 +68,25 @@ export default function FocusPage() {
     (state) => state.selectedTaskId
   );
 
+  // const selectedTaskTitle = useFocusStore(
+  //   (state) => state.selectedTaskTitle
+  // );
+
   const sessionHistory = useFocusStore(
     (state) => state.sessionHistory
   );
 
-  const start = useFocusStore((state) => state.start);
+  const start = useFocusStore(
+    (state) => state.start
+  );
 
-  const pause = useFocusStore((state) => state.pause);
+  const pause = useFocusStore(
+    (state) => state.pause
+  );
 
-  const reset = useFocusStore((state) => state.reset);
+  const reset = useFocusStore(
+    (state) => state.reset
+  );
 
   const setMode = useFocusStore(
     (state) => state.setMode
@@ -83,13 +100,14 @@ export default function FocusPage() {
     (state) => state.setSelectedTask
   );
 
-  const clearSessionHistory = useFocusStore(
-    (state) => state.clearSessionHistory
-  );
+  const clearSessionHistory =
+    useFocusStore(
+      (state) => state.clearSessionHistory
+    );
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Task store
-  // ------------------------------------------------
+  // --------------------------------------------------
 
   const tasks = useTaskStore(
     (state) => state.tasks
@@ -99,9 +117,9 @@ export default function FocusPage() {
     (state) => state.updateTask
   );
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Today's incomplete tasks
-  // ------------------------------------------------
+  // --------------------------------------------------
 
   const todayTasks = useMemo(() => {
     if (!today) {
@@ -121,28 +139,31 @@ export default function FocusPage() {
       );
   }, [tasks, today]);
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Currently selected task
-  // ------------------------------------------------
+  // --------------------------------------------------
 
   const selectedTask = useMemo(() => {
     return todayTasks.find(
-      (task) => task.id === selectedTaskId
+      (task) =>
+        task.id === selectedTaskId
     );
   }, [todayTasks, selectedTaskId]);
 
-  // ------------------------------------------------
-  // Select task from URL
-  // ------------------------------------------------
+  // --------------------------------------------------
+  // Automatically select task from URL
+  // --------------------------------------------------
 
   useEffect(() => {
     if (!taskIdFromUrl) {
       return;
     }
 
-    const taskFromUrl = todayTasks.find(
-      (task) => task.id === taskIdFromUrl
-    );
+    const taskFromUrl =
+      todayTasks.find(
+        (task) =>
+          task.id === taskIdFromUrl
+      );
 
     if (
       taskFromUrl &&
@@ -160,15 +181,16 @@ export default function FocusPage() {
     setSelectedTask,
   ]);
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Remove selected task if completed/deleted
-  // ------------------------------------------------
+  // --------------------------------------------------
 
   useEffect(() => {
     if (
       selectedTaskId &&
       !todayTasks.some(
-        (task) => task.id === selectedTaskId
+        (task) =>
+          task.id === selectedTaskId
       )
     ) {
       setSelectedTask(null, null);
@@ -179,9 +201,9 @@ export default function FocusPage() {
     setSelectedTask,
   ]);
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Timer
-  // ------------------------------------------------
+  // --------------------------------------------------
 
   useEffect(() => {
     if (!isRunning) {
@@ -192,9 +214,13 @@ export default function FocusPage() {
       const current =
         useFocusStore.getState();
 
-      if (current.remainingSeconds <= 1) {
-        // When a FOCUS session finishes,
-        // automatically complete the selected task.
+      if (
+        current.remainingSeconds <= 1
+      ) {
+        // ------------------------------------------
+        // Focus session completed
+        // ------------------------------------------
+
         if (
           current.mode === "focus" &&
           current.selectedTaskId
@@ -207,8 +233,7 @@ export default function FocusPage() {
           );
         }
 
-        // Save the focus session and move
-        // to the appropriate break.
+        // Save session and move to break.
         current.completeSession();
 
         return;
@@ -224,9 +249,9 @@ export default function FocusPage() {
       clearInterval(interval);
   }, [isRunning, updateTask]);
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Timer formatting
-  // ------------------------------------------------
+  // --------------------------------------------------
 
   const minutes = Math.floor(
     remainingSeconds / 60
@@ -241,9 +266,9 @@ export default function FocusPage() {
     seconds
   ).padStart(2, "0")}`;
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Mode label
-  // ------------------------------------------------
+  // --------------------------------------------------
 
   const modeLabel =
     mode === "focus"
@@ -252,11 +277,21 @@ export default function FocusPage() {
         ? "Short Break"
         : "Long Break";
 
-  // =================================================
-  // PRODUCTIVITY STATISTICS
-  // =================================================
+  // --------------------------------------------------
+  // Latest completed session
+  // --------------------------------------------------
 
-  // Today's completed focus sessions
+  const latestCompletedSession =
+    sessionHistory[0] ?? null;
+
+  const showCompletionCard =
+    mode !== "focus" &&
+    latestCompletedSession?.mode ===
+      "focus";
+
+  // --------------------------------------------------
+  // Productivity statistics
+  // --------------------------------------------------
 
   const todaySessions = useMemo(() => {
     if (!today) {
@@ -266,33 +301,33 @@ export default function FocusPage() {
     return sessionHistory.filter(
       (session) =>
         session.mode === "focus" &&
-        session.completedAt.startsWith(today)
+        session.completedAt.startsWith(
+          today
+        )
     );
   }, [sessionHistory, today]);
 
-  // Total focus seconds today
-
-  const todayFocusSeconds = useMemo(() => {
-    return todaySessions.reduce(
-      (total, session) =>
-        total + session.durationSeconds,
-      0
-    );
-  }, [todaySessions]);
-
-  // Focus time display
+  const todayFocusSeconds =
+    useMemo(() => {
+      return todaySessions.reduce(
+        (total, session) =>
+          total +
+          session.durationSeconds,
+        0
+      );
+    }, [todaySessions]);
 
   const todayFocusTime = useMemo(() => {
-    const totalMinutes = Math.floor(
-      todayFocusSeconds / 60
-    );
+    const totalMinutes =
+      Math.floor(
+        todayFocusSeconds / 60
+      );
 
     const hours = Math.floor(
       totalMinutes / 60
     );
 
-    const minutes =
-      totalMinutes % 60;
+    const minutes = totalMinutes % 60;
 
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
@@ -300,8 +335,6 @@ export default function FocusPage() {
 
     return `${minutes}m`;
   }, [todayFocusSeconds]);
-
-  // Today's completed tasks
 
   const completedToday = useMemo(() => {
     if (!today) {
@@ -315,9 +348,9 @@ export default function FocusPage() {
     ).length;
   }, [tasks, today]);
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Focus streak
-  // ------------------------------------------------
+  // --------------------------------------------------
 
   const focusStreak = useMemo(() => {
     if (
@@ -333,18 +366,17 @@ export default function FocusPage() {
           (session) =>
             session.mode === "focus"
         )
-        .map((session) =>
-          session.completedAt.split("T")[0]
+        .map(
+          (session) =>
+            session.completedAt.split(
+              "T"
+            )[0]
         )
     );
 
     let streak = 0;
 
     let date = now;
-
-    // If there was no session today,
-    // allow the streak to continue from
-    // yesterday.
 
     const todayKey = date
       .toISOString()
@@ -371,9 +403,9 @@ export default function FocusPage() {
     return streak;
   }, [sessionHistory, now]);
 
-  // ------------------------------------------------
+  // --------------------------------------------------
   // Statistics cards
-  // ------------------------------------------------
+  // --------------------------------------------------
 
   const stats = [
     {
@@ -405,13 +437,17 @@ export default function FocusPage() {
     },
   ];
 
-  // ------------------------------------------------
-  // Render
-  // ------------------------------------------------
+  // --------------------------------------------------
+  // Wait for scheduler
+  // --------------------------------------------------
 
   if (!now) {
     return null;
   }
+
+  // --------------------------------------------------
+  // Render
+  // --------------------------------------------------
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
@@ -486,6 +522,107 @@ export default function FocusPage() {
                 </p>
               </div>
 
+              {/* Focus Session Completion */}
+
+              {showCompletionCard &&
+                latestCompletedSession && (
+                  <div className="mt-8 overflow-hidden rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.04]">
+                    <div className="border-b border-emerald-400/10 px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10">
+                          <CheckCircle2
+                            size={19}
+                            className="text-emerald-400"
+                          />
+                        </div>
+
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400/70">
+                            Session Complete
+                          </p>
+
+                          <h2 className="mt-1 text-sm font-semibold text-white">
+                            Focus session
+                            completed
+                          </h2>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-5">
+                      <p className="text-sm text-zinc-300">
+                        Great work. You
+                        completed:
+                      </p>
+
+                      <p className="mt-2 truncate text-base font-semibold text-white">
+                        {latestCompletedSession.taskTitle ??
+                          "Focus Session"}
+                      </p>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-zinc-600">
+                            Session
+                          </p>
+
+                          <p className="mt-1 font-mono text-sm text-zinc-300">
+                            {Math.floor(
+                              latestCompletedSession.durationSeconds /
+                                60
+                            )}
+                            m{" "}
+                            {String(
+                              latestCompletedSession.durationSeconds %
+                                60
+                            ).padStart(
+                              2,
+                              "0"
+                            )}
+                            s
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                          <p className="text-[10px] uppercase tracking-wider text-zinc-600">
+                            Next
+                          </p>
+
+                          <p className="mt-1 text-sm font-medium text-zinc-300">
+                            {mode ===
+                            "shortBreak"
+                              ? "5 min break"
+                              : "15 min break"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-5 flex gap-3">
+                        <button
+                          type="button"
+                          onClick={start}
+                          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-white px-4 text-sm font-medium text-black transition hover:bg-zinc-200"
+                        >
+                          <Play size={16} />
+                          Start Break
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setMode(
+                              "focus"
+                            )
+                          }
+                          className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                        >
+                          Skip Break
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
               {/* Task Selector */}
 
               {mode === "focus" && (
@@ -501,16 +638,20 @@ export default function FocusPage() {
                     </p>
                   </div>
 
-                  {todayTasks.length > 0 ? (
+                  {todayTasks.length >
+                  0 ? (
                     <>
                       <select
                         value={
                           selectedTaskId ??
                           ""
                         }
-                        onChange={(event) => {
+                        onChange={(
+                          event
+                        ) => {
                           const taskId =
-                            event.target.value;
+                            event.target
+                              .value;
 
                           const task =
                             todayTasks.find(
@@ -520,20 +661,23 @@ export default function FocusPage() {
                             );
 
                           setSelectedTask(
-                            taskId || null,
+                            taskId ||
+                              null,
                             task?.title ??
                               null
                           );
                         }}
-                        disabled={isRunning}
+                        disabled={
+                          isRunning
+                        }
                         className="h-11 w-full rounded-xl border border-white/10 bg-black/20 px-3 text-sm text-zinc-300 outline-none transition focus:border-white/20 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <option
                           value=""
                           className="bg-[#111113]"
                         >
-                          Select a task to focus
-                          on
+                          Select a task to
+                          focus on
                         </option>
 
                         {todayTasks.map(
@@ -640,7 +784,9 @@ export default function FocusPage() {
                         />
 
                         <span className="truncate text-xs text-zinc-400">
-                          {selectedTask.title}
+                          {
+                            selectedTask.title
+                          }
                         </span>
                       </div>
                     )}
@@ -678,7 +824,9 @@ export default function FocusPage() {
                       className="flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-sm font-medium text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isRunning ? (
-                        <Pause size={17} />
+                        <Pause
+                          size={17}
+                        />
                       ) : (
                         <Play size={17} />
                       )}
@@ -754,7 +902,8 @@ export default function FocusPage() {
               <div className="mt-5 grid grid-cols-2 gap-4">
                 <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5">
                   <p className="text-xs text-zinc-600">
-                    Total Completed Sessions
+                    Total Completed
+                    Sessions
                   </p>
 
                   <p className="mt-2 text-3xl font-semibold">
@@ -823,8 +972,8 @@ export default function FocusPage() {
 
                     <p className="mt-1 text-xs text-zinc-700">
                       Complete a focus
-                      session and it will
-                      appear here.
+                      session and it
+                      will appear here.
                     </p>
                   </div>
                 ) : (
@@ -848,7 +997,9 @@ export default function FocusPage() {
 
                         return (
                           <div
-                            key={session.id}
+                            key={
+                              session.id
+                            }
                             className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-3"
                           >
                             <div className="min-w-0">
@@ -869,7 +1020,8 @@ export default function FocusPage() {
                                   undefined,
                                   {
                                     day: "2-digit",
-                                    month: "short",
+                                    month:
+                                      "short",
                                     year: "numeric",
                                   }
                                 )}{" "}
@@ -887,7 +1039,8 @@ export default function FocusPage() {
 
                             <div className="shrink-0 text-right">
                               <p className="font-mono text-xs text-zinc-400">
-                                {durationMinutes}m{" "}
+                                {durationMinutes}
+                                m{" "}
                                 {String(
                                   durationSeconds
                                 ).padStart(
