@@ -37,3 +37,14 @@ export async function PATCH(
         ...(body.category !== undefined && {
           category: body.category,
         }),
+                ...(body.completed !== undefined && {
+          completed: body.completed,
+        }),
+        ...(body.reminder !== undefined && {
+          reminder: body.reminder,
+        }),
+        ...(body.alarmEnabled !== undefined && {
+          alarmEnabled: body.alarmEnabled,
+        }),
+      },
+    });
