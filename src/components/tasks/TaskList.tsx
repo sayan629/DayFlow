@@ -14,11 +14,16 @@ import {
   TaskCategory,
   TaskPriority,
 } from "@/types/task";
+import { useScheduler } from "@/hooks/useScheduler";
 
 export default function TaskList() {
   const tasks = useTaskStore((state) => state.tasks);
 
-  const today = new Date().toISOString().split("T")[0];
+  const now = useScheduler();
+
+const today = now
+  ? now.toISOString().split("T")[0]
+  : null;
 
   const [search, setSearch] = useState("");
   const [priority, setPriority] =

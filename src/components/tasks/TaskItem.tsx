@@ -4,14 +4,21 @@ import {
   Bell,
   BellOff,
   Check,
+  Clock3,
   MoreHorizontal,
   Pencil,
+  Target,
   Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
 import { getTaskStatus } from "@/lib/scheduler";
+import {
+  getTaskFocusStats,
+  useFocusStore,
+} from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
 import { Task } from "@/types/task";
 
@@ -27,11 +34,24 @@ const priorityStyles = {
   high: "bg-red-500",
 };
 
-export default function TaskItem({ task }: TaskItemProps) {
+export default function TaskItem({
+  task,
+}: TaskItemProps) {
+  const router = useRouter();
+
   const now = useScheduler();
 
+  const sessionHistory = useFocusStore(
+    (state) => state.sessionHistory
+  );
+
+  const focusStats = getTaskFocusStats(
+    sessionHistory,
+    task.id
+  );
+
   const status = now
-    ? getTaskStatus(task)
+    ? getTaskStatus(task, now)
     : "upcoming";
 
   const toggleTask = useTaskStore(
@@ -46,10 +66,14 @@ export default function TaskItem({ task }: TaskItemProps) {
     (state) => state.updateTask
   );
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [editOpen, setEditOpen] =
+    useState(false);
 
-  const alarmEnabled = task.alarmEnabled !== false;
+  const [menuOpen, setMenuOpen] =
+    useState(false);
+
+  const alarmEnabled =
+    task.alarmEnabled !== false;
 
   const handleDelete = () => {
     const confirmed = window.confirm(
@@ -65,6 +89,14 @@ export default function TaskItem({ task }: TaskItemProps) {
     updateTask(task.id, {
       alarmEnabled: !alarmEnabled,
     });
+
+    setMenuOpen(false);
+  };
+
+  const handleStartFocus = () => {
+    router.push(
+      `/focus?taskId=${encodeURIComponent(task.id)}`
+    );
 
     setMenuOpen(false);
   };
@@ -101,7 +133,9 @@ export default function TaskItem({ task }: TaskItemProps) {
                 {/* Complete Button */}
                 <button
                   type="button"
-                  onClick={() => toggleTask(task.id)}
+                  onClick={() =>
+                    toggleTask(task.id)
+                  }
                   className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
                     task.completed
                       ? "border-white bg-white text-black"
@@ -113,7 +147,9 @@ export default function TaskItem({ task }: TaskItemProps) {
                       : "Mark complete"
                   }
                 >
-                  {task.completed && <Check size={13} />}
+                  {task.completed && (
+                    <Check size={13} />
+                  )}
                 </button>
 
                 {/* Task Information */}
@@ -127,11 +163,12 @@ export default function TaskItem({ task }: TaskItemProps) {
                   )}
 
                   {/* Upcoming */}
-                  {status === "upcoming" && task.startTime && (
-                    <div className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-                      Upcoming
-                    </div>
-                  )}
+                  {status === "upcoming" &&
+                    task.startTime && (
+                      <div className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                        Upcoming
+                      </div>
+                    )}
 
                   {/* Task Title */}
                   <h4
@@ -165,6 +202,7 @@ export default function TaskItem({ task }: TaskItemProps) {
                     {/* Time */}
                     <span className="text-zinc-500">
                       {task.startTime || "--:--"}
+
                       {task.endTime &&
                         ` – ${task.endTime}`}
                     </span>
@@ -177,12 +215,32 @@ export default function TaskItem({ task }: TaskItemProps) {
                     <span className="flex items-center gap-1.5 text-zinc-500">
                       <span
                         className={`h-1.5 w-1.5 rounded-full ${
-                          priorityStyles[task.priority]
+                          priorityStyles[
+                            task.priority
+                          ]
                         }`}
                       />
 
                       {task.priority}
                     </span>
+
+                    {/* Focus Sessions */}
+                    {focusStats && (
+                      <>
+                        <span className="text-zinc-700">
+                          •
+                        </span>
+
+                        <span className="flex items-center gap-1 text-zinc-500">
+                          <Clock3 size={12} />
+
+                          {focusStats.sessions}{" "}
+                          {focusStats.sessions === 1
+                            ? "session"
+                            : "sessions"}
+                        </span>
+                      </>
+                    )}
 
                     {/* Alarm */}
                     {task.startTime && (
@@ -233,7 +291,9 @@ export default function TaskItem({ task }: TaskItemProps) {
                 {/* Edit */}
                 <button
                   type="button"
-                  onClick={() => setEditOpen(true)}
+                  onClick={() =>
+                    setEditOpen(true)
+                  }
                   className="rounded-lg p-2 text-zinc-700 opacity-0 transition hover:bg-white/5 hover:text-white group-hover:opacity-100"
                   title="Edit task"
                 >
@@ -254,7 +314,9 @@ export default function TaskItem({ task }: TaskItemProps) {
                 <button
                   type="button"
                   onClick={() =>
-                    setMenuOpen((open) => !open)
+                    setMenuOpen(
+                      (open) => !open
+                    )
                   }
                   className="rounded-lg p-2 text-zinc-700 opacity-0 transition hover:bg-white/5 hover:text-white group-hover:opacity-100"
                   title="More options"
@@ -266,6 +328,17 @@ export default function TaskItem({ task }: TaskItemProps) {
                 {/* More Menu */}
                 {menuOpen && (
                   <div className="absolute right-0 top-10 z-50 w-44 overflow-hidden rounded-xl border border-white/10 bg-[#151518] p-1 shadow-2xl">
+                    {/* Start Focus */}
+                    <button
+                      type="button"
+                      onClick={handleStartFocus}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                    >
+                      <Target size={14} />
+                      Start Focus
+                    </button>
+
+                    {/* Edit */}
                     <button
                       type="button"
                       onClick={() => {
@@ -278,10 +351,13 @@ export default function TaskItem({ task }: TaskItemProps) {
                       Edit task
                     </button>
 
+                    {/* Alarm */}
                     {task.startTime && (
                       <button
                         type="button"
-                        onClick={handleToggleAlarm}
+                        onClick={
+                          handleToggleAlarm
+                        }
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-zinc-400 transition hover:bg-white/5 hover:text-white"
                       >
                         {alarmEnabled ? (
@@ -296,6 +372,7 @@ export default function TaskItem({ task }: TaskItemProps) {
                       </button>
                     )}
 
+                    {/* Complete */}
                     <button
                       type="button"
                       onClick={() => {
@@ -313,6 +390,7 @@ export default function TaskItem({ task }: TaskItemProps) {
 
                     <div className="my-1 border-t border-white/5" />
 
+                    {/* Delete */}
                     <button
                       type="button"
                       onClick={() => {
@@ -336,7 +414,9 @@ export default function TaskItem({ task }: TaskItemProps) {
       {editOpen && (
         <AddTaskDialog
           editTask={task}
-          onClose={() => setEditOpen(false)}
+          onClose={() =>
+            setEditOpen(false)
+          }
         />
       )}
     </>
