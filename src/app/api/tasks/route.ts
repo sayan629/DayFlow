@@ -21,3 +21,15 @@ export async function GET() {
     );
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+
+    const task = await prisma.task.create({
+      data: {
+        id: body.id,
+        title: body.title,
+        description: body.description || null,
+        date: body.date,
+        startTime: body.startTime || null,
