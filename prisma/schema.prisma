@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+}
+
+enum TaskCategory {
+  study
+  development
+  personal
+  fitness
+  other
+}
+
+enum FocusMode {
+  focus
+  shortBreak
+  longBreak
+}
+
+enum AlarmStatus {
+  ringing
+  snoozed
+  stopped
+}
+
+model Task {
+  id           String       @id
+  title        String
+  description  String?
+  date         String
+  startTime    String?
+  endTime      String?
+  priority     TaskPriority  @default(medium)
+  category     TaskCategory  @default(other)
+  completed    Boolean       @default(false)
+  reminder     Int?
+  alarmEnabled Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+
+  focusSessions FocusSession[]
+  alarmHistory  AlarmHistory[]
+
+  @@index([date])
+  @@index([completed])
+}
+
+model FocusSession {
+  id              String    @id
+  taskId          String?
+  taskTitle       String?
+  mode            FocusMode
+  durationSeconds Int
+  startedAt       DateTime
+  completedAt     DateTime
+
+  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
+  @@index([completedAt])
+}
+
+model AlarmHistory {
+  id           String      @id
+  taskId       String?
+  taskTitle    String
+  status       AlarmStatus
+  triggeredAt  DateTime
+  stoppedAt    DateTime?
+  snoozedUntil DateTime?
+
+  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
+  @@index([triggeredAt])
+}

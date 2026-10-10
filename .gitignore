@@ -52,6 +52,11 @@ coverage/
 prisma/*.db
 prisma/*.db-journal
 
+prisma/dev.db
+prisma/dev.db-journal
+prisma/dev.db-shm
+prisma/dev.db-wal
+
 # Local data
 *.sqlite
 *.sqlite3
