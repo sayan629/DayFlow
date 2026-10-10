@@ -26,20 +26,29 @@ export interface TaskFocusStats {
 
 interface FocusStore {
   mode: FocusMode;
+
   remainingSeconds: number;
+
   isRunning: boolean;
+
   completedSessions: number;
 
   selectedTaskId: string | null;
+
   selectedTaskTitle: string | null;
 
   sessionStartedAt: string | null;
+
   sessionHistory: FocusSession[];
 
   start: () => void;
+
   pause: () => void;
+
   reset: () => void;
+
   setMode: (mode: FocusMode) => void;
+
   setTestDuration: (seconds: number) => void;
 
   setSelectedTask: (
@@ -48,246 +57,307 @@ interface FocusStore {
   ) => void;
 
   completeSession: () => void;
+
   clearSessionHistory: () => void;
 }
 
-const MODE_DURATION: Record<FocusMode, number> = {
+const MODE_DURATION: Record<
+  FocusMode,
+  number
+> = {
   focus: 25 * 60,
   shortBreak: 5 * 60,
   longBreak: 15 * 60,
 };
 
+/**
+ * Get focus statistics for a specific task.
+ */
 export function getTaskFocusStats(
   sessionHistory: FocusSession[],
   taskId: string
 ): TaskFocusStats | null {
-  const taskSessions = sessionHistory.filter(
-    (session) =>
-      session.mode === "focus" &&
-      session.taskId === taskId
-  );
+  const taskSessions =
+    sessionHistory.filter(
+      (session) =>
+        session.mode === "focus" &&
+        session.taskId === taskId
+    );
 
   if (taskSessions.length === 0) {
     return null;
   }
 
-  const totalSeconds = taskSessions.reduce(
-    (total, session) =>
-      total + session.durationSeconds,
-    0
-  );
+  const totalSeconds =
+    taskSessions.reduce(
+      (total, session) =>
+        total + session.durationSeconds,
+      0
+    );
 
-  const latestSession = taskSessions.reduce(
-    (latest, session) => {
-      if (!latest) return session;
+  const latestSession =
+    taskSessions.reduce(
+      (latest, session) => {
+        if (!latest) {
+          return session;
+        }
 
-      return new Date(session.completedAt).getTime() >
-        new Date(latest.completedAt).getTime()
-        ? session
-        : latest;
-    },
-    null as FocusSession | null
-  );
+        return new Date(
+          session.completedAt
+        ).getTime() >
+          new Date(
+            latest.completedAt
+          ).getTime()
+          ? session
+          : latest;
+      },
+      null as FocusSession | null
+    );
 
   return {
     taskId,
+
     taskTitle:
-      taskSessions[0].taskTitle ?? "Focus Session",
+      taskSessions[0].taskTitle ??
+      "Focus Session",
+
     sessions: taskSessions.length,
+
     totalSeconds,
+
     lastFocusedAt:
-      latestSession?.completedAt ?? null,
+      latestSession?.completedAt ??
+      null,
   };
 }
 
-export const useFocusStore = create<FocusStore>()(
-  persist(
-    (set) => ({
-      mode: "focus",
+export const useFocusStore =
+  create<FocusStore>()(
+    persist(
+      (set) => ({
+        // ------------------------------------------
+        // Initial state
+        // ------------------------------------------
 
-      remainingSeconds:
-        MODE_DURATION.focus,
+        mode: "focus",
 
-      isRunning: false,
+        remainingSeconds:
+          MODE_DURATION.focus,
 
-      completedSessions: 0,
+        isRunning: false,
 
-      selectedTaskId: null,
-      selectedTaskTitle: null,
+        completedSessions: 0,
 
-      sessionStartedAt: null,
+        selectedTaskId: null,
 
-      sessionHistory: [],
+        selectedTaskTitle: null,
 
-      start: () => {
-        set((state) => ({
-          isRunning: true,
+        sessionStartedAt: null,
 
-          sessionStartedAt:
-            state.mode === "focus"
-              ? state.sessionStartedAt ??
-                new Date().toISOString()
-              : null,
-        }));
-      },
+        sessionHistory: [],
 
-      pause: () => {
-        set({
-          isRunning: false,
-        });
-      },
+        // ------------------------------------------
+        // Start
+        // ------------------------------------------
 
-      reset: () => {
-        set((state) => ({
-          remainingSeconds:
-            MODE_DURATION[state.mode],
+        start: () => {
+          set((state) => ({
+            isRunning: true,
 
-          isRunning: false,
+            sessionStartedAt:
+              state.mode === "focus"
+                ? state.sessionStartedAt ??
+                  new Date().toISOString()
+                : null,
+          }));
+        },
 
-          sessionStartedAt: null,
-        }));
-      },
+        // ------------------------------------------
+        // Pause
+        // ------------------------------------------
 
-      setMode: (mode) => {
-        set({
-          mode,
+        pause: () => {
+          set({
+            isRunning: false,
+          });
+        },
 
-          remainingSeconds:
-            MODE_DURATION[mode],
+        // ------------------------------------------
+        // Reset
+        // ------------------------------------------
 
-          isRunning: false,
-
-          sessionStartedAt: null,
-        });
-      },
-
-      setTestDuration: (seconds) => {
-        set({
-          remainingSeconds: seconds,
-
-          isRunning: false,
-
-          sessionStartedAt: null,
-        });
-      },
-
-      setSelectedTask: (
-        taskId,
-        taskTitle = null
-      ) => {
-        set({
-          selectedTaskId: taskId,
-
-          selectedTaskTitle:
-            taskId
-              ? taskTitle ?? null
-              : null,
-        });
-      },
-
-      completeSession: () => {
-        set((state) => {
-          const completedAt =
-            new Date().toISOString();
-
-          /*
-           * Focus session completed
-           */
-          if (state.mode === "focus") {
-            const nextSession =
-              state.completedSessions + 1;
-
-            const startedAt =
-              state.sessionStartedAt ??
-              completedAt;
-
-            const elapsedSeconds = Math.max(
-              1,
-              Math.round(
-                (new Date(
-                  completedAt
-                ).getTime() -
-                  new Date(
-                    startedAt
-                  ).getTime()) /
-                  1000
-              )
-            );
-
-            const session: FocusSession = {
-              id: crypto.randomUUID(),
-
-              taskId:
-                state.selectedTaskId,
-
-              taskTitle:
-                state.selectedTaskTitle,
-
-              mode: "focus",
-
-              durationSeconds:
-                elapsedSeconds,
-
-              startedAt,
-
-              completedAt,
-            };
-
-            /*
-             * Every 4th focus session
-             * gives a long break.
-             */
-            const nextMode =
-              nextSession % 4 === 0
-                ? "longBreak"
-                : "shortBreak";
-
-            return {
-              completedSessions:
-                nextSession,
-
-              mode: nextMode,
-
-              remainingSeconds:
-                MODE_DURATION[nextMode],
-
-              isRunning: false,
-
-              sessionStartedAt: null,
-
-              sessionHistory: [
-                session,
-                ...state.sessionHistory,
-              ],
-            };
-          }
-
-          /*
-           * Break completed.
-           * Return to focus mode.
-           */
-          return {
-            mode: "focus",
-
+        reset: () => {
+          set((state) => ({
             remainingSeconds:
-              MODE_DURATION.focus,
+              MODE_DURATION[state.mode],
 
             isRunning: false,
 
             sessionStartedAt: null,
-          };
-        });
-      },
+          }));
+        },
 
-      clearSessionHistory: () => {
-        set({
-          sessionHistory: [],
-        });
-      },
-    }),
+        // ------------------------------------------
+        // Change mode
+        // ------------------------------------------
 
-    {
-      name: "dayflow-focus",
-    }
-  )
-);
+        setMode: (mode) => {
+          set({
+            mode,
+
+            remainingSeconds:
+              MODE_DURATION[mode],
+
+            isRunning: false,
+
+            sessionStartedAt: null,
+          });
+        },
+
+        // ------------------------------------------
+        // Developer test duration
+        // ------------------------------------------
+
+        setTestDuration: (seconds) => {
+          set({
+            remainingSeconds:
+              Math.max(1, seconds),
+
+            isRunning: false,
+
+            sessionStartedAt: null,
+          });
+        },
+
+        // ------------------------------------------
+        // Select task
+        // ------------------------------------------
+
+        setSelectedTask: (
+          taskId,
+          taskTitle = null
+        ) => {
+          set({
+            selectedTaskId: taskId,
+
+            selectedTaskTitle: taskId
+              ? taskTitle ?? null
+              : null,
+          });
+        },
+
+        // ------------------------------------------
+        // Complete session
+        // ------------------------------------------
+
+        completeSession: () => {
+          set((state) => {
+            const completedAt =
+              new Date().toISOString();
+
+            // --------------------------------------
+            // Focus session completed
+            // --------------------------------------
+
+            if (state.mode === "focus") {
+              const nextSession =
+                state.completedSessions + 1;
+
+              const startedAt =
+                state.sessionStartedAt ??
+                completedAt;
+
+              const elapsedSeconds =
+                Math.max(
+                  1,
+                  Math.round(
+                    (new Date(
+                      completedAt
+                    ).getTime() -
+                      new Date(
+                        startedAt
+                      ).getTime()) /
+                      1000
+                  )
+                );
+
+              const session: FocusSession = {
+                id: crypto.randomUUID(),
+
+                taskId:
+                  state.selectedTaskId,
+
+                taskTitle:
+                  state.selectedTaskTitle,
+
+                mode: "focus",
+
+                durationSeconds:
+                  elapsedSeconds,
+
+                startedAt,
+
+                completedAt,
+              };
+
+              // Every 4th focus session
+              // gives a long break.
+              const nextMode =
+                nextSession % 4 === 0
+                  ? "longBreak"
+                  : "shortBreak";
+
+              return {
+                completedSessions:
+                  nextSession,
+
+                mode: nextMode,
+
+                remainingSeconds:
+                  MODE_DURATION[nextMode],
+
+                isRunning: false,
+
+                sessionStartedAt: null,
+
+                sessionHistory: [
+                  session,
+                  ...state.sessionHistory,
+                ],
+              };
+            }
+
+            // --------------------------------------
+            // Break completed
+            // --------------------------------------
+            // Return to focus mode.
+
+            return {
+              mode: "focus",
+
+              remainingSeconds:
+                MODE_DURATION.focus,
+
+              isRunning: false,
+
+              sessionStartedAt: null,
+            };
+          });
+        },
+
+        // ------------------------------------------
+        // Clear history
+        // ------------------------------------------
+
+        clearSessionHistory: () => {
+          set({
+            sessionHistory: [],
+          });
+        },
+      }),
+
+      {
+        name: "dayflow-focus",
+      }
+    )
+  );
