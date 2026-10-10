@@ -69,3 +69,16 @@ export async function DELETE(
     await prisma.task.delete({
       where: { id },
     });
+
+        return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error("DELETE /api/tasks/[id] error:", error);
+
+    return NextResponse.json(
+      { error: "Failed to delete task" },
+      { status: 500 }
+    );
+  }
+}
