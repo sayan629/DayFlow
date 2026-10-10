@@ -21,6 +21,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
+import { useUserStore } from "@/store/userStore";
 
 const navigation = [
   { label: "Dashboard", icon: Home, href: "/" },
@@ -64,6 +65,11 @@ function SidebarContent({
   onNavigate?: () => void;
   onClose?: () => void;
 }) {
+  const user = useUserStore((state) => state.user);
+
+  const userName = user?.name?.trim() || "User";
+  const userInitial = userName.charAt(0).toUpperCase();
+
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
@@ -230,7 +236,7 @@ function SidebarContent({
         {collapsed ? (
           <div className="flex justify-center py-1">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black ring-2 ring-white/10">
-              S
+              {userInitial}
             </div>
           </div>
         ) : (
@@ -294,12 +300,12 @@ function SidebarContent({
               className={`group mt-3 flex w-full items-center gap-3 rounded-2xl border border-transparent px-2 py-2.5 text-left transition hover:border-white/[0.06] hover:bg-white/[0.025] ${focusRing}`}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black ring-2 ring-white/10">
-                S
+                {userInitial}
               </div>
 
               <div className="min-w-0">
                 <p className="truncate text-xs font-medium text-zinc-300">
-                  Sayan
+                  {userName}
                 </p>
 
                 <p className="truncate text-[10px] text-zinc-600">
@@ -332,6 +338,11 @@ export default function AppShell({
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const user = useUserStore((state) => state.user);
+
+  const userName = user?.name?.trim() || "User";
+  const userInitial = userName.charAt(0).toUpperCase();
 
   const today = useScheduler();
 
@@ -485,12 +496,12 @@ export default function AppShell({
                 className="group flex items-center gap-3 rounded-2xl border-l border-white/[0.07] py-1 pl-4 pr-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-white/30"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black shadow-lg ring-2 ring-white/10 transition group-hover:ring-white/25">
-                  S
+                  {userInitial}
                 </div>
 
                 <div className="hidden md:block">
                   <p className="text-sm font-medium leading-tight text-zinc-300">
-                    Sayan
+                    {userName}
                   </p>
 
                   <p className="text-[11px] text-zinc-600">

@@ -140,7 +140,7 @@ export default function AddTaskDialog({
             setDate(defaultDate ?? getToday());
             setOpen(true);
           }}
-          className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-200"
+          className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-zinc-200"
         >
           <Plus size={17} />
           Add Task
@@ -150,17 +150,15 @@ export default function AddTaskDialog({
       {/* DIALOG */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-[#111114] shadow-2xl">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-[#111114] shadow-2xl">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
-                <h2 className="text-lg font-semibold">
-                  {editTask
-                    ? "Edit Task"
-                    : "Create Task"}
+                <h2 className="text-base font-semibold">
+                  {editTask ? "Edit Task" : "Create Task"}
                 </h2>
 
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-0.5 text-xs text-zinc-500">
                   {editTask
                     ? "Update your task details."
                     : "Add something you want to accomplish."}
@@ -170,7 +168,7 @@ export default function AddTaskDialog({
               <button
                 type="button"
                 onClick={closeDialog}
-                className="rounded-xl p-2 text-zinc-500 transition hover:bg-white/5 hover:text-white"
+                className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-white/5 hover:text-white"
               >
                 <X size={18} />
               </button>
@@ -179,11 +177,11 @@ export default function AddTaskDialog({
             {/* Form */}
             <form
               onSubmit={handleSubmit}
-              className="space-y-5 p-6"
+              className="space-y-4 p-5"
             >
               {/* Title */}
               <div>
-                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                   Task title
                 </label>
 
@@ -194,13 +192,13 @@ export default function AddTaskDialog({
                     setTitle(e.target.value)
                   }
                   placeholder="e.g. Complete LeetCode problems"
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/30"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/30"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                   Description
                 </label>
 
@@ -210,14 +208,14 @@ export default function AddTaskDialog({
                     setDescription(e.target.value)
                   }
                   placeholder="Add some details..."
-                  rows={3}
-                  className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600"
+                  rows={2}
+                  className="min-h-[72px] w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/30"
                 />
               </div>
 
               {/* Date */}
               <div>
-                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                   Date
                 </label>
 
@@ -227,14 +225,14 @@ export default function AddTaskDialog({
                   onChange={(e) =>
                     setDate(e.target.value)
                   }
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 text-sm text-white outline-none focus:border-white/30"
                 />
               </div>
 
               {/* Time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                     Start time
                   </label>
 
@@ -244,12 +242,12 @@ export default function AddTaskDialog({
                     onChange={(e) =>
                       setStartTime(e.target.value)
                     }
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 text-sm text-white outline-none focus:border-white/30"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                     End time
                   </label>
 
@@ -259,16 +257,15 @@ export default function AddTaskDialog({
                     onChange={(e) =>
                       setEndTime(e.target.value)
                     }
-                    className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 text-sm text-white outline-none focus:border-white/30"
                   />
                 </div>
               </div>
 
               {/* Priority + Category */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Priority */}
                 <div>
-                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                     Priority
                   </label>
 
@@ -279,7 +276,7 @@ export default function AddTaskDialog({
                         e.target.value as TaskPriority
                       )
                     }
-                    className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-[#18181b] px-3.5 text-sm text-white outline-none focus:border-white/30"
                   >
                     <option value="low">
                       Low
@@ -295,9 +292,8 @@ export default function AddTaskDialog({
                   </select>
                 </div>
 
-                {/* Category */}
                 <div>
-                  <label className="mb-2 block text-xs font-medium text-zinc-400">
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                     Category
                   </label>
 
@@ -308,7 +304,7 @@ export default function AddTaskDialog({
                         e.target.value as TaskCategory
                       )
                     }
-                    className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                    className="h-11 w-full rounded-xl border border-white/10 bg-[#18181b] px-3.5 text-sm text-white outline-none focus:border-white/30"
                   >
                     <option value="study">
                       Study
@@ -335,18 +331,16 @@ export default function AddTaskDialog({
 
               {/* Reminder */}
               <div>
-                <label className="mb-2 block text-xs font-medium text-zinc-400">
+                <label className="mb-1.5 block text-xs font-medium text-zinc-400">
                   Reminder
                 </label>
 
                 <select
                   value={reminder}
                   onChange={(e) =>
-                    setReminder(
-                      Number(e.target.value)
-                    )
+                    setReminder(Number(e.target.value))
                   }
-                  className="w-full rounded-xl border border-white/10 bg-[#18181b] px-4 py-3 text-sm text-white outline-none focus:border-white/30"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-[#18181b] px-3.5 text-sm text-white outline-none focus:border-white/30"
                 >
                   <option value={0}>
                     At start time
@@ -379,18 +373,18 @@ export default function AddTaskDialog({
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-1">
                 <button
                   type="button"
                   onClick={closeDialog}
-                  className="flex-1 rounded-xl border border-white/10 px-4 py-3 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
+                  className="h-11 flex-1 rounded-xl border border-white/10 px-4 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  className="flex-1 rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-200"
+                  className="h-11 flex-1 rounded-xl bg-white px-4 text-sm font-medium text-black transition hover:bg-zinc-200"
                 >
                   {editTask
                     ? "Save Changes"
