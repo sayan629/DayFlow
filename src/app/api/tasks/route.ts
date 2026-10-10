@@ -33,3 +33,14 @@ export async function POST(request: Request) {
         description: body.description || null,
         date: body.date,
         startTime: body.startTime || null,
+        endTime: body.endTime || null,
+        priority: body.priority ?? "medium",
+        category: body.category ?? "other",
+        completed: body.completed ?? false,
+        reminder: body.reminder ?? null,
+        alarmEnabled: body.alarmEnabled ?? true,
+        createdAt: body.createdAt
+          ? new Date(body.createdAt)
+          : new Date(),
+      },
+    });
