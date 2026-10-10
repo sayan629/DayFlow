@@ -3,368 +3,350 @@
 import {
   Bell,
   CheckCircle2,
-  Clock3,
-  Menu,
-  Target,
+  Flame,
+  ListTodo,
+  Timer,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
-import Sidebar from "@/components/layout/Sidebar";
 import AddTaskDialog from "@/components/tasks/AddTaskDialog";
 import TaskList from "@/components/tasks/TaskList";
 import NextTaskCard from "@/components/scheduler/NextTaskCard";
-
-import { useScheduler } from "@/hooks/useScheduler";
-import { getNextAlarm } from "@/lib/scheduler";
-import { useTaskStore } from "@/store/taskStore";
 import TodayTimeline from "@/components/dashboard/TodayTimeline";
 
-export default function Dashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+import { useScheduler } from "@/hooks/useScheduler";
+import { useTaskStore } from "@/store/taskStore";
+import { getNextAlarm } from "@/lib/scheduler";
 
-  /*
-   * Current time comes from the scheduler instead of
-   * calling new Date() during render.
-   *
-   * This is required for Next.js 16 Cache Components.
-   */
+export default function HomePage() {
   const now = useScheduler();
 
-  const tasks = useTaskStore((state) => state.tasks);
+  const allTasks = useTaskStore(
+    (state) => state.tasks
+  );
 
-  const today = now
-    ? now.toISOString().split("T")[0]
-    : null;
+  const today = useMemo(() => {
+    if (!now) return null;
+
+    return now.toISOString().split("T")[0];
+  }, [now]);
 
   const todayTasks = useMemo(() => {
-    if (!today) {
-      return [];
-    }
+    if (!today) return [];
 
-    return tasks.filter(
+    return allTasks.filter(
       (task) => task.date === today
     );
-  }, [tasks, today]);
+  }, [allTasks, today]);
 
-  const completedTasks = useMemo(() => {
-    return todayTasks.filter(
-      (task) => task.completed
-    );
-  }, [todayTasks]);
+  const completedTasks = useMemo(
+    () =>
+      todayTasks.filter(
+        (task) => task.completed
+      ),
+    [todayTasks]
+  );
 
-  const activeTasks = useMemo(() => {
-    return todayTasks.filter(
-      (task) => !task.completed
-    );
-  }, [todayTasks]);
+  const remainingTasks =
+    todayTasks.length -
+    completedTasks.length;
 
-  /*
-   * Find the next alarm whenever the task list or
-   * current scheduler time changes.
-   */
-  const nextAlarm = useMemo(() => {
-    if (!now) {
-      return null;
-    }
-
-    return getNextAlarm(tasks);
-  }, [tasks, now]);
-
-  /*
-   * Convert the task start time + reminder into
-   * the actual time when the alarm will ring.
-   */
-  const alarmTime = useMemo(() => {
-    if (!nextAlarm?.startTime) {
-      return null;
-    }
-
-    const [hours, minutes] = nextAlarm.startTime
-      .split(":")
-      .map(Number);
-
-    const alarmMinutes =
-      hours * 60 +
-      minutes -
-      (nextAlarm.reminder ?? 0);
-
-    const normalizedMinutes =
-      (alarmMinutes + 24 * 60) %
-      (24 * 60);
-
-    const alarmHour = Math.floor(
-      normalizedMinutes / 60
-    );
-
-    const alarmMinute =
-      normalizedMinutes % 60;
-
-    return `${String(alarmHour).padStart(
-      2,
-      "0"
-    )}:${String(alarmMinute).padStart(
-      2,
-      "0"
-    )}`;
-  }, [nextAlarm]);
-
-  const progress =
-    todayTasks.length > 0
-      ? Math.round(
+  const completionPercentage =
+    todayTasks.length === 0
+      ? 0
+      : Math.round(
           (completedTasks.length /
             todayTasks.length) *
             100
-        )
-      : 0;
+        );
 
-  /*
-   * Prevent the initial prerender from rendering
-   * current-time-dependent UI.
-   */
-  if (!now) {
+  const nextAlarm = useMemo(() => {
+    if (!now) return null;
+
+    return getNextAlarm(
+      allTasks,
+      now
+    );
+  }, [allTasks, now]);
+
+  const focusTime = useMemo(() => {
+    const focusTasks = todayTasks.filter(
+      (task) => task.completed
+    );
+
+    if (focusTasks.length === 0) {
+      return "0m";
+    }
+
+    return `${focusTasks.length * 25}m`;
+  }, [todayTasks]);
+
+  if (!now || !today) {
     return null;
   }
 
   return (
-    <main className="min-h-screen bg-[#09090b] text-white">
-      <div className="flex min-h-screen">
-        <Sidebar open={sidebarOpen} />
+    <main className="min-h-full">
+      <div className="mx-auto w-full max-w-[1500px] space-y-8 p-5 md:p-8 lg:p-10">
+        {/* Header */}
+        <section className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div>
+            <p className="mb-2 text-xs uppercase tracking-[0.25em] text-zinc-600">
+              Personal OS
+            </p>
 
-        <section className="flex min-w-0 flex-1 flex-col">
-          {/* Header */}
-          <header className="flex h-20 items-center justify-between border-b border-white/10 px-5 md:px-8">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() =>
-                  setSidebarOpen(
-                    (open) => !open
-                  )
-                }
-                className="rounded-xl p-2 text-zinc-400 transition hover:bg-white/5 hover:text-white"
-                aria-label="Toggle sidebar"
-                title="Toggle sidebar"
-              >
-                <Menu size={20} />
-              </button>
+            <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
+              Dashboard
+            </h1>
 
+            <p className="mt-3 text-sm text-zinc-500">
+              Stay focused. Stay organized.
+            </p>
+          </div>
+
+          <AddTaskDialog />
+        </section>
+
+        {/* Stats */}
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            icon={<ListTodo size={19} />}
+            label="Today&apos;s Tasks"
+            value={String(
+              todayTasks.length
+            ).padStart(2, "0")}
+            subtitle={`${remainingTasks} remaining`}
+          />
+
+          <StatCard
+            icon={<CheckCircle2 size={19} />}
+            label="Completed"
+            value={String(
+              completedTasks.length
+            ).padStart(2, "0")}
+            subtitle={`${completionPercentage}% complete`}
+          />
+
+          <StatCard
+            icon={<Timer size={19} />}
+            label="Focus Time"
+            value={focusTime}
+            subtitle="Based on today&apos;s activity"
+          />
+
+          <StatCard
+            icon={<Flame size={19} />}
+            label="Current Streak"
+            value="07"
+            subtitle="Keep the momentum going"
+          />
+        </section>
+
+        {/* Next Task */}
+        <NextTaskCard />
+
+        {/* Timeline */}
+        <TodayTimeline />
+
+        {/* Main Dashboard Grid */}
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          {/* Today's Schedule */}
+          <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-5 md:px-6">
               <div>
-                <p className="text-xs text-zinc-500">
-                  Personal OS
-                </p>
+                <h2 className="font-semibold text-white">
+                  Today&apos;s Schedule
+                </h2>
 
-                <p className="text-sm font-medium text-zinc-300">
-                  Dashboard
+                <p className="mt-1 text-xs text-zinc-500">
+                  Your tasks for today
                 </p>
+              </div>
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
+                <ListTodo
+                  size={17}
+                  className="text-zinc-500"
+                />
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                className="relative rounded-xl border border-white/10 bg-white/[0.03] p-2.5 text-zinc-400 transition hover:bg-white/5 hover:text-white"
-                aria-label="Notifications"
-              >
-                <Bell size={18} />
+            <div className="p-5 md:p-6">
+              {todayTasks.length === 0 ? (
+                <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+                    <ListTodo
+                      size={20}
+                      className="text-zinc-500"
+                    />
+                  </div>
 
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-500" />
-              </button>
+                  <h3 className="mt-4 text-sm font-medium text-white">
+                    No tasks for today
+                  </h3>
 
-              <div className="flex items-center gap-3 border-l border-white/10 pl-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-zinc-300 to-zinc-600 text-sm font-semibold text-black">
-                  S
-                </div>
-
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium">
-                    Sayan
+                  <p className="mt-2 max-w-sm text-xs leading-relaxed text-zinc-600">
+                    Add a task to start building
+                    your schedule.
                   </p>
 
-                  <p className="text-xs text-zinc-500">
-                    My workspace
-                  </p>
+                  <div className="mt-5">
+                    <AddTaskDialog />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <TaskList />
+              )}
             </div>
-          </header>
+          </section>
 
-          {/* Main content */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-[1500px] p-5 md:p-8">
-              {/* Page Header */}
-              <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
-                <div>
-                  <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
-                    Personal OS
-                  </p>
-
-                  <h1 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
-                    Dashboard
-                  </h1>
-
-                  <p className="mt-2 text-sm text-zinc-500">
-                    Stay focused. Stay organized.
-                  </p>
-                </div>
-
-                <AddTaskDialog />
-              </div>
-
-              {/* Stats */}
-              <div className="mb-6 grid gap-4 sm:grid-cols-3">
-                <StatCard
-                  icon={<Clock3 size={19} />}
-                  label="Today&apos;s Tasks"
-                  value={String(
-                    todayTasks.length
-                  )}
-                />
-
-                <StatCard
-                  icon={<Target size={19} />}
-                  label="Active"
-                  value={String(
-                    activeTasks.length
-                  )}
-                />
-
-                <StatCard
-                  icon={<CheckCircle2 size={19} />}
-                  label="Completed"
-                  value={String(
-                    completedTasks.length
-                  )}
-                />
-              </div>
-
-              {/* Next Task */}
-              <NextTaskCard />
-              <TodayTimeline />
-
-              {/* Next Alarm */}
-              <section className="mb-6 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025]">
-                <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Next Alarm */}
+            <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
+              <div className="border-b border-white/10 px-5 py-5">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
+                    <h2 className="font-semibold text-white">
                       Next Alarm
-                    </p>
-
-                    <h2 className="mt-1 text-sm font-medium text-zinc-300">
-                      Your next scheduled reminder
                     </h2>
+
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Your upcoming reminder
+                    </p>
                   </div>
 
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
                     <Bell
-                      size={16}
+                      size={17}
                       className="text-zinc-500"
                     />
                   </div>
                 </div>
+              </div>
 
+              <div className="p-6">
                 {nextAlarm ? (
-                  <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                        <Bell
-                          size={19}
-                          className="text-zinc-400"
-                        />
-                      </div>
-
-                      <div>
-                        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-                          Alarm
-                        </p>
-
-                        <h3 className="mt-1 text-lg font-semibold text-white">
-                          {nextAlarm.title}
-                        </h3>
-
-                        <p className="mt-2 text-xs text-zinc-500">
-                          {nextAlarm.reminder === 0
-                            ? "At task start"
-                            : `${nextAlarm.reminder} min before task`}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-3 sm:min-w-[150px] sm:text-right">
-                      <p className="text-[10px] uppercase tracking-wider text-zinc-600">
-                        Rings at
-                      </p>
-
-                      <p className="mt-1 font-mono text-xl font-semibold text-white">
-                        {alarmTime ?? "--:--"}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex min-h-[120px] items-center p-6">
-                    <div>
-                      <h3 className="text-sm font-medium text-zinc-300">
-                        No upcoming alarms
-                      </h3>
-
-                      <p className="mt-1 text-xs text-zinc-600">
-                        You have no active alarms
-                        scheduled for today.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              {/* Daily Progress */}
-              <section className="mb-6 rounded-3xl border border-white/10 bg-white/[0.025] p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-600">
-                      Daily Progress
+                  <>
+                    <p className="text-4xl font-semibold tracking-tight text-white">
+                      {formatTime(
+                        nextAlarm.startTime!
+                      )}
                     </p>
 
-                    <h2 className="mt-1 text-sm font-medium text-zinc-300">
-                      Today&apos;s completion
-                    </h2>
+                    <p className="mt-2 text-sm font-medium text-zinc-200">
+                      {nextAlarm.title}
+                    </p>
+
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {formatReminder(
+                        nextAlarm.reminder ?? 0
+                      )}
+                    </p>
+
+                    <div className="mt-6">
+                      <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-zinc-500">
+                            Category
+                          </span>
+
+                          <span className="text-xs capitalize text-zinc-300">
+                            {nextAlarm.category}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="py-5">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
+                      <Bell
+                        size={18}
+                        className="text-zinc-600"
+                      />
+                    </div>
+
+                    <h3 className="mt-4 text-sm font-medium text-zinc-300">
+                      No upcoming alarms
+                    </h3>
+
+                    <p className="mt-2 text-xs leading-relaxed text-zinc-600">
+                      Your schedule is clear for
+                      now.
+                    </p>
                   </div>
+                )}
+              </div>
+            </section>
 
-                  <span className="text-lg font-semibold">
-                    {progress}%
-                  </span>
-                </div>
-
-                <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/5">
-                  <div
-                    className="h-full rounded-full bg-white transition-all duration-500"
-                    style={{
-                      width: `${progress}%`,
-                    }}
-                  />
-                </div>
-
-                <p className="mt-3 text-xs text-zinc-600">
-                  {completedTasks.length} of{" "}
-                  {todayTasks.length} tasks completed
-                </p>
-              </section>
-
-              {/* Today's Tasks */}
-              <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
-                <div className="border-b border-white/10 px-6 py-5">
-                  <h2 className="font-semibold">
-                    Today&apos;s Tasks
+            {/* Daily Progress */}
+            <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-semibold text-white">
+                    Daily Progress
                   </h2>
 
-                  <p className="mt-1 text-xs text-zinc-600">
-                    Your scheduled tasks for today
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Keep going
                   </p>
                 </div>
 
-                <div className="p-5 md:p-6">
-                  <TaskList />
+                <span className="text-sm font-medium text-white">
+                  {completionPercentage}%
+                </span>
+              </div>
+
+              <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-white transition-all duration-500"
+                  style={{
+                    width: `${completionPercentage}%`,
+                  }}
+                />
+              </div>
+
+              <div className="mt-4 flex justify-between text-xs text-zinc-500">
+                <span>
+                  {completedTasks.length} completed
+                </span>
+
+                <span>
+                  {remainingTasks} remaining
+                </span>
+              </div>
+            </section>
+
+            {/* Productivity */}
+            <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
+                  <Flame
+                    size={18}
+                    className="text-zinc-400"
+                  />
                 </div>
-              </section>
-            </div>
+
+                <div>
+                  <h2 className="text-sm font-semibold text-white">
+                    Productivity
+                  </h2>
+
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Build consistency every day.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <p className="text-xs leading-relaxed text-zinc-500">
+                  Complete your scheduled tasks
+                  and use Focus sessions to keep
+                  your productivity streak alive.
+                </p>
+              </div>
+            </section>
           </div>
         </section>
       </div>
@@ -376,24 +358,55 @@ function StatCard({
   icon,
   label,
   value,
+  subtitle,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  subtitle: string;
 }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 transition hover:border-white/20 hover:bg-white/[0.03]">
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-zinc-400">
+    <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-white/20 hover:bg-white/[0.03]">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-zinc-400">
         {icon}
       </div>
 
-      <p className="mt-6 text-xs text-zinc-500">
+      <p className="mt-5 text-xs text-zinc-500">
         {label}
       </p>
 
-      <p className="mt-1 text-3xl font-semibold tracking-tight">
+      <p className="mt-1 text-2xl font-semibold tracking-tight text-white">
         {value}
+      </p>
+
+      <p className="mt-1 text-xs text-zinc-600">
+        {subtitle}
       </p>
     </div>
   );
+}
+
+function formatTime(time: string) {
+  const [hours, minutes] = time
+    .split(":")
+    .map(Number);
+
+  const period = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+
+  return `${displayHours}:${String(
+    minutes
+  ).padStart(2, "0")} ${period}`;
+}
+
+function formatReminder(minutes: number) {
+  if (minutes === 0) {
+    return "Alarm at start time";
+  }
+
+  if (minutes === 60) {
+    return "Alarm 1 hour before";
+  }
+
+  return `Alarm ${minutes} minutes before`;
 }
