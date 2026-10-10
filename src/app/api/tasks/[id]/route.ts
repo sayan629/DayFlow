@@ -25,3 +25,15 @@ export async function PATCH(
         ...(body.date !== undefined && {
           date: body.date,
         }),
+         ...(body.startTime !== undefined && {
+          startTime: body.startTime || null,
+        }),
+        ...(body.endTime !== undefined && {
+          endTime: body.endTime || null,
+        }),
+        ...(body.priority !== undefined && {
+          priority: body.priority,
+        }),
+        ...(body.category !== undefined && {
+          category: body.category,
+        }),
