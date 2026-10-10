@@ -14,20 +14,24 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { subDays } from "date-fns";
 
 import Sidebar from "@/components/layout/Sidebar";
+import { useScheduler } from "@/hooks/useScheduler";
 import { useFocusStore } from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
-import { useScheduler } from "@/hooks/useScheduler";
 
 export default function FocusPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // ------------------------------------------------
-  // Current time
+  // URL task selection + current time
   // ------------------------------------------------
+
+  const searchParams = useSearchParams();
+  const taskIdFromUrl = searchParams.get("taskId");
 
   const now = useScheduler();
 
@@ -87,7 +91,9 @@ export default function FocusPage() {
   // Task store
   // ------------------------------------------------
 
-  const tasks = useTaskStore((state) => state.tasks);
+  const tasks = useTaskStore(
+    (state) => state.tasks
+  );
 
   const updateTask = useTaskStore(
     (state) => state.updateTask
@@ -126,10 +132,39 @@ export default function FocusPage() {
   }, [todayTasks, selectedTaskId]);
 
   // ------------------------------------------------
+  // Select task from URL
+  // ------------------------------------------------
+
+  useEffect(() => {
+    if (!taskIdFromUrl) {
+      return;
+    }
+
+    const taskFromUrl = todayTasks.find(
+      (task) => task.id === taskIdFromUrl
+    );
+
+    if (
+      taskFromUrl &&
+      selectedTaskId !== taskFromUrl.id
+    ) {
+      setSelectedTask(
+        taskFromUrl.id,
+        taskFromUrl.title
+      );
+    }
+  }, [
+    taskIdFromUrl,
+    todayTasks,
+    selectedTaskId,
+    setSelectedTask,
+  ]);
+
+  // ------------------------------------------------
   // Remove selected task if completed/deleted
   // ------------------------------------------------
 
-  useMemo(() => {
+  useEffect(() => {
     if (
       selectedTaskId &&
       !todayTasks.some(
@@ -148,18 +183,18 @@ export default function FocusPage() {
   // Timer
   // ------------------------------------------------
 
-  useMemo(() => {
+  useEffect(() => {
     if (!isRunning) {
       return;
     }
 
     const interval = setInterval(() => {
-      const current = useFocusStore.getState();
+      const current =
+        useFocusStore.getState();
 
       if (current.remainingSeconds <= 1) {
         // When a FOCUS session finishes,
         // automatically complete the selected task.
-
         if (
           current.mode === "focus" &&
           current.selectedTaskId
@@ -185,7 +220,8 @@ export default function FocusPage() {
       });
     }, 1000);
 
-    return () => clearInterval(interval);
+    return () =>
+      clearInterval(interval);
   }, [isRunning, updateTask]);
 
   // ------------------------------------------------
@@ -196,14 +232,14 @@ export default function FocusPage() {
     remainingSeconds / 60
   );
 
-  const seconds = remainingSeconds % 60;
+  const seconds =
+    remainingSeconds % 60;
 
   const formattedTime = `${String(
     minutes
-  ).padStart(2, "0")}:${String(seconds).padStart(
-    2,
-    "0"
-  )}`;
+  ).padStart(2, "0")}:${String(
+    seconds
+  ).padStart(2, "0")}`;
 
   // ------------------------------------------------
   // Mode label
@@ -255,7 +291,8 @@ export default function FocusPage() {
       totalMinutes / 60
     );
 
-    const minutes = totalMinutes % 60;
+    const minutes =
+      totalMinutes % 60;
 
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
@@ -371,6 +408,10 @@ export default function FocusPage() {
   // ------------------------------------------------
   // Render
   // ------------------------------------------------
+
+  if (!now) {
+    return null;
+  }
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
