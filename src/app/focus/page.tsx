@@ -25,18 +25,17 @@ import { subDays } from "date-fns";
 import Sidebar from "@/components/layout/Sidebar";
 import { useScheduler } from "@/hooks/useScheduler";
 import {
+  getTaskFocusStats,
   useFocusStore,
 } from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
 
 export default function FocusPage() {
-  const [sidebarOpen, setSidebarOpen] =
-    useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const searchParams = useSearchParams();
 
-  const taskIdFromUrl =
-    searchParams.get("taskId");
+  const taskIdFromUrl = searchParams.get("taskId");
 
   const now = useScheduler();
 
@@ -68,10 +67,6 @@ export default function FocusPage() {
     (state) => state.selectedTaskId
   );
 
-  // const selectedTaskTitle = useFocusStore(
-  //   (state) => state.selectedTaskTitle
-  // );
-
   const sessionHistory = useFocusStore(
     (state) => state.sessionHistory
   );
@@ -100,10 +95,9 @@ export default function FocusPage() {
     (state) => state.setSelectedTask
   );
 
-  const clearSessionHistory =
-    useFocusStore(
-      (state) => state.clearSessionHistory
-    );
+  const clearSessionHistory = useFocusStore(
+    (state) => state.clearSessionHistory
+  );
 
   // --------------------------------------------------
   // Task store
@@ -145,8 +139,7 @@ export default function FocusPage() {
 
   const selectedTask = useMemo(() => {
     return todayTasks.find(
-      (task) =>
-        task.id === selectedTaskId
+      (task) => task.id === selectedTaskId
     );
   }, [todayTasks, selectedTaskId]);
 
@@ -159,11 +152,9 @@ export default function FocusPage() {
       return;
     }
 
-    const taskFromUrl =
-      todayTasks.find(
-        (task) =>
-          task.id === taskIdFromUrl
-      );
+    const taskFromUrl = todayTasks.find(
+      (task) => task.id === taskIdFromUrl
+    );
 
     if (
       taskFromUrl &&
@@ -189,8 +180,7 @@ export default function FocusPage() {
     if (
       selectedTaskId &&
       !todayTasks.some(
-        (task) =>
-          task.id === selectedTaskId
+        (task) => task.id === selectedTaskId
       )
     ) {
       setSelectedTask(null, null);
@@ -217,9 +207,7 @@ export default function FocusPage() {
       if (
         current.remainingSeconds <= 1
       ) {
-        // ------------------------------------------
         // Focus session completed
-        // ------------------------------------------
 
         if (
           current.mode === "focus" &&
@@ -301,9 +289,7 @@ export default function FocusPage() {
     return sessionHistory.filter(
       (session) =>
         session.mode === "focus" &&
-        session.completedAt.startsWith(
-          today
-        )
+        session.completedAt.startsWith(today)
     );
   }, [sessionHistory, today]);
 
@@ -311,8 +297,7 @@ export default function FocusPage() {
     useMemo(() => {
       return todaySessions.reduce(
         (total, session) =>
-          total +
-          session.durationSeconds,
+          total + session.durationSeconds,
         0
       );
     }, [todaySessions]);
@@ -368,9 +353,7 @@ export default function FocusPage() {
         )
         .map(
           (session) =>
-            session.completedAt.split(
-              "T"
-            )[0]
+            session.completedAt.split("T")[0]
         )
     );
 
@@ -436,6 +419,115 @@ export default function FocusPage() {
           : "days",
     },
   ];
+
+  // --------------------------------------------------
+  // Focus Analytics
+  // --------------------------------------------------
+
+  const taskFocusAnalytics = useMemo(() => {
+    const taskMap = new Map<
+      string,
+      {
+        taskId: string;
+        taskTitle: string;
+        sessions: number;
+        totalSeconds: number;
+        lastFocusedAt: string | null;
+      }
+    >();
+
+    sessionHistory
+      .filter(
+        (session) =>
+          session.mode === "focus" &&
+          session.taskId
+      )
+      .forEach((session) => {
+        const taskId = session.taskId!;
+
+        if (!taskMap.has(taskId)) {
+          const taskStats =
+            getTaskFocusStats(
+              sessionHistory,
+              taskId
+            );
+
+          if (taskStats) {
+            taskMap.set(
+              taskId,
+              taskStats
+            );
+          }
+        }
+      });
+
+    return Array.from(
+      taskMap.values()
+    ).sort(
+      (a, b) =>
+        b.totalSeconds -
+        a.totalSeconds
+    );
+  }, [sessionHistory]);
+
+  const totalFocusSeconds = useMemo(
+    () =>
+      sessionHistory
+        .filter(
+          (session) =>
+            session.mode === "focus"
+        )
+        .reduce(
+          (total, session) =>
+            total +
+            session.durationSeconds,
+          0
+        ),
+    [sessionHistory]
+  );
+
+  const totalFocusTime = useMemo(() => {
+    const totalMinutes = Math.floor(
+      totalFocusSeconds / 60
+    );
+
+    const hours = Math.floor(
+      totalMinutes / 60
+    );
+
+    const minutes =
+      totalMinutes % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+
+    return `${minutes}m`;
+  }, [totalFocusSeconds]);
+
+  const mostFocusedTask =
+    taskFocusAnalytics[0] ?? null;
+
+  const formatAnalyticsTime = (
+    seconds: number
+  ) => {
+    const totalMinutes = Math.floor(
+      seconds / 60
+    );
+
+    const hours = Math.floor(
+      totalMinutes / 60
+    );
+
+    const minutes =
+      totalMinutes % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+
+    return `${minutes}m`;
+  };
 
   // --------------------------------------------------
   // Wait for scheduler
@@ -610,9 +702,7 @@ export default function FocusPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            setMode(
-                              "focus"
-                            )
+                            setMode("focus")
                           }
                           className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-sm text-zinc-400 transition hover:bg-white/5 hover:text-white"
                         >
@@ -784,9 +874,7 @@ export default function FocusPage() {
                         />
 
                         <span className="truncate text-xs text-zinc-400">
-                          {
-                            selectedTask.title
-                          }
+                          {selectedTask.title}
                         </span>
                       </div>
                     )}
@@ -824,9 +912,7 @@ export default function FocusPage() {
                       className="flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-sm font-medium text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {isRunning ? (
-                        <Pause
-                          size={17}
-                        />
+                        <Pause size={17} />
                       ) : (
                         <Play size={17} />
                       )}
@@ -925,6 +1011,212 @@ export default function FocusPage() {
                         : "Long Break"}
                   </p>
                 </div>
+              </div>
+
+              {/* Focus Analytics */}
+
+              <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.02] p-5 md:p-6">
+                <div>
+                  <p className="text-sm font-medium text-zinc-200">
+                    Focus Analytics
+                  </p>
+
+                  <p className="mt-1 text-xs text-zinc-600">
+                    Your focus performance
+                    across completed
+                    sessions.
+                  </p>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] text-zinc-600">
+                        Total Focus Time
+                      </p>
+
+                      <Timer
+                        size={15}
+                        className="text-zinc-700"
+                      />
+                    </div>
+
+                    <p className="mt-3 text-2xl font-semibold tracking-tight">
+                      {totalFocusTime}
+                    </p>
+
+                    <p className="mt-1 text-[10px] text-zinc-700">
+                      All completed
+                      sessions
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] text-zinc-600">
+                        Total Sessions
+                      </p>
+
+                      <Target
+                        size={15}
+                        className="text-zinc-700"
+                      />
+                    </div>
+
+                    <p className="mt-3 text-2xl font-semibold tracking-tight">
+                      {
+                        sessionHistory.filter(
+                          (session) =>
+                            session.mode ===
+                            "focus"
+                        ).length
+                      }
+                    </p>
+
+                    <p className="mt-1 text-[10px] text-zinc-700">
+                      Completed focus
+                      sessions
+                    </p>
+                  </div>
+                </div>
+
+                {mostFocusedTask && (
+                  <div className="mt-4 rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600">
+                      Most Focused Task
+                    </p>
+
+                    <div className="mt-3 flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-zinc-300">
+                          {
+                            mostFocusedTask.taskTitle
+                          }
+                        </p>
+
+                        <p className="mt-1 text-xs text-zinc-600">
+                          {
+                            mostFocusedTask.sessions
+                          }{" "}
+                          {mostFocusedTask.sessions ===
+                          1
+                            ? "session"
+                            : "sessions"}
+                        </p>
+                      </div>
+
+                      <p className="shrink-0 font-mono text-sm text-zinc-400">
+                        {formatAnalyticsTime(
+                          mostFocusedTask.totalSeconds
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {taskFocusAnalytics.length >
+                0 ? (
+                  <div className="mt-5">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-xs font-medium text-zinc-400">
+                        Task Breakdown
+                      </p>
+
+                      <p className="text-[10px] text-zinc-700">
+                        {
+                          taskFocusAnalytics.length
+                        }{" "}
+                        {taskFocusAnalytics.length ===
+                        1
+                          ? "task"
+                          : "tasks"}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      {taskFocusAnalytics.map(
+                        (taskStats) => {
+                          const percentage =
+                            totalFocusSeconds >
+                            0
+                              ? Math.round(
+                                  (taskStats.totalSeconds /
+                                    totalFocusSeconds) *
+                                    100
+                                )
+                              : 0;
+
+                          return (
+                            <div
+                              key={
+                                taskStats.taskId
+                              }
+                              className="rounded-2xl border border-white/5 bg-white/[0.02] p-4"
+                            >
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium text-zinc-300">
+                                    {
+                                      taskStats.taskTitle
+                                    }
+                                  </p>
+
+                                  <p className="mt-1 text-[11px] text-zinc-600">
+                                    {
+                                      taskStats.sessions
+                                    }{" "}
+                                    {taskStats.sessions ===
+                                    1
+                                      ? "session"
+                                      : "sessions"}{" "}
+                                    ·{" "}
+                                    {percentage}%
+                                    of focus
+                                    time
+                                  </p>
+                                </div>
+
+                                <p className="shrink-0 font-mono text-xs text-zinc-400">
+                                  {formatAnalyticsTime(
+                                    taskStats.totalSeconds
+                                  )}
+                                </p>
+                              </div>
+
+                              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
+                                <div
+                                  className="h-full rounded-full bg-white/30 transition-all"
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        }
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-5 rounded-2xl border border-dashed border-white/10 px-4 py-6 text-center">
+                    <Target
+                      size={20}
+                      className="mx-auto text-zinc-700"
+                    />
+
+                    <p className="mt-3 text-sm text-zinc-500">
+                      No task analytics
+                      yet.
+                    </p>
+
+                    <p className="mt-1 text-xs text-zinc-700">
+                      Complete a focus
+                      session linked to
+                      a task to see
+                      analytics here.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Focus History */}
