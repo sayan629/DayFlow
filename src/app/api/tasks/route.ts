@@ -44,3 +44,14 @@ export async function POST(request: Request) {
           : new Date(),
       },
     });
+
+        return NextResponse.json(task, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/tasks error:", error);
+
+    return NextResponse.json(
+      { error: "Failed to create task" },
+      { status: 500 }
+    );
+  }
+}
