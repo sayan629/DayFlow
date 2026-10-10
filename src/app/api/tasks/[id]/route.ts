@@ -48,3 +48,13 @@ export async function PATCH(
         }),
       },
     });
+        return NextResponse.json(task);
+  } catch (error) {
+    console.error("PATCH /api/tasks/[id] error:", error);
+
+    return NextResponse.json(
+      { error: "Failed to update task" },
+      { status: 500 }
+    );
+  }
+}
