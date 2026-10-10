@@ -14,3 +14,10 @@ export async function GET() {
     return NextResponse.json(tasks);
   } catch (error) {
     console.error("GET /api/tasks error:", error);
+
+        return NextResponse.json(
+      { error: "Failed to fetch tasks" },
+      { status: 500 }
+    );
+  }
+}
