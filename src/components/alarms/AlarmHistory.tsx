@@ -17,6 +17,31 @@ function formatDateTime(value: string) {
   });
 }
 
+function formatDuration(
+  triggeredAt: string,
+  stoppedAt?: string
+) {
+  if (!stoppedAt) return null;
+
+  const start = new Date(triggeredAt).getTime();
+  const end = new Date(stoppedAt).getTime();
+
+  const duration = Math.max(
+    0,
+    Math.round((end - start) / 60000)
+  );
+
+  if (duration < 1) {
+    return "< 1 min";
+  }
+
+  if (duration === 1) {
+    return "1 min";
+  }
+
+  return `${duration} min`;
+}
+
 export default function AlarmHistory() {
   const history = useAlarmStore(
     (state) => state.history
@@ -170,6 +195,11 @@ export default function AlarmHistory() {
             const isSnoozed =
               alarm.status === "snoozed";
 
+            const responseTime = formatDuration(
+              alarm.triggeredAt,
+              alarm.stoppedAt
+            );
+
             return (
               <div
                 key={alarm.id}
@@ -230,6 +260,12 @@ export default function AlarmHistory() {
                           )}`
                         : ""}
                   </p>
+
+                  {!isSnoozed && responseTime && (
+                    <p className="mt-1 text-[10px] text-zinc-500">
+                      Response: {responseTime}
+                    </p>
+                  )}
                 </div>
               </div>
             );
