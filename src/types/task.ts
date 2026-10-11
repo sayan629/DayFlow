@@ -19,5 +19,6 @@ export interface Task {
   completed: boolean;
   reminder?: number;
   alarmEnabled?: boolean;
+  snoozedUntil?: string | null;
   createdAt: string;
 }

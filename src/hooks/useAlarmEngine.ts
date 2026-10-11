@@ -11,13 +11,17 @@ export function useAlarmEngine() {
     (state) => state.startAlarm
   );
 
-  const notifiedTasks = useRef<Set<string>>(new Set());
+  const notifiedTasks = useRef<Set<string>>(
+    new Set()
+  );
 
   const audioRef =
     useRef<HTMLAudioElement | null>(null);
 
   const snoozeTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null);
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null
+    );
 
   // Create alarm audio
   useEffect(() => {
@@ -114,13 +118,13 @@ export function useAlarmEngine() {
         audio.currentTime = 0;
       }
 
-      // Cancel previous snooze
+      // Cancel previous in-memory snooze
       if (snoozeTimeoutRef.current) {
         clearTimeout(snoozeTimeoutRef.current);
         snoozeTimeoutRef.current = null;
       }
 
-      // Capture the alarm task BEFORE the store clears it
+      // Capture the alarm task before the store clears it
       const alarmState =
         useAlarmStore.getState();
 
@@ -137,7 +141,7 @@ export function useAlarmEngine() {
         taskTitle
       );
 
-      // Schedule alarm recovery
+      // Schedule in-memory recovery
       snoozeTimeoutRef.current =
         setTimeout(() => {
           const currentTask =
@@ -147,7 +151,6 @@ export function useAlarmEngine() {
                 (task) => task.id === taskId
               );
 
-          // Task was deleted
           if (!currentTask) {
             console.log(
               "Snoozed alarm cancelled: task no longer exists."
@@ -157,7 +160,6 @@ export function useAlarmEngine() {
             return;
           }
 
-          // Task was completed
           if (currentTask.completed) {
             console.log(
               "Snoozed alarm cancelled: task is completed."
@@ -167,7 +169,6 @@ export function useAlarmEngine() {
             return;
           }
 
-          // Alarm was disabled
           if (
             currentTask.alarmEnabled === false
           ) {
@@ -179,7 +180,23 @@ export function useAlarmEngine() {
             return;
           }
 
-          // 🔔 Restore alarm state
+          // Clear persisted snooze before ringing
+          void fetch(`/api/tasks/${taskId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              snoozedUntil: null,
+            }),
+          }).catch((error) => {
+            console.error(
+              "Failed to clear snooze:",
+              error
+            );
+          });
+
+          // Restore alarm state
           useAlarmStore
             .getState()
             .startAlarm(
@@ -187,10 +204,10 @@ export function useAlarmEngine() {
               currentTask.title
             );
 
-          // 🔊 Play alarm again
+          // Play alarm again
           playAlarm();
 
-          // 🖥️ Desktop notification
+          // Desktop notification
           sendNotification(
             currentTask.title,
             0
@@ -223,6 +240,102 @@ export function useAlarmEngine() {
     };
   }, [playAlarm]);
 
+  // Recover persisted snoozed alarms after refresh/restart
+  useEffect(() => {
+    const recoverPersistedSnooze = () => {
+      const now = Date.now();
+
+      const currentTasks =
+        useTaskStore.getState().tasks;
+
+      currentTasks.forEach((task) => {
+        if (!task.snoozedUntil) {
+          return;
+        }
+
+        if (task.completed) {
+          return;
+        }
+
+        if (task.alarmEnabled === false) {
+          return;
+        }
+
+        const snoozeTime = new Date(
+          task.snoozedUntil
+        ).getTime();
+
+        if (
+          Number.isNaN(snoozeTime) ||
+          snoozeTime > now
+        ) {
+          return;
+        }
+
+        const recoveryKey =
+          `snoozed-${task.id}-${task.snoozedUntil}`;
+
+        if (
+          notifiedTasks.current.has(
+            recoveryKey
+          )
+        ) {
+          return;
+        }
+
+        notifiedTasks.current.add(
+          recoveryKey
+        );
+
+        // Clear persisted snooze
+        void fetch(`/api/tasks/${task.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            snoozedUntil: null,
+          }),
+        }).catch((error) => {
+          console.error(
+            "Failed to clear recovered snooze:",
+            error
+          );
+        });
+
+        // Ring recovered alarm
+        startAlarm(
+          task.id,
+          task.title
+        );
+
+        playAlarm();
+
+        sendNotification(
+          task.title,
+          0
+        );
+
+        console.log(
+          "🔔 Recovered persisted snoozed alarm:",
+          task.title
+        );
+      });
+    };
+
+    recoverPersistedSnooze();
+
+    const interval = setInterval(
+      recoverPersistedSnooze,
+      1000
+    );
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [tasks, startAlarm, playAlarm]);
+
   // Check scheduled alarms
   useEffect(() => {
     const checkAlarms = () => {
@@ -245,6 +358,20 @@ export function useAlarmEngine() {
         // Ignore disabled alarms
         if (task.alarmEnabled === false) {
           return;
+        }
+
+        // Ignore tasks with an active persisted snooze
+        if (task.snoozedUntil) {
+          const snoozeTime = new Date(
+            task.snoozedUntil
+          ).getTime();
+
+          if (
+            !Number.isNaN(snoozeTime) &&
+            snoozeTime > Date.now()
+          ) {
+            return;
+          }
         }
 
         // Only check today's tasks
@@ -284,9 +411,6 @@ export function useAlarmEngine() {
          * exactly at the reminder time
          * OR
          * up to 2 minutes afterwards.
-         *
-         * This protects against small browser/timer delays
-         * while preventing very old reminders from firing.
          */
         const minutesLate =
           currentMinutes -
@@ -306,16 +430,16 @@ export function useAlarmEngine() {
             notificationKey
           );
 
-          // 🔊 Start alarm sound
+          // Start alarm sound
           playAlarm();
 
-          // 🔔 Start alarm state
+          // Start alarm state
           startAlarm(
             task.id,
             task.title
           );
 
-          // 🖥️ Desktop notification
+          // Desktop notification
           sendNotification(
             task.title,
             task.reminder
