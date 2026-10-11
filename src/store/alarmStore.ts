@@ -193,6 +193,25 @@ export const useAlarmStore = create<AlarmStore>(
             minutes * 60 * 1000
         ).toISOString();
 
+        const taskId = state.taskId;
+
+if (taskId) {
+  void fetch(`/api/tasks/${taskId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      snoozedUntil,
+    }),
+  }).catch((error) => {
+    console.error(
+      "Failed to persist snooze:",
+      error
+    );
+  });
+}
+
       if (
         state.taskId &&
         state.taskTitle
