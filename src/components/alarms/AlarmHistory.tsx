@@ -18,13 +18,42 @@ function formatDateTime(value: string) {
 }
 
 export default function AlarmHistory() {
-  const history = useAlarmStore((state) => state.history);
+  const history = useAlarmStore(
+    (state) => state.history
+  );
+
   const clearHistory = useAlarmStore(
     (state) => state.clearHistory
   );
 
+  const stoppedCount = history.filter(
+    (alarm) => alarm.status === "stopped"
+  ).length;
+
+  const snoozedCount = history.filter(
+    (alarm) => alarm.status === "snoozed"
+  ).length;
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayHistory = history.filter(
+    (alarm) =>
+      new Date(alarm.triggeredAt).getTime() >=
+      todayStart.getTime()
+  );
+
+  const todayStoppedCount = todayHistory.filter(
+    (alarm) => alarm.status === "stopped"
+  ).length;
+
+  const todaySnoozedCount = todayHistory.filter(
+    (alarm) => alarm.status === "snoozed"
+  ).length;
+
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.03]">
+      {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 p-5">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5">
@@ -35,6 +64,7 @@ export default function AlarmHistory() {
             <h2 className="font-semibold">
               Alarm History
             </h2>
+
             <p className="text-xs text-zinc-500">
               Recent alarm activity
             </p>
@@ -53,10 +83,76 @@ export default function AlarmHistory() {
         )}
       </div>
 
+      {/* Statistics */}
+      {history.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 border-b border-white/10 p-5 md:grid-cols-4">
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+              Total
+            </p>
+
+            <p className="mt-2 text-2xl font-semibold text-white">
+              {history.length}
+            </p>
+
+            <p className="mt-1 text-[10px] text-zinc-600">
+              All time
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+              Stopped
+            </p>
+
+            <p className="mt-2 text-2xl font-semibold text-emerald-400">
+              {stoppedCount}
+            </p>
+
+            <p className="mt-1 text-[10px] text-zinc-600">
+              Completed alarms
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+              Snoozed
+            </p>
+
+            <p className="mt-2 text-2xl font-semibold text-amber-400">
+              {snoozedCount}
+            </p>
+
+            <p className="mt-1 text-[10px] text-zinc-600">
+              Deferred alarms
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+              Today
+            </p>
+
+            <p className="mt-2 text-2xl font-semibold text-white">
+              {todayHistory.length}
+            </p>
+
+            <p className="mt-1 text-[10px] text-zinc-600">
+              {todayStoppedCount} stopped ·{" "}
+              {todaySnoozedCount} snoozed
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
       {history.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-5 py-12 text-center">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
-            <Bell size={20} className="text-zinc-500" />
+            <Bell
+              size={20}
+              className="text-zinc-500"
+            />
           </div>
 
           <p className="text-sm font-medium text-zinc-300">
@@ -68,9 +164,11 @@ export default function AlarmHistory() {
           </p>
         </div>
       ) : (
+        /* History List */
         <div className="divide-y divide-white/5">
           {history.map((alarm) => {
-            const isSnoozed = alarm.status === "snoozed";
+            const isSnoozed =
+              alarm.status === "snoozed";
 
             return (
               <div
