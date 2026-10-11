@@ -8,7 +8,7 @@ import {
   Target,
   TrendingUp,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
 import {
@@ -32,6 +32,14 @@ export default function AnalyticsPage() {
   const sessionHistory = useFocusStore(
     (state) => state.sessionHistory
   );
+
+const loadSessionHistory = useFocusStore(
+  (state) => state.loadSessionHistory
+);
+
+useEffect(() => {
+  loadSessionHistory();
+}, [loadSessionHistory]);
 
   const today = useMemo(() => {
     if (!now) return null;
