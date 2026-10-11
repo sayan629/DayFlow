@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
 import { useUserStore } from "@/store/userStore";
+import { useTaskStore } from "@/store/taskStore";
 
 const navigation = [
   { label: "Dashboard", icon: Home, href: "/" },
@@ -36,7 +37,7 @@ const focusRing =
   "outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0e]";
 
 /* ------------------------------------------------------------------ */
-/* Tooltip shown only when the sidebar is collapsed                    */
+/* Tooltip shown only when the sidebar is collapsed                   */
 /* ------------------------------------------------------------------ */
 
 function Tip({ label }: { label: string }) {
@@ -212,7 +213,9 @@ function SidebarContent({
           type="button"
           aria-label={collapsed ? "Settings" : undefined}
           className={`group relative flex w-full items-center rounded-[14px] text-zinc-500 transition-all duration-200 hover:bg-white/[0.045] hover:text-zinc-200 ${focusRing} ${
-            collapsed ? "justify-center px-3 py-3" : "gap-3 px-3.5 py-2.5"
+            collapsed
+              ? "justify-center px-3 py-3"
+              : "gap-3 px-3.5 py-2.5"
           }`}
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] transition-all duration-200 group-hover:bg-white/[0.05]">
@@ -326,7 +329,7 @@ function SidebarContent({
 }
 
 /* ------------------------------------------------------------------ */
-/* App shell                                                           */
+/* App shell                                                          */
 /* ------------------------------------------------------------------ */
 
 export default function AppShell({
@@ -345,6 +348,20 @@ export default function AppShell({
   const userInitial = userName.charAt(0).toUpperCase();
 
   const today = useScheduler();
+
+  /*
+   * Load tasks once at the application-shell level.
+   * This avoids loading them separately from the desktop
+   * and mobile SidebarContent instances.
+   */
+  const loadTasks = useTaskStore((state) => state.loadTasks);
+  const initialized = useTaskStore((state) => state.initialized);
+
+  useEffect(() => {
+    if (!initialized) {
+      loadTasks();
+    }
+  }, [initialized, loadTasks]);
 
   const dateInfo = useMemo(() => {
     if (!today) return { weekday: "", fullDate: "" };
