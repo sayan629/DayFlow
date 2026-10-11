@@ -11,20 +11,25 @@ import {
   Timer,
   Trash2,
 } from "lucide-react";
+
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+
 import {
   Suspense,
   useEffect,
   useMemo,
 } from "react";
+
 import { subDays } from "date-fns";
 
 import { useScheduler } from "@/hooks/useScheduler";
+
 import {
   getTaskFocusStats,
   useFocusStore,
 } from "@/store/focusStore";
+
 import { useTaskStore } from "@/store/taskStore";
 
 function FocusPageContent() {
@@ -94,6 +99,18 @@ function FocusPageContent() {
   const clearSessionHistory = useFocusStore(
     (state) => state.clearSessionHistory
   );
+
+  const loadSessionHistory = useFocusStore(
+    (state) => state.loadSessionHistory
+  );
+
+  // --------------------------------------------------
+  // Load Focus history from Prisma
+  // --------------------------------------------------
+
+  useEffect(() => {
+    loadSessionHistory();
+  }, [loadSessionHistory]);
 
   // --------------------------------------------------
   // Task store
@@ -204,7 +221,6 @@ function FocusPageContent() {
         current.remainingSeconds <= 1
       ) {
         // Focus session completed
-
         if (
           current.mode === "focus" &&
           current.selectedTaskId
@@ -1111,8 +1127,10 @@ function FocusPageContent() {
                                       ? "session"
                                       : "sessions"}{" "}
                                     ·{" "}
-                                    {percentage}%
-                                    of focus
+                                    {
+                                      percentage
+                                    }
+                                    % of focus
                                     time
                                   </p>
                                 </div>
