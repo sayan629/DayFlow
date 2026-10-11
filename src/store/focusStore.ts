@@ -404,11 +404,31 @@ export const useFocusStore = create<FocusStore>()(
       // Clear history
       // ------------------------------------------
 
-      clearSessionHistory: () => {
-        set({
-          sessionHistory: [],
-        });
-      },
+      clearSessionHistory: async () => {
+  try {
+    const response = await fetch(
+      "/api/focus-sessions",
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        "Failed to clear focus session history"
+      );
+    }
+
+    set({
+      sessionHistory: [],
+    });
+  } catch (error) {
+    console.error(
+      "Failed to clear focus session history:",
+      error
+    );
+  }
+},
     }),
 
     {
