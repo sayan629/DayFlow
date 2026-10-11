@@ -1,16 +1,45 @@
 "use client";
 
-import { BellRing, Moon, Square } from "lucide-react";
+import {
+  BellRing,
+  Moon,
+  Play,
+  Square,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAlarmStore } from "@/store/alarmStore";
 
 export default function AlarmRinging() {
-  const isRinging = useAlarmStore((state) => state.isRinging);
-  const taskTitle = useAlarmStore((state) => state.taskTitle);
+  const router = useRouter();
 
-  const stopAlarm = useAlarmStore((state) => state.stopAlarm);
-  const snoozeAlarm = useAlarmStore((state) => state.snoozeAlarm);
+  const isRinging = useAlarmStore(
+    (state) => state.isRinging
+  );
+  const taskId = useAlarmStore(
+    (state) => state.taskId
+  );
+  const taskTitle = useAlarmStore(
+    (state) => state.taskTitle
+  );
+
+  const stopAlarm = useAlarmStore(
+    (state) => state.stopAlarm
+  );
+  const snoozeAlarm = useAlarmStore(
+    (state) => state.snoozeAlarm
+  );
 
   if (!isRinging) return null;
+
+  const handleStartFocus = () => {
+    if (!taskId) return;
+
+    stopAlarm();
+
+    router.push(
+      `/focus?taskId=${encodeURIComponent(taskId)}`
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
@@ -27,7 +56,7 @@ export default function AlarmRinging() {
           </p>
 
           <h2 className="mt-2 text-2xl font-semibold text-white">
-            {taskTitle}
+            {taskTitle ?? "Scheduled Task"}
           </h2>
 
           <p className="mt-2 text-sm text-zinc-500">
@@ -37,6 +66,17 @@ export default function AlarmRinging() {
 
         {/* Actions */}
         <div className="space-y-3 border-t border-white/10 bg-white/[0.02] p-6">
+
+          {/* Start Focus */}
+          <button
+            type="button"
+            onClick={handleStartFocus}
+            disabled={!taskId}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Play size={16} />
+            Start Focus
+          </button>
 
           {/* Snooze */}
           <div className="grid grid-cols-2 gap-3">
@@ -63,7 +103,7 @@ export default function AlarmRinging() {
           <button
             type="button"
             onClick={stopAlarm}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-200"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
           >
             <Square size={16} />
             Stop Alarm

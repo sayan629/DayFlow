@@ -21,6 +21,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
+import { useFocusStore } from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
 import { useUserStore } from "@/store/userStore";
 
@@ -82,6 +83,10 @@ function SidebarContent({
 
   const tasks = useTaskStore((state) => state.tasks);
 
+  const focusSessions = useFocusStore(
+    (state) => state.sessionHistory
+  );
+
   const userName = user?.name?.trim() || "User";
   const userInitial = userName.charAt(0).toUpperCase();
 
@@ -112,47 +117,103 @@ function SidebarContent({
     const days = Array.from({ length: 7 }, (_, index) => {
       const date = new Date(currentDate);
 
-      date.setDate(currentDate.getDate() - (6 - index));
+      date.setDate(
+        currentDate.getDate() - (6 - index)
+      );
 
       const key = getDateKey(date);
 
       const dayTasks = tasks.filter(
-        (task) => getTaskDateKey(task.date) === key
+        (task) =>
+          getTaskDateKey(task.date) === key
       );
 
       const completedTasks = dayTasks.filter(
         (task) => task.completed
       );
 
+      const dayFocusSessions =
+        focusSessions.filter((session) => {
+          const sessionDate = new Date(
+            session.completedAt
+          );
+
+          return getDateKey(sessionDate) === key;
+        });
+
+      const hasActivity =
+        completedTasks.length > 0 ||
+        dayFocusSessions.length > 0;
+
       return {
         key,
         total: dayTasks.length,
         completed: completedTasks.length,
-        active: completedTasks.length > 0,
+        focusSessions: dayFocusSessions.length,
+        active: hasActivity,
       };
     });
 
     const todayStats = days[6];
     const yesterdayStats = days[5];
 
-    const todayRate =
+    const todayTaskRate =
       todayStats.total > 0
-        ? (todayStats.completed / todayStats.total) * 100
+        ? todayStats.completed /
+          todayStats.total
         : 0;
 
-    const yesterdayRate =
+    const yesterdayTaskRate =
       yesterdayStats.total > 0
-        ? (yesterdayStats.completed / yesterdayStats.total) * 100
+        ? yesterdayStats.completed /
+          yesterdayStats.total
         : 0;
 
-    const productivityChange =
+    const todayActivity =
+      todayStats.completed +
+      todayStats.focusSessions;
+
+    const yesterdayActivity =
+      yesterdayStats.completed +
+      yesterdayStats.focusSessions;
+
+    let productivityChange = 0;
+
+    if (yesterdayActivity > 0) {
+      productivityChange = Math.round(
+        ((todayActivity -
+          yesterdayActivity) /
+          yesterdayActivity) *
+          100
+      );
+    } else if (todayActivity > 0) {
+      productivityChange = 100;
+    }
+
+    if (
+      todayStats.total > 0 &&
       yesterdayStats.total > 0
-        ? Math.round(todayRate - yesterdayRate)
-        : Math.round(todayRate);
+    ) {
+      const completionChange = Math.round(
+        (todayTaskRate -
+          yesterdayTaskRate) *
+          100
+      );
+
+      productivityChange = Math.round(
+        (productivityChange +
+          completionChange) /
+          2
+      );
+    }
 
     let streak = 0;
 
-    for (let index = days.length - 1; index >= 0; index--) {
+    for (
+      let index = days.length - 1;
+      index >= 0;
+      index--
+    ) {
       if (!days[index].active) {
         break;
       }
@@ -165,14 +226,16 @@ function SidebarContent({
       productivityChange,
       days,
     };
-  }, [tasks, today]);
+  }, [tasks, focusSessions, today]);
 
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
       <div
         className={`flex h-20 shrink-0 items-center border-b border-white/[0.07] ${
-          collapsed ? "justify-center px-3" : "justify-between px-5"
+          collapsed
+            ? "justify-center px-3"
+            : "justify-between px-5"
         }`}
       >
         <Link
@@ -237,8 +300,14 @@ function SidebarContent({
                 key={item.label}
                 href={item.href}
                 onClick={onNavigate}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={collapsed ? item.label : undefined}
+                aria-current={
+                  isActive ? "page" : undefined
+                }
+                aria-label={
+                  collapsed
+                    ? item.label
+                    : undefined
+                }
                 className={`group relative flex items-center rounded-[14px] transition-all duration-200 ${focusRing} ${
                   collapsed
                     ? "justify-center px-3 py-3"
@@ -258,9 +327,18 @@ function SidebarContent({
                     isActive
                       ? "bg-black/[0.06]"
                       : "group-hover:bg-white/[0.05]"
-                  } ${!isActive ? "group-hover:scale-105" : ""}`}
+                  } ${
+                    !isActive
+                      ? "group-hover:scale-105"
+                      : ""
+                  }`}
                 >
-                  <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+                  <Icon
+                    size={18}
+                    strokeWidth={
+                      isActive ? 2.2 : 1.8
+                    }
+                  />
                 </span>
 
                 {!collapsed && (
@@ -278,20 +356,26 @@ function SidebarContent({
                 {item.label === "Alarms" && (
                   <span
                     className={`flex h-2 w-2 ${
-                      collapsed ? "absolute right-2.5 top-2.5" : "ml-auto"
+                      collapsed
+                        ? "absolute right-2.5 top-2.5"
+                        : "ml-auto"
                     }`}
                   >
                     <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-red-500 opacity-50" />
 
                     <span
                       className={`relative inline-flex h-2 w-2 rounded-full bg-red-500 ${
-                        collapsed ? "ring-2 ring-[#0b0b0e]" : ""
+                        collapsed
+                          ? "ring-2 ring-[#0b0b0e]"
+                          : ""
                       }`}
                     />
                   </span>
                 )}
 
-                {collapsed && <Tip label={item.label} />}
+                {collapsed && (
+                  <Tip label={item.label} />
+                )}
               </Link>
             );
           })}
@@ -307,7 +391,9 @@ function SidebarContent({
 
         <button
           type="button"
-          aria-label={collapsed ? "Settings" : undefined}
+          aria-label={
+            collapsed ? "Settings" : undefined
+          }
           className={`group relative flex w-full items-center rounded-[14px] text-zinc-500 transition-all duration-200 hover:bg-white/[0.045] hover:text-zinc-200 ${focusRing} ${
             collapsed
               ? "justify-center px-3 py-3"
@@ -323,7 +409,9 @@ function SidebarContent({
           </span>
 
           {!collapsed && (
-            <span className="text-[13px] font-medium">Settings</span>
+            <span className="text-[13px] font-medium">
+              Settings
+            </span>
           )}
 
           {collapsed && <Tip label="Settings" />}
@@ -348,7 +436,10 @@ function SidebarContent({
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-orange-400/10 ring-1 ring-orange-400/10">
-                      <Flame size={14} className="text-orange-400" />
+                      <Flame
+                        size={14}
+                        className="text-orange-400"
+                      />
                     </div>
 
                     <span className="text-xs font-semibold text-zinc-300">
@@ -364,7 +455,9 @@ function SidebarContent({
                 <div className="mb-4 flex items-end justify-between">
                   <div className="flex items-baseline">
                     <span className="text-3xl font-semibold leading-none tracking-tight text-white tabular-nums">
-                      {String(productivityStats.streak).padStart(2, "0")}
+                      {String(
+                        productivityStats.streak
+                      ).padStart(2, "0")}
                     </span>
 
                     <span className="ml-1.5 text-[10px] text-zinc-600">
@@ -374,26 +467,40 @@ function SidebarContent({
 
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      productivityStats.productivityChange >= 0
+                      productivityStats.productivityChange >=
+                      0
                         ? "bg-emerald-400/10 text-emerald-400"
                         : "bg-red-400/10 text-red-400"
                     }`}
                   >
-                    {productivityStats.productivityChange >= 0 ? "+" : ""}
-                    {productivityStats.productivityChange}%
+                    {productivityStats.productivityChange >=
+                    0
+                      ? "+"
+                      : ""}
+                    {
+                      productivityStats.productivityChange
+                    }
+                    %
                   </span>
                 </div>
 
                 {/* Real 7-day activity segments */}
-                <div className="flex gap-1" aria-hidden>
-                  {productivityStats.days.map((day) => (
-                    <span
-                      key={day.key}
-                      className={`h-1 flex-1 rounded-full ${
-                        day.active ? "bg-white/70" : "bg-white/10"
-                      }`}
-                    />
-                  ))}
+                <div
+                  className="flex gap-1"
+                  aria-hidden
+                >
+                  {productivityStats.days.map(
+                    (day) => (
+                      <span
+                        key={day.key}
+                        className={`h-1 flex-1 rounded-full ${
+                          day.active
+                            ? "bg-white/70"
+                            : "bg-white/10"
+                        }`}
+                      />
+                    )
+                  )}
                 </div>
 
                 <p className="mt-3 text-[10px] leading-relaxed text-zinc-600">
@@ -444,13 +551,21 @@ export default function AppShell({
 }) {
   const pathname = usePathname();
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] =
+    useState(true);
 
-  const user = useUserStore((state) => state.user);
+  const [mobileOpen, setMobileOpen] =
+    useState(false);
 
-  const userName = user?.name?.trim() || "User";
-  const userInitial = userName.charAt(0).toUpperCase();
+  const user = useUserStore(
+    (state) => state.user
+  );
+
+  const userName =
+    user?.name?.trim() || "User";
+
+  const userInitial =
+    userName.charAt(0).toUpperCase();
 
   const today = useScheduler();
 
@@ -458,8 +573,13 @@ export default function AppShell({
   /* Load tasks once at application-shell level                     */
   /* -------------------------------------------------------------- */
 
-  const loadTasks = useTaskStore((state) => state.loadTasks);
-  const initialized = useTaskStore((state) => state.initialized);
+  const loadTasks = useTaskStore(
+    (state) => state.loadTasks
+  );
+
+  const initialized = useTaskStore(
+    (state) => state.initialized
+  );
 
   useEffect(() => {
     if (!initialized) {
@@ -476,15 +596,21 @@ export default function AppShell({
     }
 
     return {
-      weekday: today.toLocaleDateString("en-US", {
-        weekday: "long",
-      }),
+      weekday: today.toLocaleDateString(
+        "en-US",
+        {
+          weekday: "long",
+        }
+      ),
 
-      fullDate: today.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
+      fullDate: today.toLocaleDateString(
+        "en-US",
+        {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }
+      ),
     };
   }, [today]);
 
@@ -498,13 +624,22 @@ export default function AppShell({
       }
     };
 
-    document.addEventListener("keydown", onKey);
+    document.addEventListener(
+      "keydown",
+      onKey
+    );
 
-    const prev = document.body.style.overflow;
+    const prev =
+      document.body.style.overflow;
+
     document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener(
+        "keydown",
+        onKey
+      );
+
       document.body.style.overflow = prev;
     };
   }, [mobileOpen]);
@@ -518,7 +653,9 @@ export default function AppShell({
         {/* ============ DESKTOP SIDEBAR ============ */}
         <aside
           className={`${
-            sidebarOpen ? "w-72" : "w-[88px]"
+            sidebarOpen
+              ? "w-72"
+              : "w-[88px]"
           } sticky top-0 hidden h-screen shrink-0 border-r border-white/[0.07] bg-[#0b0b0e] transition-[width] duration-300 ease-out lg:block`}
         >
           <SidebarContent
@@ -530,27 +667,39 @@ export default function AppShell({
         {/* ============ MOBILE DRAWER ============ */}
         <div
           className={`fixed inset-0 z-40 lg:hidden ${
-            mobileOpen ? "" : "pointer-events-none"
+            mobileOpen
+              ? ""
+              : "pointer-events-none"
           }`}
           aria-hidden={!mobileOpen}
         >
           <div
-            onClick={() => setMobileOpen(false)}
+            onClick={() =>
+              setMobileOpen(false)
+            }
             className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-              mobileOpen ? "opacity-100" : "opacity-0"
+              mobileOpen
+                ? "opacity-100"
+                : "opacity-0"
             }`}
           />
 
           <aside
             className={`absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-white/[0.07] bg-[#0b0b0e] shadow-2xl shadow-black/60 transition-transform duration-300 ease-out ${
-              mobileOpen ? "translate-x-0" : "-translate-x-full"
+              mobileOpen
+                ? "translate-x-0"
+                : "-translate-x-full"
             }`}
           >
             <SidebarContent
               collapsed={false}
               pathname={pathname}
-              onNavigate={() => setMobileOpen(false)}
-              onClose={() => setMobileOpen(false)}
+              onNavigate={() =>
+                setMobileOpen(false)
+              }
+              onClose={() =>
+                setMobileOpen(false)
+              }
             />
           </aside>
         </div>
@@ -563,7 +712,9 @@ export default function AppShell({
               {/* Mobile menu */}
               <button
                 type="button"
-                onClick={() => setMobileOpen(true)}
+                onClick={() =>
+                  setMobileOpen(true)
+                }
                 className={`${iconBtn} lg:hidden`}
                 aria-label="Open menu"
               >
@@ -573,7 +724,9 @@ export default function AppShell({
               {/* Desktop collapse */}
               <button
                 type="button"
-                onClick={() => setSidebarOpen((c) => !c)}
+                onClick={() =>
+                  setSidebarOpen((c) => !c)
+                }
                 className={`${iconBtn} hidden lg:block`}
                 aria-label={
                   sidebarOpen
@@ -583,9 +736,13 @@ export default function AppShell({
                 aria-expanded={sidebarOpen}
               >
                 {sidebarOpen ? (
-                  <PanelLeftClose size={19} />
+                  <PanelLeftClose
+                    size={19}
+                  />
                 ) : (
-                  <PanelLeftOpen size={19} />
+                  <PanelLeftOpen
+                    size={19}
+                  />
                 )}
               </button>
 
@@ -593,11 +750,13 @@ export default function AppShell({
 
               <div className="min-h-[36px]">
                 <p className="text-[11px] font-medium text-zinc-600">
-                  {dateInfo.weekday || "\u00A0"}
+                  {dateInfo.weekday ||
+                    "\u00A0"}
                 </p>
 
                 <p className="text-sm font-medium tracking-tight text-zinc-300">
-                  {dateInfo.fullDate || "\u00A0"}
+                  {dateInfo.fullDate ||
+                    "\u00A0"}
                 </p>
               </div>
             </div>
