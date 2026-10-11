@@ -21,8 +21,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
-import { useUserStore } from "@/store/userStore";
 import { useTaskStore } from "@/store/taskStore";
+import { useUserStore } from "@/store/userStore";
 
 const navigation = [
   { label: "Dashboard", icon: Home, href: "/" },
@@ -32,6 +32,18 @@ const navigation = [
   { label: "Focus", icon: Target, href: "/focus" },
   { label: "Analytics", icon: TrendingUp, href: "/analytics" },
 ];
+
+function getDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getTaskDateKey(dateString: string) {
+  return dateString.split("T")[0];
+}
 
 const focusRing =
   "outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0e]";
@@ -68,8 +80,92 @@ function SidebarContent({
 }) {
   const user = useUserStore((state) => state.user);
 
+  const tasks = useTaskStore((state) => state.tasks);
+
   const userName = user?.name?.trim() || "User";
   const userInitial = userName.charAt(0).toUpperCase();
+
+  /*
+   * IMPORTANT:
+   * Do not use new Date() during render.
+   *
+   * AppShell already gets the current time from useScheduler().
+   * We receive that value through the `today` variable below.
+   */
+  const today = useScheduler();
+
+  /* -------------------------------------------------------------- */
+  /* Real productivity statistics                                   */
+  /* -------------------------------------------------------------- */
+
+  const productivityStats = useMemo(() => {
+    if (!today) {
+      return {
+        streak: 0,
+        productivityChange: 0,
+        days: [],
+      };
+    }
+
+    const currentDate = new Date(today);
+
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(currentDate);
+
+      date.setDate(currentDate.getDate() - (6 - index));
+
+      const key = getDateKey(date);
+
+      const dayTasks = tasks.filter(
+        (task) => getTaskDateKey(task.date) === key
+      );
+
+      const completedTasks = dayTasks.filter(
+        (task) => task.completed
+      );
+
+      return {
+        key,
+        total: dayTasks.length,
+        completed: completedTasks.length,
+        active: completedTasks.length > 0,
+      };
+    });
+
+    const todayStats = days[6];
+    const yesterdayStats = days[5];
+
+    const todayRate =
+      todayStats.total > 0
+        ? (todayStats.completed / todayStats.total) * 100
+        : 0;
+
+    const yesterdayRate =
+      yesterdayStats.total > 0
+        ? (yesterdayStats.completed / yesterdayStats.total) * 100
+        : 0;
+
+    const productivityChange =
+      yesterdayStats.total > 0
+        ? Math.round(todayRate - yesterdayRate)
+        : Math.round(todayRate);
+
+    let streak = 0;
+
+    for (let index = days.length - 1; index >= 0; index--) {
+      if (!days[index].active) {
+        break;
+      }
+
+      streak++;
+    }
+
+    return {
+      streak,
+      productivityChange,
+      days,
+    };
+  }, [tasks, today]);
 
   return (
     <div className="flex h-full flex-col">
@@ -268,7 +364,7 @@ function SidebarContent({
                 <div className="mb-4 flex items-end justify-between">
                   <div className="flex items-baseline">
                     <span className="text-3xl font-semibold leading-none tracking-tight text-white tabular-nums">
-                      07
+                      {String(productivityStats.streak).padStart(2, "0")}
                     </span>
 
                     <span className="ml-1.5 text-[10px] text-zinc-600">
@@ -276,17 +372,26 @@ function SidebarContent({
                     </span>
                   </div>
 
-                  <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                    +12%
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      productivityStats.productivityChange >= 0
+                        ? "bg-emerald-400/10 text-emerald-400"
+                        : "bg-red-400/10 text-red-400"
+                    }`}
+                  >
+                    {productivityStats.productivityChange >= 0 ? "+" : ""}
+                    {productivityStats.productivityChange}%
                   </span>
                 </div>
 
-                {/* 7-day streak segments */}
+                {/* Real 7-day activity segments */}
                 <div className="flex gap-1" aria-hidden>
-                  {Array.from({ length: 7 }).map((_, i) => (
+                  {productivityStats.days.map((day) => (
                     <span
-                      key={i}
-                      className="h-1 flex-1 rounded-full bg-white/70"
+                      key={day.key}
+                      className={`h-1 flex-1 rounded-full ${
+                        day.active ? "bg-white/70" : "bg-white/10"
+                      }`}
                     />
                   ))}
                 </div>
@@ -349,11 +454,10 @@ export default function AppShell({
 
   const today = useScheduler();
 
-  /*
-   * Load tasks once at the application-shell level.
-   * This avoids loading them separately from the desktop
-   * and mobile SidebarContent instances.
-   */
+  /* -------------------------------------------------------------- */
+  /* Load tasks once at application-shell level                     */
+  /* -------------------------------------------------------------- */
+
   const loadTasks = useTaskStore((state) => state.loadTasks);
   const initialized = useTaskStore((state) => state.initialized);
 
@@ -364,7 +468,12 @@ export default function AppShell({
   }, [initialized, loadTasks]);
 
   const dateInfo = useMemo(() => {
-    if (!today) return { weekday: "", fullDate: "" };
+    if (!today) {
+      return {
+        weekday: "",
+        fullDate: "",
+      };
+    }
 
     return {
       weekday: today.toLocaleDateString("en-US", {
@@ -384,7 +493,9 @@ export default function AppShell({
     if (!mobileOpen) return;
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileOpen(false);
+      if (e.key === "Escape") {
+        setMobileOpen(false);
+      }
     };
 
     document.addEventListener("keydown", onKey);
