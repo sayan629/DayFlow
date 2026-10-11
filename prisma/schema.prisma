@@ -45,6 +45,7 @@ model Task {
   completed    Boolean       @default(false)
   reminder     Int?
   alarmEnabled Boolean       @default(true)
+  snoozedUntil DateTime?
   createdAt    DateTime      @default(now())
 
   focusSessions FocusSession[]

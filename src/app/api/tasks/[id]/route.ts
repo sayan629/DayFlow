@@ -15,38 +15,43 @@ export async function PATCH(
 
     const task = await prisma.task.update({
       where: { id },
-      data: {
-        ...(body.title !== undefined && {
-          title: body.title,
-        }),
-        ...(body.description !== undefined && {
-          description: body.description || null,
-        }),
-        ...(body.date !== undefined && {
-          date: body.date,
-        }),
-         ...(body.startTime !== undefined && {
-          startTime: body.startTime || null,
-        }),
-        ...(body.endTime !== undefined && {
-          endTime: body.endTime || null,
-        }),
-        ...(body.priority !== undefined && {
-          priority: body.priority,
-        }),
-        ...(body.category !== undefined && {
-          category: body.category,
-        }),
-                ...(body.completed !== undefined && {
-          completed: body.completed,
-        }),
-        ...(body.reminder !== undefined && {
-          reminder: body.reminder,
-        }),
-        ...(body.alarmEnabled !== undefined && {
-          alarmEnabled: body.alarmEnabled,
-        }),
-      },
+data: {
+  ...(body.title !== undefined && {
+    title: body.title,
+  }),
+  ...(body.description !== undefined && {
+    description: body.description || null,
+  }),
+  ...(body.date !== undefined && {
+    date: body.date,
+  }),
+  ...(body.startTime !== undefined && {
+    startTime: body.startTime || null,
+  }),
+  ...(body.endTime !== undefined && {
+    endTime: body.endTime || null,
+  }),
+  ...(body.priority !== undefined && {
+    priority: body.priority,
+  }),
+  ...(body.category !== undefined && {
+    category: body.category,
+  }),
+  ...(body.completed !== undefined && {
+    completed: body.completed,
+  }),
+  ...(body.reminder !== undefined && {
+    reminder: body.reminder,
+  }),
+  ...(body.alarmEnabled !== undefined && {
+    alarmEnabled: body.alarmEnabled,
+  }),
+  ...(body.snoozedUntil !== undefined && {
+    snoozedUntil: body.snoozedUntil
+      ? new Date(body.snoozedUntil)
+      : null,
+  }),
+},
     });
         return NextResponse.json(task);
   } catch (error) {
