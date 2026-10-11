@@ -26,29 +26,19 @@ export interface TaskFocusStats {
 
 interface FocusStore {
   mode: FocusMode;
-
   remainingSeconds: number;
-
   isRunning: boolean;
-
   completedSessions: number;
-
   selectedTaskId: string | null;
-
   selectedTaskTitle: string | null;
-
   sessionStartedAt: string | null;
-
   sessionHistory: FocusSession[];
+  historyLoaded: boolean;
 
   start: () => void;
-
   pause: () => void;
-
   reset: () => void;
-
   setMode: (mode: FocusMode) => void;
-
   setTestDuration: (seconds: number) => void;
 
   setSelectedTask: (
@@ -56,15 +46,12 @@ interface FocusStore {
     taskTitle?: string | null
   ) => void;
 
-  completeSession: () => void;
-
+  loadSessionHistory: () => Promise<void>;
+  completeSession: () => Promise<void>;
   clearSessionHistory: () => void;
 }
 
-const MODE_DURATION: Record<
-  FocusMode,
-  number
-> = {
+const MODE_DURATION: Record<FocusMode, number> = {
   focus: 25 * 60,
   shortBreak: 5 * 60,
   longBreak: 15 * 60,
@@ -77,287 +64,372 @@ export function getTaskFocusStats(
   sessionHistory: FocusSession[],
   taskId: string
 ): TaskFocusStats | null {
-  const taskSessions =
-    sessionHistory.filter(
-      (session) =>
-        session.mode === "focus" &&
-        session.taskId === taskId
-    );
+  const taskSessions = sessionHistory.filter(
+    (session) =>
+      session.mode === "focus" &&
+      session.taskId === taskId
+  );
 
   if (taskSessions.length === 0) {
     return null;
   }
 
-  const totalSeconds =
-    taskSessions.reduce(
-      (total, session) =>
-        total + session.durationSeconds,
-      0
-    );
+  const totalSeconds = taskSessions.reduce(
+    (total, session) =>
+      total + session.durationSeconds,
+    0
+  );
 
-  const latestSession =
-    taskSessions.reduce(
-      (latest, session) => {
-        if (!latest) {
-          return session;
-        }
+  const latestSession = taskSessions.reduce(
+    (latest, session) => {
+      if (!latest) {
+        return session;
+      }
 
-        return new Date(
-          session.completedAt
-        ).getTime() >
-          new Date(
-            latest.completedAt
-          ).getTime()
-          ? session
-          : latest;
-      },
-      null as FocusSession | null
-    );
+      return new Date(session.completedAt).getTime() >
+        new Date(latest.completedAt).getTime()
+        ? session
+        : latest;
+    },
+    null as FocusSession | null
+  );
 
   return {
     taskId,
-
     taskTitle:
       taskSessions[0].taskTitle ??
       "Focus Session",
-
     sessions: taskSessions.length,
-
     totalSeconds,
-
     lastFocusedAt:
-      latestSession?.completedAt ??
-      null,
+      latestSession?.completedAt ?? null,
   };
 }
 
-export const useFocusStore =
-  create<FocusStore>()(
-    persist(
-      (set) => ({
-        // ------------------------------------------
-        // Initial state
-        // ------------------------------------------
+export const useFocusStore = create<FocusStore>()(
+  persist(
+    (set, get) => ({
+      // ------------------------------------------
+      // Initial state
+      // ------------------------------------------
 
-        mode: "focus",
+      mode: "focus",
 
-        remainingSeconds:
-          MODE_DURATION.focus,
+      remainingSeconds: MODE_DURATION.focus,
 
-        isRunning: false,
+      isRunning: false,
 
-        completedSessions: 0,
+      completedSessions: 0,
 
-        selectedTaskId: null,
+      selectedTaskId: null,
 
-        selectedTaskTitle: null,
+      selectedTaskTitle: null,
 
-        sessionStartedAt: null,
+      sessionStartedAt: null,
 
-        sessionHistory: [],
+      sessionHistory: [],
 
-        // ------------------------------------------
-        // Start
-        // ------------------------------------------
+      historyLoaded: false,
 
-        start: () => {
-          set((state) => ({
-            isRunning: true,
+      // ------------------------------------------
+      // Start
+      // ------------------------------------------
 
-            sessionStartedAt:
-              state.mode === "focus"
-                ? state.sessionStartedAt ??
-                  new Date().toISOString()
-                : null,
-          }));
-        },
+      start: () => {
+        set((state) => ({
+          isRunning: true,
 
-        // ------------------------------------------
-        // Pause
-        // ------------------------------------------
-
-        pause: () => {
-          set({
-            isRunning: false,
-          });
-        },
-
-        // ------------------------------------------
-        // Reset
-        // ------------------------------------------
-
-        reset: () => {
-          set((state) => ({
-            remainingSeconds:
-              MODE_DURATION[state.mode],
-
-            isRunning: false,
-
-            sessionStartedAt: null,
-          }));
-        },
-
-        // ------------------------------------------
-        // Change mode
-        // ------------------------------------------
-
-        setMode: (mode) => {
-          set({
-            mode,
-
-            remainingSeconds:
-              MODE_DURATION[mode],
-
-            isRunning: false,
-
-            sessionStartedAt: null,
-          });
-        },
-
-        // ------------------------------------------
-        // Developer test duration
-        // ------------------------------------------
-
-        setTestDuration: (seconds) => {
-          set({
-            remainingSeconds:
-              Math.max(1, seconds),
-
-            isRunning: false,
-
-            sessionStartedAt: null,
-          });
-        },
-
-        // ------------------------------------------
-        // Select task
-        // ------------------------------------------
-
-        setSelectedTask: (
-          taskId,
-          taskTitle = null
-        ) => {
-          set({
-            selectedTaskId: taskId,
-
-            selectedTaskTitle: taskId
-              ? taskTitle ?? null
+          sessionStartedAt:
+            state.mode === "focus"
+              ? state.sessionStartedAt ??
+                new Date().toISOString()
               : null,
+        }));
+      },
+
+      // ------------------------------------------
+      // Pause
+      // ------------------------------------------
+
+      pause: () => {
+        set({
+          isRunning: false,
+        });
+      },
+
+      // ------------------------------------------
+      // Reset
+      // ------------------------------------------
+
+      reset: () => {
+        set((state) => ({
+          remainingSeconds:
+            MODE_DURATION[state.mode],
+
+          isRunning: false,
+
+          sessionStartedAt: null,
+        }));
+      },
+
+      // ------------------------------------------
+      // Change mode
+      // ------------------------------------------
+
+      setMode: (mode) => {
+        set({
+          mode,
+
+          remainingSeconds:
+            MODE_DURATION[mode],
+
+          isRunning: false,
+
+          sessionStartedAt: null,
+        });
+      },
+
+      // ------------------------------------------
+      // Developer test duration
+      // ------------------------------------------
+
+      setTestDuration: (seconds) => {
+        set({
+          remainingSeconds:
+            Math.max(1, seconds),
+
+          isRunning: false,
+
+          sessionStartedAt: null,
+        });
+      },
+
+      // ------------------------------------------
+      // Select task
+      // ------------------------------------------
+
+      setSelectedTask: (
+        taskId,
+        taskTitle = null
+      ) => {
+        set({
+          selectedTaskId: taskId,
+
+          selectedTaskTitle: taskId
+            ? taskTitle ?? null
+            : null,
+        });
+      },
+
+      // ------------------------------------------
+      // Load history from Prisma
+      // ------------------------------------------
+
+      loadSessionHistory: async () => {
+        try {
+          const response = await fetch(
+            "/api/focus-sessions"
+          );
+
+          if (!response.ok) {
+            throw new Error(
+              "Failed to load focus sessions"
+            );
+          }
+
+          const sessions: FocusSession[] =
+            await response.json();
+
+          set({
+            sessionHistory: sessions,
+            historyLoaded: true,
           });
-        },
+        } catch (error) {
+          console.error(
+            "Failed to load focus session history:",
+            error
+          );
+        }
+      },
 
-        // ------------------------------------------
-        // Complete session
-        // ------------------------------------------
+      // ------------------------------------------
+      // Complete session
+      // ------------------------------------------
 
-        completeSession: () => {
-          set((state) => {
-            const completedAt =
-              new Date().toISOString();
+      completeSession: async () => {
+        const state = get();
 
-            // --------------------------------------
-            // Focus session completed
-            // --------------------------------------
+        const completedAt =
+          new Date().toISOString();
 
-            if (state.mode === "focus") {
-              const nextSession =
-                state.completedSessions + 1;
+        // ----------------------------------------
+        // Focus session completed
+        // ----------------------------------------
 
-              const startedAt =
-                state.sessionStartedAt ??
-                completedAt;
+        if (state.mode === "focus") {
+          const nextSession =
+            state.completedSessions + 1;
 
-              const elapsedSeconds =
-                Math.max(
-                  1,
-                  Math.round(
-                    (new Date(
-                      completedAt
-                    ).getTime() -
-                      new Date(
-                        startedAt
-                      ).getTime()) /
-                      1000
-                  )
-                );
+          const startedAt =
+            state.sessionStartedAt ??
+            completedAt;
 
-              const session: FocusSession = {
-                id: crypto.randomUUID(),
+          const elapsedSeconds = Math.max(
+            1,
+            Math.round(
+              (new Date(
+                completedAt
+              ).getTime() -
+                new Date(
+                  startedAt
+                ).getTime()) /
+                1000
+            )
+          );
 
-                taskId:
-                  state.selectedTaskId,
+          const session: FocusSession = {
+            id: crypto.randomUUID(),
 
-                taskTitle:
-                  state.selectedTaskTitle,
+            taskId: state.selectedTaskId,
 
-                mode: "focus",
+            taskTitle:
+              state.selectedTaskTitle,
 
-                durationSeconds:
-                  elapsedSeconds,
+            mode: "focus",
 
-                startedAt,
+            durationSeconds:
+              elapsedSeconds,
 
-                completedAt,
-              };
+            startedAt,
 
-              // Every 4th focus session
-              // gives a long break.
-              const nextMode =
-                nextSession % 4 === 0
-                  ? "longBreak"
-                  : "shortBreak";
+            completedAt,
+          };
 
-              return {
-                completedSessions:
-                  nextSession,
+          try {
+            const response = await fetch(
+              "/api/focus-sessions",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+                body: JSON.stringify(session),
+              }
+            );
 
-                mode: nextMode,
-
-                remainingSeconds:
-                  MODE_DURATION[nextMode],
-
-                isRunning: false,
-
-                sessionStartedAt: null,
-
-                sessionHistory: [
-                  session,
-                  ...state.sessionHistory,
-                ],
-              };
+            if (!response.ok) {
+              throw new Error(
+                "Failed to save focus session"
+              );
             }
 
-            // --------------------------------------
-            // Break completed
-            // --------------------------------------
-            // Return to focus mode.
+            const savedSession: FocusSession =
+              await response.json();
 
-            return {
-              mode: "focus",
+            // Every 4th focus session
+            // gives a long break.
+            const nextMode =
+              nextSession % 4 === 0
+                ? "longBreak"
+                : "shortBreak";
+
+            set({
+              completedSessions:
+                nextSession,
+
+              mode: nextMode,
 
               remainingSeconds:
-                MODE_DURATION.focus,
+                MODE_DURATION[nextMode],
 
               isRunning: false,
 
               sessionStartedAt: null,
-            };
-          });
-        },
 
-        // ------------------------------------------
-        // Clear history
-        // ------------------------------------------
+              sessionHistory: [
+                savedSession,
+                ...get().sessionHistory,
+              ],
+            });
+          } catch (error) {
+            console.error(
+              "Failed to save focus session:",
+              error
+            );
 
-        clearSessionHistory: () => {
-          set({
-            sessionHistory: [],
-          });
-        },
+            // Keep the timer behavior working
+            // even if the database request fails.
+            const nextMode =
+              nextSession % 4 === 0
+                ? "longBreak"
+                : "shortBreak";
+
+            set({
+              completedSessions:
+                nextSession,
+
+              mode: nextMode,
+
+              remainingSeconds:
+                MODE_DURATION[nextMode],
+
+              isRunning: false,
+
+              sessionStartedAt: null,
+            });
+          }
+
+          return;
+        }
+
+        // ----------------------------------------
+        // Break completed
+        // ----------------------------------------
+        // Return to focus mode.
+
+        set({
+          mode: "focus",
+
+          remainingSeconds:
+            MODE_DURATION.focus,
+
+          isRunning: false,
+
+          sessionStartedAt: null,
+        });
+      },
+
+      // ------------------------------------------
+      // Clear history
+      // ------------------------------------------
+
+      clearSessionHistory: () => {
+        set({
+          sessionHistory: [],
+        });
+      },
+    }),
+
+    {
+      name: "dayflow-focus",
+
+      // Timer settings remain persisted locally,
+      // but sessionHistory is now controlled by Prisma.
+      partialize: (state) => ({
+        mode: state.mode,
+        remainingSeconds:
+          state.remainingSeconds,
+        isRunning: state.isRunning,
+        completedSessions:
+          state.completedSessions,
+        selectedTaskId:
+          state.selectedTaskId,
+        selectedTaskTitle:
+          state.selectedTaskTitle,
+        sessionStartedAt:
+          state.sessionStartedAt,
       }),
-
-      {
-        name: "dayflow-focus",
-      }
-    )
-  );
+    }
+  )
+);
