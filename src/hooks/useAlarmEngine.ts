@@ -11,17 +11,13 @@ export function useAlarmEngine() {
     (state) => state.startAlarm
   );
 
-  const notifiedTasks = useRef<Set<string>>(
-    new Set()
-  );
+  const notifiedTasks = useRef<Set<string>>(new Set());
 
   const audioRef =
     useRef<HTMLAudioElement | null>(null);
 
   const snoozeTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(
-      null
-    );
+    useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Create alarm audio
   useEffect(() => {
@@ -92,7 +88,7 @@ export function useAlarmEngine() {
     };
   }, []);
 
-  // Snooze alarm
+  // Smart snooze recovery
   useEffect(() => {
     const handleSnoozeAlarm = (event: Event) => {
       const customEvent =
@@ -101,7 +97,14 @@ export function useAlarmEngine() {
         }>;
 
       const minutes =
-        customEvent.detail.minutes;
+        customEvent.detail?.minutes;
+
+      if (
+        typeof minutes !== "number" ||
+        minutes <= 0
+      ) {
+        return;
+      }
 
       // Stop current alarm sound
       const audio = audioRef.current;
@@ -111,11 +114,13 @@ export function useAlarmEngine() {
         audio.currentTime = 0;
       }
 
-      // Clear previous snooze
+      // Cancel previous snooze
       if (snoozeTimeoutRef.current) {
         clearTimeout(snoozeTimeoutRef.current);
+        snoozeTimeoutRef.current = null;
       }
 
+      // Capture the alarm task BEFORE the store clears it
       const alarmState =
         useAlarmStore.getState();
 
@@ -127,14 +132,14 @@ export function useAlarmEngine() {
         return;
       }
 
-      // Wait for snooze duration
+      console.log(
+        `⏰ Alarm snoozed for ${minutes} minute(s):`,
+        taskTitle
+      );
+
+      // Schedule alarm recovery
       snoozeTimeoutRef.current =
         setTimeout(() => {
-          const currentAudio =
-            audioRef.current;
-
-          // Check whether task still exists
-          // and whether its alarm is enabled.
           const currentTask =
             useTaskStore
               .getState()
@@ -142,34 +147,59 @@ export function useAlarmEngine() {
                 (task) => task.id === taskId
               );
 
-          if (
-            !currentTask ||
-            currentTask.completed ||
-            currentTask.alarmEnabled === false
-          ) {
+          // Task was deleted
+          if (!currentTask) {
+            console.log(
+              "Snoozed alarm cancelled: task no longer exists."
+            );
+
             snoozeTimeoutRef.current = null;
             return;
           }
 
-          if (currentAudio) {
-            currentAudio.currentTime = 0;
+          // Task was completed
+          if (currentTask.completed) {
+            console.log(
+              "Snoozed alarm cancelled: task is completed."
+            );
 
-            currentAudio
-              .play()
-              .catch((error) => {
-                console.warn(
-                  "Could not play snoozed alarm:",
-                  error
-                );
-              });
+            snoozeTimeoutRef.current = null;
+            return;
           }
 
+          // Alarm was disabled
+          if (
+            currentTask.alarmEnabled === false
+          ) {
+            console.log(
+              "Snoozed alarm cancelled: alarm disabled."
+            );
+
+            snoozeTimeoutRef.current = null;
+            return;
+          }
+
+          // 🔔 Restore alarm state
           useAlarmStore
             .getState()
             .startAlarm(
-              taskId,
-              taskTitle
+              currentTask.id,
+              currentTask.title
             );
+
+          // 🔊 Play alarm again
+          playAlarm();
+
+          // 🖥️ Desktop notification
+          sendNotification(
+            currentTask.title,
+            0
+          );
+
+          console.log(
+            "🔔 Snoozed alarm triggered again:",
+            currentTask.title
+          );
 
           snoozeTimeoutRef.current = null;
         }, minutes * 60 * 1000);
@@ -185,8 +215,13 @@ export function useAlarmEngine() {
         "dayflow-snooze-alarm",
         handleSnoozeAlarm
       );
+
+      if (snoozeTimeoutRef.current) {
+        clearTimeout(snoozeTimeoutRef.current);
+        snoozeTimeoutRef.current = null;
+      }
     };
-  }, []);
+  }, [playAlarm]);
 
   // Check scheduled alarms
   useEffect(() => {
@@ -244,7 +279,7 @@ export function useAlarmEngine() {
         const notificationKey =
           `${task.id}-${task.date}-${task.startTime}-${task.reminder}`;
 
-        /*
+        /**
          * Allow the alarm to trigger:
          * exactly at the reminder time
          * OR
