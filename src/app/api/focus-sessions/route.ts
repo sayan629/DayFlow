@@ -11,7 +11,10 @@ export async function GET() {
 
     return NextResponse.json(sessions);
   } catch (error) {
-    console.error("GET /api/focus-sessions error:", error);
+    console.error(
+      "GET /api/focus-sessions error:",
+      error
+    );
 
     return NextResponse.json(
       { error: "Failed to fetch focus sessions" },
@@ -36,12 +39,37 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(session, { status: 201 });
+    return NextResponse.json(session, {
+      status: 201,
+    });
   } catch (error) {
-    console.error("POST /api/focus-sessions error:", error);
+    console.error(
+      "POST /api/focus-sessions error:",
+      error
+    );
 
     return NextResponse.json(
       { error: "Failed to create focus session" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE() {
+  try {
+    await prisma.focusSession.deleteMany();
+
+    return NextResponse.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error(
+      "DELETE /api/focus-sessions error:",
+      error
+    );
+
+    return NextResponse.json(
+      { error: "Failed to clear focus sessions" },
       { status: 500 }
     );
   }
