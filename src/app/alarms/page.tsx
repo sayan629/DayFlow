@@ -1,9 +1,20 @@
 "use client";
 
+import { useEffect } from "react";
+
 import AlarmList from "@/components/alarms/AlarmList";
 import AlarmHistory from "@/components/alarms/AlarmHistory";
+import { useAlarmStore } from "@/store/alarmStore";
 
 export default function AlarmsPage() {
+  const loadHistory = useAlarmStore(
+    (state) => state.loadHistory
+  );
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
       <div className="flex min-h-screen">

@@ -38,6 +38,34 @@ interface AlarmStore {
   clearHistory: () => Promise<void>;
 }
 
+async function saveAlarmHistory(
+  historyItem: AlarmHistoryItem
+) {
+  try {
+    const response = await fetch(
+      "/api/alarm-history",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(historyItem),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        "Failed to save alarm history"
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Failed to save alarm history:",
+      error
+    );
+  }
+}
+
 export const useAlarmStore = create<AlarmStore>(
   (set, get) => ({
     isRinging: false,
@@ -113,8 +141,7 @@ export const useAlarmStore = create<AlarmStore>(
           taskTitle: state.taskTitle,
           status: "stopped",
           triggeredAt:
-            state.triggeredAt ??
-            stoppedAt,
+            state.triggeredAt ?? stoppedAt,
           stoppedAt,
         };
 
@@ -234,32 +261,3 @@ export const useAlarmStore = create<AlarmStore>(
     },
   })
 );
-
-async function saveAlarmHistory(
-  historyItem: AlarmHistoryItem
-) {
-  try {
-    const response = await fetch(
-      "/api/alarm-history",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify(historyItem),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        "Failed to save alarm history"
-      );
-    }
-  } catch (error) {
-    console.error(
-      "Failed to save alarm history:",
-      error
-    );
-  }
-}
