@@ -34,6 +34,7 @@ interface FocusStore {
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
   sessionStartedAt: string | null;
+  lastUpdatedAt: string | null;
   sessionHistory: FocusSession[];
   historyLoaded: boolean;
 
@@ -42,6 +43,7 @@ interface FocusStore {
   reset: () => void;
   setMode: (mode: FocusMode) => void;
   setTestDuration: (seconds: number) => void;
+  recoverTimer: () => boolean;
 
   setSelectedTask: (
     taskId: string | null,
@@ -138,6 +140,8 @@ export const useFocusStore = create<FocusStore>()(
 
       sessionStartedAt: null,
 
+      lastUpdatedAt: null,
+
       sessionHistory: [],
 
       historyLoaded: false,
@@ -147,14 +151,18 @@ export const useFocusStore = create<FocusStore>()(
       // ------------------------------------------
 
       start: () => {
+        const now = new Date().toISOString();
+
         set((state) => ({
           isRunning: true,
 
           sessionStartedAt:
             state.mode === "focus"
               ? state.sessionStartedAt ??
-                new Date().toISOString()
+                now
               : null,
+
+          lastUpdatedAt: now,
         }));
       },
 
@@ -180,6 +188,8 @@ export const useFocusStore = create<FocusStore>()(
           isRunning: false,
 
           sessionStartedAt: null,
+
+          lastUpdatedAt: null,
         }));
       },
 
@@ -197,6 +207,8 @@ export const useFocusStore = create<FocusStore>()(
           isRunning: false,
 
           sessionStartedAt: null,
+
+          lastUpdatedAt: null,
         });
       },
 
@@ -212,7 +224,66 @@ export const useFocusStore = create<FocusStore>()(
           isRunning: false,
 
           sessionStartedAt: null,
+
+          lastUpdatedAt: null,
         });
+      },
+
+      // ------------------------------------------
+      // Recover timer after refresh / reopen
+      // ------------------------------------------
+
+      recoverTimer: () => {
+        const state = get();
+
+        if (
+          !state.isRunning ||
+          !state.lastUpdatedAt ||
+          state.remainingSeconds <= 0
+        ) {
+          return false;
+        }
+
+        const lastUpdated =
+          new Date(
+            state.lastUpdatedAt
+          ).getTime();
+
+        const now = Date.now();
+
+        const elapsedSeconds = Math.floor(
+          (now - lastUpdated) / 1000
+        );
+
+        if (elapsedSeconds <= 0) {
+          return false;
+        }
+
+        const nextRemaining =
+          state.remainingSeconds -
+          elapsedSeconds;
+
+        if (nextRemaining <= 0) {
+          set({
+            remainingSeconds: 0,
+
+            isRunning: false,
+
+            lastUpdatedAt: null,
+          });
+
+          return true;
+        }
+
+        set({
+          remainingSeconds:
+            nextRemaining,
+
+          lastUpdatedAt:
+            new Date().toISOString(),
+        });
+
+        return false;
       },
 
       // ------------------------------------------
@@ -360,6 +431,8 @@ export const useFocusStore = create<FocusStore>()(
 
               sessionStartedAt: null,
 
+              lastUpdatedAt: null,
+
               sessionHistory: [
                 savedSession,
                 ...get().sessionHistory,
@@ -390,6 +463,8 @@ export const useFocusStore = create<FocusStore>()(
               isRunning: false,
 
               sessionStartedAt: null,
+
+              lastUpdatedAt: null,
             });
           }
 
@@ -399,6 +474,7 @@ export const useFocusStore = create<FocusStore>()(
         // ----------------------------------------
         // Break completed
         // ----------------------------------------
+
         // Return to focus mode.
 
         set({
@@ -410,6 +486,8 @@ export const useFocusStore = create<FocusStore>()(
           isRunning: false,
 
           sessionStartedAt: null,
+
+          lastUpdatedAt: null,
         });
       },
 
@@ -469,6 +547,9 @@ export const useFocusStore = create<FocusStore>()(
 
         sessionStartedAt:
           state.sessionStartedAt,
+
+        lastUpdatedAt:
+          state.lastUpdatedAt,
       }),
     }
   )
