@@ -1,6 +1,9 @@
 import { create } from "zustand";
 
-export type AlarmStatus = "ringing" | "snoozed" | "stopped";
+export type AlarmStatus =
+  | "ringing"
+  | "snoozed"
+  | "stopped";
 
 export interface AlarmHistoryItem {
   id: string;
@@ -147,7 +150,8 @@ export const useAlarmStore = create<AlarmStore>(
     },
 
     startAlarm: (taskId, taskTitle) => {
-      const now = new Date().toISOString();
+      const now =
+        new Date().toISOString();
 
       set({
         isRinging: true,
@@ -160,12 +164,17 @@ export const useAlarmStore = create<AlarmStore>(
       });
     },
 
-    enqueueAlarm: (taskId, taskTitle) => {
+    enqueueAlarm: (
+      taskId,
+      taskTitle
+    ) => {
       const state = get();
 
-      const alreadyQueued = state.queue.some(
-        (alarm) => alarm.taskId === taskId
-      );
+      const alreadyQueued =
+        state.queue.some(
+          (alarm) =>
+            alarm.taskId === taskId
+        );
 
       const isCurrentAlarm =
         state.taskId === taskId;
@@ -195,8 +204,10 @@ export const useAlarmStore = create<AlarmStore>(
         return null;
       }
 
-      const [nextAlarm, ...remaining] =
-        state.queue;
+      const [
+        nextAlarm,
+        ...remaining
+      ] = state.queue;
 
       set({
         queue: remaining,
@@ -217,9 +228,14 @@ export const useAlarmStore = create<AlarmStore>(
       const stoppedAt =
         new Date().toISOString();
 
-      if (typeof window !== "undefined") {
+      if (
+        typeof window !==
+        "undefined"
+      ) {
         window.dispatchEvent(
-          new Event("dayflow-stop-alarm")
+          new Event(
+            "dayflow-stop-alarm"
+          )
         );
       }
 
@@ -227,15 +243,18 @@ export const useAlarmStore = create<AlarmStore>(
         state.taskId &&
         state.taskTitle
       ) {
-        const historyItem: AlarmHistoryItem = {
-          id: crypto.randomUUID(),
-          taskId: state.taskId,
-          taskTitle: state.taskTitle,
-          status: "stopped",
-          triggeredAt:
-            state.triggeredAt ?? stoppedAt,
-          stoppedAt,
-        };
+        const historyItem: AlarmHistoryItem =
+          {
+            id: crypto.randomUUID(),
+            taskId: state.taskId,
+            taskTitle:
+              state.taskTitle,
+            status: "stopped",
+            triggeredAt:
+              state.triggeredAt ??
+              stoppedAt,
+            stoppedAt,
+          };
 
         set({
           isRinging: false,
@@ -268,7 +287,10 @@ export const useAlarmStore = create<AlarmStore>(
     snoozeAlarm: (minutes) => {
       const state = get();
 
-      if (typeof window !== "undefined") {
+      if (
+        typeof window !==
+        "undefined"
+      ) {
         window.dispatchEvent(
           new CustomEvent(
             "dayflow-snooze-alarm",
@@ -282,10 +304,13 @@ export const useAlarmStore = create<AlarmStore>(
       const snoozedUntil =
         new Date(
           Date.now() +
-            minutes * 60 * 1000
+            minutes *
+              60 *
+              1000
         ).toISOString();
 
-      const taskId = state.taskId;
+      const taskId =
+        state.taskId;
 
       if (taskId) {
         void fetch(
@@ -312,16 +337,18 @@ export const useAlarmStore = create<AlarmStore>(
         state.taskId &&
         state.taskTitle
       ) {
-        const historyItem: AlarmHistoryItem = {
-          id: crypto.randomUUID(),
-          taskId: state.taskId,
-          taskTitle: state.taskTitle,
-          status: "snoozed",
-          triggeredAt:
-            state.triggeredAt ??
-            new Date().toISOString(),
-          snoozedUntil,
-        };
+        const historyItem: AlarmHistoryItem =
+          {
+            id: crypto.randomUUID(),
+            taskId: state.taskId,
+            taskTitle:
+              state.taskTitle,
+            status: "snoozed",
+            triggeredAt:
+              state.triggeredAt ??
+              new Date().toISOString(),
+            snoozedUntil,
+          };
 
         set({
           isRinging: false,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+
 import { useAlarmStore } from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
 
@@ -17,16 +18,17 @@ export function useAlarmEngine() {
     (state) => state.recoverAlarm
   );
 
+  const enqueueAlarm = useAlarmStore(
+    (state) => state.enqueueAlarm
+  );
+
+  const dequeueAlarm = useAlarmStore(
+    (state) => state.dequeueAlarm
+  );
+
   const notifiedTasks = useRef<Set<string>>(
     new Set()
   );
-
-  const pendingAlarmQueue = useRef<
-    Array<{
-      taskId: string;
-      taskTitle: string;
-    }>
-  >([]);
 
   const audioRef =
     useRef<HTMLAudioElement | null>(null);
@@ -102,7 +104,7 @@ export function useAlarmEngine() {
     });
   }, []);
 
-  // Trigger alarm or add it to the queue
+  // Trigger alarm or add it to the Zustand queue
   const triggerAlarm = useCallback(
     (
       taskId: string,
@@ -112,18 +114,10 @@ export function useAlarmEngine() {
         useAlarmStore.getState();
 
       if (alarmState.isRinging) {
-        const alreadyQueued =
-          pendingAlarmQueue.current.some(
-            (alarm) =>
-              alarm.taskId === taskId
-          );
-
-        if (!alreadyQueued) {
-          pendingAlarmQueue.current.push({
-            taskId,
-            taskTitle,
-          });
-        }
+        enqueueAlarm(
+          taskId,
+          taskTitle
+        );
 
         return;
       }
@@ -135,7 +129,11 @@ export function useAlarmEngine() {
 
       playAlarm();
     },
-    [startAlarm, playAlarm]
+    [
+      enqueueAlarm,
+      startAlarm,
+      playAlarm,
+    ]
   );
 
   // Stop alarm
@@ -157,7 +155,7 @@ export function useAlarmEngine() {
       }
 
       const nextAlarm =
-        pendingAlarmQueue.current.shift();
+        dequeueAlarm();
 
       if (nextAlarm) {
         setTimeout(() => {
@@ -180,7 +178,7 @@ export function useAlarmEngine() {
         handleStopAlarm
       );
     };
-  }, [triggerAlarm]);
+  }, [dequeueAlarm, triggerAlarm]);
 
   // Smart snooze recovery
   useEffect(() => {
@@ -231,6 +229,8 @@ export function useAlarmEngine() {
       if (!taskId || !taskTitle) {
         return;
       }
+
+      const queuedAlarms = alarmState.queue;
 
       console.log(
         `⏰ Alarm snoozed for ${minutes} minute(s):`,
@@ -312,6 +312,15 @@ export function useAlarmEngine() {
               currentTask.title
             );
 
+            // Restore any alarms that were
+// already waiting in the queue.
+queuedAlarms.forEach((alarm) => {
+  enqueueAlarm(
+    alarm.taskId,
+    alarm.taskTitle
+  );
+});
+
             // Desktop notification
             sendNotification(
               currentTask.title,
@@ -349,7 +358,7 @@ export function useAlarmEngine() {
         snoozeTimeoutRef.current = null;
       }
     };
-  }, [triggerAlarm]);
+  }, [enqueueAlarm,triggerAlarm]);
 
   // Recover persisted snoozed alarms
   // after refresh/restart
