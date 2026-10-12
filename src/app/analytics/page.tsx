@@ -72,6 +72,10 @@ export default function AnalyticsPage() {
       return null;
     }
 
+    // -----------------------------
+    // Today's Tasks
+    // -----------------------------
+
     const todayTasks = tasks.filter(
       (task) => task.date === today
     );
@@ -88,6 +92,10 @@ export default function AnalyticsPage() {
               todayTasks.length) *
               100
           );
+
+    // -----------------------------
+    // Focus Analytics
+    // -----------------------------
 
     const focusSessions = sessionHistory.filter(
       (session) => session.mode === "focus"
@@ -390,17 +398,87 @@ export default function AnalyticsPage() {
       return `${minutes}m`;
     };
 
+    // -----------------------------
+    // Alarm Discipline Score
+    // -----------------------------
+
+    const alarmCount =
+      alarmHistory.length;
+
+    const alarmHandlingRate =
+      alarmCount > 0
+        ? (stoppedAlarms.length /
+            alarmCount) *
+          100
+        : 0;
+
+    const snoozeRate =
+      alarmCount > 0
+        ? (snoozedAlarms.length /
+            alarmCount) *
+          100
+        : 0;
+
+    let responseScore = 100;
+
+    if (averageAlarmResponse !== null) {
+      if (averageAlarmResponse <= 1) {
+        responseScore = 100;
+      } else if (
+        averageAlarmResponse <= 2
+      ) {
+        responseScore = 95;
+      } else if (
+        averageAlarmResponse <= 5
+      ) {
+        responseScore = 85;
+      } else if (
+        averageAlarmResponse <= 10
+      ) {
+        responseScore = 70;
+      } else if (
+        averageAlarmResponse <= 20
+      ) {
+        responseScore = 50;
+      } else {
+        responseScore = 30;
+      }
+    }
+
+    const alarmDisciplineScore =
+      alarmCount === 0
+        ? null
+        : Math.round(
+            responseScore * 0.7 +
+              alarmHandlingRate * 0.3
+          );
+
+    const alarmDisciplineLabel =
+      alarmDisciplineScore === null
+        ? "No data"
+        : alarmDisciplineScore >= 90
+          ? "Excellent"
+          : alarmDisciplineScore >= 75
+            ? "Good"
+            : alarmDisciplineScore >= 60
+              ? "Fair"
+              : "Needs improvement";
+
     return {
       todayTasks,
       completedTasks,
       completionRate,
+
       focusSessions,
       focusTime,
+
       categories,
       priorities,
+
       last7Days,
       maxCompleted,
       maxFocus,
+
       focusedTasks,
 
       alarmHistory,
@@ -411,6 +489,11 @@ export default function AnalyticsPage() {
       fastestAlarmResponse,
       slowestAlarmResponse,
       formatAlarmResponse,
+
+      alarmHandlingRate,
+      snoozeRate,
+      alarmDisciplineScore,
+      alarmDisciplineLabel,
     };
   }, [
     today,
@@ -607,6 +690,7 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <>
+              {/* Basic Alarm Statistics */}
               <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <AnalyticsMetric
                   label="Total Alarms"
@@ -633,6 +717,7 @@ export default function AnalyticsPage() {
                 />
               </div>
 
+              {/* Response Analytics */}
               {analytics.alarmResponseTimes
                 .length > 0 && (
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -661,6 +746,65 @@ export default function AnalyticsPage() {
                   />
                 </div>
               )}
+
+              {/* Alarm Discipline */}
+              <div className="mt-3 grid gap-3 lg:grid-cols-[1.2fr_1fr_1fr]">
+                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+                        Alarm Discipline
+                      </p>
+
+                      <p className="mt-2 text-3xl font-semibold text-white">
+                        {analytics.alarmDisciplineScore ??
+                          "—"}
+                        {analytics.alarmDisciplineScore !==
+                          null && "%"}
+                      </p>
+
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {analytics.alarmDisciplineLabel}
+                      </p>
+                    </div>
+
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
+                      <Target
+                        size={17}
+                        className="text-zinc-400"
+                      />
+                    </div>
+                  </div>
+
+                  {analytics.alarmDisciplineScore !==
+                    null && (
+                    <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/5">
+                      <div
+                        className="h-full rounded-full bg-white transition-all"
+                        style={{
+                          width: `${analytics.alarmDisciplineScore}%`,
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <AnalyticsMetric
+                  label="Handling Rate"
+                  value={`${Math.round(
+                    analytics.alarmHandlingRate
+                  )}%`}
+                  subtitle="Alarms stopped"
+                />
+
+                <AnalyticsMetric
+                  label="Snooze Rate"
+                  value={`${Math.round(
+                    analytics.snoozeRate
+                  )}%`}
+                  subtitle="Alarms deferred"
+                />
+              </div>
             </>
           )}
         </section>
