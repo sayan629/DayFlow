@@ -26,6 +26,7 @@ import { useAlarmStore } from "@/store/alarmStore";
 import { useFocusStore } from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
 import { useUserStore } from "@/store/userStore";
+import { usePreferencesStore } from "@/store/preferencesStore";
 
 const navigation = [
   { label: "Dashboard", icon: Home, href: "/" },

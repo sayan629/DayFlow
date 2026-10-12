@@ -47,6 +47,8 @@ export default function AlarmRinging() {
     return null;
   }
 
+  const nextAlarm = queue[0] ?? null;
+
   const handleStartFocus = () => {
     if (!taskId) {
       return;
@@ -64,8 +66,9 @@ export default function AlarmRinging() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
       <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#111114] shadow-2xl">
+        {/* Alarm Header */}
         <div className="p-8 text-center">
-          <div className="mx-auto flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl bg-white text-black">
+          <div className="mx-auto flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl bg-white text-black shadow-lg shadow-white/10">
             <BellRing size={28} />
           </div>
 
@@ -82,28 +85,49 @@ export default function AlarmRinging() {
           </p>
         </div>
 
+        {/* Queue */}
         {queue.length > 0 && (
           <div className="mx-6 mb-2 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
-            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-              <ListChecks
-                size={16}
-                className="text-zinc-400"
-              />
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <ListChecks
+                  size={16}
+                  className="text-zinc-400"
+                />
 
-              <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-                {queue.length}{" "}
-                {queue.length === 1
-                  ? "alarm"
-                  : "alarms"}{" "}
-                waiting
+                <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+                  {queue.length}{" "}
+                  {queue.length === 1
+                    ? "alarm"
+                    : "alarms"}{" "}
+                  waiting
+                </span>
+              </div>
+
+              <span className="rounded-full bg-white/[0.06] px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+                Queue
               </span>
             </div>
 
-            <div className="max-h-32 overflow-y-auto p-2">
+            {/* Next Alarm */}
+            {nextAlarm && (
+              <div className="border-b border-white/10 px-4 py-3">
+                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-600">
+                  Next
+                </p>
+
+                <p className="mt-1 truncate text-sm font-medium text-white">
+                  {nextAlarm.taskTitle}
+                </p>
+              </div>
+            )}
+
+            {/* Queue List */}
+            <div className="max-h-40 overflow-y-auto p-2">
               {queue.map((alarm, index) => (
                 <div
                   key={`${alarm.taskId}-${index}`}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400 transition hover:bg-white/[0.04]"
                 >
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-[11px] text-zinc-500">
                     {index + 1}
@@ -118,6 +142,7 @@ export default function AlarmRinging() {
           </div>
         )}
 
+        {/* Actions */}
         <div className="space-y-3 border-t border-white/10 bg-white/[0.02] p-6">
           <button
             type="button"
@@ -133,7 +158,7 @@ export default function AlarmRinging() {
             <button
               type="button"
               onClick={() => snoozeAlarm(5)}
-              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
             >
               <Moon size={16} />
               Snooze 5 min
@@ -142,7 +167,7 @@ export default function AlarmRinging() {
             <button
               type="button"
               onClick={() => snoozeAlarm(10)}
-              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-zinc-300 transition hover:bg-white/[0.08] hover:text-white"
             >
               <Moon size={16} />
               Snooze 10 min
