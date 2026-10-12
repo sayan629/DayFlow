@@ -5,30 +5,17 @@ import { useAlarmStore } from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
 
 export function useAlarmEngine() {
-  const tasks = useTaskStore((state) => state.tasks);
+  const tasks = useTaskStore(
+    (state) => state.tasks
+  );
 
   const startAlarm = useAlarmStore(
     (state) => state.startAlarm
   );
 
-    // Request browser notification permission once
-  useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      !("Notification" in window)
-    ) {
-      return;
-    }
-
-    if (Notification.permission === "default") {
-      Notification.requestPermission().catch((error) => {
-        console.warn(
-          "Notification permission request failed:",
-          error
-        );
-      });
-    }
-  }, []);
+  const recoverAlarm = useAlarmStore(
+    (state) => state.recoverAlarm
+  );
 
   const notifiedTasks = useRef<Set<string>>(
     new Set()
@@ -42,9 +29,32 @@ export function useAlarmEngine() {
       null
     );
 
+  // Request browser notification permission once
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      !("Notification" in window)
+    ) {
+      return;
+    }
+
+    if (Notification.permission === "default") {
+      Notification.requestPermission().catch(
+        (error) => {
+          console.warn(
+            "Notification permission request failed:",
+            error
+          );
+        }
+      );
+    }
+  }, []);
+
   // Create alarm audio
   useEffect(() => {
-    const audio = new Audio("/sounds/alarm.mp3");
+    const audio = new Audio(
+      "/sounds/alarm.mp3"
+    );
 
     audio.loop = true;
     audio.volume = 0.8;
@@ -56,7 +66,10 @@ export function useAlarmEngine() {
       audio.currentTime = 0;
 
       if (snoozeTimeoutRef.current) {
-        clearTimeout(snoozeTimeoutRef.current);
+        clearTimeout(
+          snoozeTimeoutRef.current
+        );
+
         snoozeTimeoutRef.current = null;
       }
 
@@ -93,7 +106,10 @@ export function useAlarmEngine() {
       }
 
       if (snoozeTimeoutRef.current) {
-        clearTimeout(snoozeTimeoutRef.current);
+        clearTimeout(
+          snoozeTimeoutRef.current
+        );
+
         snoozeTimeoutRef.current = null;
       }
     };
@@ -139,7 +155,10 @@ export function useAlarmEngine() {
 
       // Cancel previous in-memory snooze
       if (snoozeTimeoutRef.current) {
-        clearTimeout(snoozeTimeoutRef.current);
+        clearTimeout(
+          snoozeTimeoutRef.current
+        );
+
         snoozeTimeoutRef.current = null;
       }
 
@@ -148,6 +167,7 @@ export function useAlarmEngine() {
         useAlarmStore.getState();
 
       const taskId = alarmState.taskId;
+
       const taskTitle =
         alarmState.taskTitle;
 
@@ -167,7 +187,8 @@ export function useAlarmEngine() {
             useTaskStore
               .getState()
               .tasks.find(
-                (task) => task.id === taskId
+                (task) =>
+                  task.id === taskId
               );
 
           if (!currentTask) {
@@ -176,6 +197,7 @@ export function useAlarmEngine() {
             );
 
             snoozeTimeoutRef.current = null;
+
             return;
           }
 
@@ -185,6 +207,7 @@ export function useAlarmEngine() {
             );
 
             snoozeTimeoutRef.current = null;
+
             return;
           }
 
@@ -196,19 +219,24 @@ export function useAlarmEngine() {
             );
 
             snoozeTimeoutRef.current = null;
+
             return;
           }
 
           // Clear persisted snooze before ringing
-          void fetch(`/api/tasks/${taskId}`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              snoozedUntil: null,
-            }),
-          }).catch((error) => {
+          void fetch(
+            `/api/tasks/${taskId}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                snoozedUntil: null,
+              }),
+            }
+          ).catch((error) => {
             console.error(
               "Failed to clear snooze:",
               error
@@ -253,7 +281,10 @@ export function useAlarmEngine() {
       );
 
       if (snoozeTimeoutRef.current) {
-        clearTimeout(snoozeTimeoutRef.current);
+        clearTimeout(
+          snoozeTimeoutRef.current
+        );
+
         snoozeTimeoutRef.current = null;
       }
     };
@@ -307,16 +338,19 @@ export function useAlarmEngine() {
         );
 
         // Clear persisted snooze
-        void fetch(`/api/tasks/${task.id}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            snoozedUntil: null,
-          }),
-        }).catch((error) => {
+        void fetch(
+          `/api/tasks/${task.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              snoozedUntil: null,
+            }),
+          }
+        ).catch((error) => {
           console.error(
             "Failed to clear recovered snooze:",
             error
@@ -324,13 +358,16 @@ export function useAlarmEngine() {
         });
 
         // Ring recovered alarm
-        startAlarm(
+        recoverAlarm(
           task.id,
-          task.title
+          task.title,
+          task.snoozedUntil
         );
 
+        // Play alarm
         playAlarm();
 
+        // Desktop notification
         sendNotification(
           task.title,
           0
@@ -353,7 +390,12 @@ export function useAlarmEngine() {
     return () => {
       clearInterval(interval);
     };
-  }, [tasks, startAlarm, playAlarm]);
+  }, [
+    tasks,
+    startAlarm,
+    recoverAlarm,
+    playAlarm,
+  ]);
 
   // Check scheduled alarms
   useEffect(() => {
@@ -479,7 +521,11 @@ export function useAlarmEngine() {
     return () => {
       clearInterval(interval);
     };
-  }, [tasks, startAlarm, playAlarm]);
+  }, [
+    tasks,
+    startAlarm,
+    playAlarm,
+  ]);
 }
 
 function sendNotification(
@@ -506,10 +552,13 @@ function sendNotification(
     Notification.permission ===
     "granted"
   ) {
-    new Notification("DayFlow 🔔", {
-      body: message,
-      icon: "/favicon.ico",
-    });
+    new Notification(
+      "DayFlow 🔔",
+      {
+        body: message,
+        icon: "/favicon.ico",
+      }
+    );
 
     return;
   }
@@ -520,10 +569,13 @@ function sendNotification(
     Notification.requestPermission().then(
       (permission) => {
         if (permission === "granted") {
-          new Notification("DayFlow 🔔", {
-            body: message,
-            icon: "/favicon.ico",
-          });
+          new Notification(
+            "DayFlow 🔔",
+            {
+              body: message,
+              icon: "/favicon.ico",
+            }
+          );
         }
       }
     );
