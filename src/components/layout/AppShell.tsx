@@ -2,6 +2,7 @@
 
 import {
   Bell,
+  BellRing,
   CalendarDays,
   ChevronRight,
   Clock3,
@@ -29,9 +30,9 @@ const navigation = [
   { label: "Dashboard", icon: Home, href: "/" },
   { label: "Tasks", icon: ListTodo, href: "/tasks" },
   { label: "Calendar", icon: CalendarDays, href: "/calendar" },
-  { label: "Alarms", icon: Bell, href: "/alarms" },
   { label: "Focus", icon: Target, href: "/focus" },
   { label: "Analytics", icon: TrendingUp, href: "/analytics" },
+  { label: "Alarms", icon: BellRing, href: "/alarms" },
 ];
 
 function getDateKey(date: Date) {

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { useAlarmStore } from "@/store/alarmStore";
+import { useScheduler } from "@/hooks/useScheduler";
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString([], {
@@ -56,6 +57,7 @@ function formatDuration(minutes: number | null) {
 }
 
 export default function AlarmHistory() {
+  const now = useScheduler();
   const history = useAlarmStore(
     (state) => state.history
   );
@@ -104,14 +106,20 @@ export default function AlarmHistory() {
       ? Math.max(...responseTimes)
       : null;
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = now
+  ? new Date(now.getTime())
+  : null;
 
-  const todayHistory = history.filter(
-    (alarm) =>
-      new Date(alarm.triggeredAt).getTime() >=
-      todayStart.getTime()
-  );
+if (todayStart) {
+  todayStart.setHours(0, 0, 0, 0);
+}
+
+  const todayHistory = todayStart
+  ? history.filter(
+      (item) =>
+        new Date(item.triggeredAt) >= todayStart
+    )
+  : [];
 
   const todayStoppedCount = todayHistory.filter(
     (alarm) => alarm.status === "stopped"
