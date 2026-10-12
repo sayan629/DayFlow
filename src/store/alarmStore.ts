@@ -26,6 +26,12 @@ interface AlarmStore {
 
   loadHistory: () => Promise<void>;
 
+  recoverAlarm: (
+    taskId: string,
+    taskTitle: string,
+    triggeredAt: string
+  ) => void;
+
   startAlarm: (
     taskId: string,
     taskTitle: string
@@ -106,6 +112,22 @@ export const useAlarmStore = create<AlarmStore>(
       }
     },
 
+    recoverAlarm: (
+      taskId,
+      taskTitle,
+      triggeredAt
+    ) => {
+      set({
+        isRinging: true,
+        taskId,
+        taskTitle,
+        status: "ringing",
+        triggeredAt,
+        stoppedAt: null,
+        snoozedUntil: null,
+      });
+    },
+
     startAlarm: (taskId, taskTitle) => {
       const now = new Date().toISOString();
 
@@ -122,6 +144,7 @@ export const useAlarmStore = create<AlarmStore>(
 
     stopAlarm: () => {
       const state = get();
+
       const stoppedAt =
         new Date().toISOString();
 
@@ -193,24 +216,28 @@ export const useAlarmStore = create<AlarmStore>(
             minutes * 60 * 1000
         ).toISOString();
 
-        const taskId = state.taskId;
+      const taskId = state.taskId;
 
-if (taskId) {
-  void fetch(`/api/tasks/${taskId}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      snoozedUntil,
-    }),
-  }).catch((error) => {
-    console.error(
-      "Failed to persist snooze:",
-      error
-    );
-  });
-}
+      if (taskId) {
+        void fetch(
+          `/api/tasks/${taskId}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              snoozedUntil,
+            }),
+          }
+        ).catch((error) => {
+          console.error(
+            "Failed to persist snooze:",
+            error
+          );
+        });
+      }
 
       if (
         state.taskId &&
