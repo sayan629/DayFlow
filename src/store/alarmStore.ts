@@ -58,6 +58,8 @@ interface AlarmStore {
 
   clearQueue: () => void;
 
+  restoreQueue: () => void;
+
   stopAlarm: () => void;
 
   stopAlarmWithoutAdvancing: () => void;
@@ -65,6 +67,84 @@ interface AlarmStore {
   snoozeAlarm: (minutes: number) => void;
 
   clearHistory: () => Promise<void>;
+}
+
+const ALARM_QUEUE_STORAGE_KEY =
+  "dayflow-alarm-queue";
+
+function saveQueue(queue: QueuedAlarm[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      ALARM_QUEUE_STORAGE_KEY,
+      JSON.stringify(queue)
+    );
+  } catch (error) {
+    console.error(
+      "Failed to persist alarm queue:",
+      error
+    );
+  }
+}
+
+function loadStoredQueue(): QueuedAlarm[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const storedQueue =
+      localStorage.getItem(
+        ALARM_QUEUE_STORAGE_KEY
+      );
+
+    if (!storedQueue) {
+      return [];
+    }
+
+    const parsedQueue = JSON.parse(
+      storedQueue
+    );
+
+    if (!Array.isArray(parsedQueue)) {
+      return [];
+    }
+
+    return parsedQueue.filter(
+      (alarm): alarm is QueuedAlarm =>
+        typeof alarm === "object" &&
+        alarm !== null &&
+        typeof alarm.taskId === "string" &&
+        typeof alarm.taskTitle === "string"
+    );
+  } catch (error) {
+    console.error(
+      "Failed to restore alarm queue:",
+      error
+    );
+
+    return [];
+  }
+}
+
+function clearStoredQueue() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(
+      ALARM_QUEUE_STORAGE_KEY
+    );
+  } catch (error) {
+    console.error(
+      "Failed to clear persisted alarm queue:",
+      error
+    );
+  }
 }
 
 async function saveAlarmHistory(
@@ -137,6 +217,31 @@ export const useAlarmStore = create<AlarmStore>(
       }
     },
 
+    restoreQueue: () => {
+      const storedQueue =
+        loadStoredQueue();
+
+      if (storedQueue.length === 0) {
+        return;
+      }
+
+      const uniqueQueue =
+        storedQueue.filter(
+          (alarm, index, queue) =>
+            queue.findIndex(
+              (item) =>
+                item.taskId ===
+                alarm.taskId
+            ) === index
+        );
+
+      set({
+        queue: uniqueQueue,
+      });
+
+      saveQueue(uniqueQueue);
+    },
+
     recoverAlarm: (
       taskId,
       taskTitle,
@@ -193,15 +298,19 @@ export const useAlarmStore = create<AlarmStore>(
         return;
       }
 
+      const updatedQueue = [
+        ...state.queue,
+        {
+          taskId,
+          taskTitle,
+        },
+      ];
+
       set({
-        queue: [
-          ...state.queue,
-          {
-            taskId,
-            taskTitle,
-          },
-        ],
+        queue: updatedQueue,
       });
+
+      saveQueue(updatedQueue);
     },
 
     dequeueAlarm: () => {
@@ -222,6 +331,12 @@ export const useAlarmStore = create<AlarmStore>(
         queue: remaining,
       });
 
+      if (remaining.length === 0) {
+        clearStoredQueue();
+      } else {
+        saveQueue(remaining);
+      }
+
       return nextAlarm;
     },
 
@@ -229,6 +344,8 @@ export const useAlarmStore = create<AlarmStore>(
       set({
         queue: [],
       });
+
+      clearStoredQueue();
     },
 
     stopAlarm: () => {
