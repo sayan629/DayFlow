@@ -22,7 +22,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
-import { useAlarmStore } from "@/store/alarmStore";
 import { useFocusStore } from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
 import { useUserStore } from "@/store/userStore";
@@ -52,9 +51,9 @@ function getTaskDateKey(dateString: string) {
 const focusRing =
   "outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0e]";
 
-/* ------------------------------------------------------------------
- * Tooltip shown only when the sidebar is collapsed
- * ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* Tooltip shown only when the sidebar is collapsed                    */
+/* ------------------------------------------------------------------ */
 
 function Tip({ label }: { label: string }) {
   return (
@@ -67,9 +66,9 @@ function Tip({ label }: { label: string }) {
   );
 }
 
-/* ------------------------------------------------------------------
- * Sidebar contents
- * ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* Sidebar contents                                                    */
+/* ------------------------------------------------------------------ */
 
 function SidebarContent({
   collapsed,
@@ -90,32 +89,22 @@ function SidebarContent({
     (state) => state.sessionHistory
   );
 
-  /* --------------------------------------------------------------
-   * Alarm state
-   * -------------------------------------------------------------- */
-
-  const alarmRinging = useAlarmStore(
-    (state) => state.isRinging
-  );
-
-  const alarmStatus = useAlarmStore(
-    (state) => state.status
+  const streakMode = usePreferencesStore(
+    (state) => state.streakMode
   );
 
   const userName = user?.name?.trim() || "User";
   const userInitial = userName.charAt(0).toUpperCase();
 
   /*
-   * IMPORTANT:
-   * Do not use new Date() during render.
-   *
-   * AppShell already gets the current time from useScheduler().
+   * AppShell gets the current time from useScheduler().
+   * Do not use new Date() directly during render.
    */
   const today = useScheduler();
 
-  /* --------------------------------------------------------------
-   * Real productivity statistics
-   * -------------------------------------------------------------- */
+  /* -------------------------------------------------------------- */
+  /* Real productivity statistics                                    */
+  /* -------------------------------------------------------------- */
 
   const productivityStats = useMemo(() => {
     if (!today) {
@@ -156,8 +145,12 @@ function SidebarContent({
         });
 
       const hasActivity =
-        completedTasks.length > 0 ||
-        dayFocusSessions.length > 0;
+        streakMode === "tasks"
+          ? completedTasks.length > 0
+          : streakMode === "focus"
+            ? dayFocusSessions.length > 0
+            : completedTasks.length > 0 ||
+              dayFocusSessions.length > 0;
 
       return {
         key,
@@ -240,7 +233,12 @@ function SidebarContent({
       productivityChange,
       days,
     };
-  }, [tasks, focusSessions, today]);
+  }, [
+    tasks,
+    focusSessions,
+    today,
+    streakMode,
+  ]);
 
   return (
     <div className="flex h-full flex-col">
@@ -259,10 +257,14 @@ function SidebarContent({
           aria-label="DayFlow home"
         >
           <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_0_30px_rgba(255,255,255,0.08)] ring-1 ring-white/20 transition-transform duration-300 hover:rotate-[-6deg]">
-            <Clock3 size={20} strokeWidth={2.2} />
+            <Clock3
+              size={20}
+              strokeWidth={2.2}
+            />
 
             <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0b0b0e]" />
             </span>
           </div>
@@ -300,7 +302,10 @@ function SidebarContent({
           </p>
         )}
 
-        <nav className="space-y-1.5" aria-label="Primary">
+        <nav
+          className="space-y-1.5"
+          aria-label="Primary"
+        >
           {navigation.map((item) => {
             const Icon = item.icon;
 
@@ -367,40 +372,25 @@ function SidebarContent({
                   </span>
                 )}
 
-                {/* Dynamic Alarm Indicator */}
+                {item.label === "Alarms" && (
+                  <span
+                    className={`flex h-2 w-2 ${
+                      collapsed
+                        ? "absolute right-2.5 top-2.5"
+                        : "ml-auto"
+                    }`}
+                  >
+                    <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-red-500 opacity-50" />
 
-                {item.label === "Alarms" &&
-                  alarmRinging && (
                     <span
-                      className={`flex h-2 w-2 ${
+                      className={`relative inline-flex h-2 w-2 rounded-full bg-red-500 ${
                         collapsed
-                          ? "absolute right-2.5 top-2.5"
-                          : "ml-auto"
-                      }`}
-                    >
-                      <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-red-500 opacity-50" />
-
-                      <span
-                        className={`relative inline-flex h-2 w-2 rounded-full bg-red-500 ${
-                          collapsed
-                            ? "ring-2 ring-[#0b0b0e]"
-                            : ""
-                        }`}
-                      />
-                    </span>
-                  )}
-
-                {item.label === "Alarms" &&
-                  !alarmRinging &&
-                  alarmStatus === "snoozed" && (
-                    <span
-                      className={`h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] ${
-                        collapsed
-                          ? "absolute right-2.5 top-2.5"
-                          : "ml-auto"
+                          ? "ring-2 ring-[#0b0b0e]"
+                          : ""
                       }`}
                     />
-                  )}
+                  </span>
+                )}
 
                 {collapsed && (
                   <Tip label={item.label} />
@@ -418,8 +408,10 @@ function SidebarContent({
           </p>
         )}
 
-        <button
-          type="button"
+        {/* Settings */}
+        <Link
+          href="/settings"
+          onClick={onNavigate}
           aria-label={
             collapsed ? "Settings" : undefined
           }
@@ -446,7 +438,7 @@ function SidebarContent({
           {collapsed && (
             <Tip label="Settings" />
           )}
-        </button>
+        </Link>
       </div>
 
       {/* Bottom */}
@@ -508,7 +500,9 @@ function SidebarContent({
                     0
                       ? "+"
                       : ""}
-                    {productivityStats.productivityChange}
+                    {
+                      productivityStats.productivityChange
+                    }
                     %
                   </span>
                 </div>
@@ -569,9 +563,9 @@ function SidebarContent({
   );
 }
 
-/* ------------------------------------------------------------------
- * App shell
- * ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ */
+/* App shell                                                           */
+/* ------------------------------------------------------------------ */
 
 export default function AppShell({
   children,
@@ -598,26 +592,9 @@ export default function AppShell({
 
   const today = useScheduler();
 
-  /* --------------------------------------------------------------
-   * Alarm state
-   *
-   * The header indicator reflects the real alarm state:
-   * - ringing -> animated red indicator
-   * - snoozed -> amber indicator
-   * - idle    -> no indicator
-   * -------------------------------------------------------------- */
-
-  const alarmRinging = useAlarmStore(
-    (state) => state.isRinging
-  );
-
-  const alarmStatus = useAlarmStore(
-    (state) => state.status
-  );
-
-  /* --------------------------------------------------------------
-   * Load tasks once at application-shell level
-   * -------------------------------------------------------------- */
+  /* -------------------------------------------------------------- */
+  /* Load tasks once at application-shell level                     */
+  /* -------------------------------------------------------------- */
 
   const loadTasks = useTaskStore(
     (state) => state.loadTasks
@@ -660,7 +637,9 @@ export default function AppShell({
     };
   }, [today]);
 
-  /* Close drawer on Escape + lock body scroll while open */
+  /* -------------------------------------------------------------- */
+  /* Close drawer on Escape + lock body scroll while open           */
+  /* -------------------------------------------------------------- */
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -820,13 +799,7 @@ export default function AppShell({
               <button
                 type="button"
                 className="group relative rounded-xl border border-white/[0.07] bg-white/[0.025] p-2.5 text-zinc-500 outline-none transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white focus-visible:ring-2 focus-visible:ring-white/30"
-                aria-label={
-                  alarmRinging
-                    ? "Alarm ringing"
-                    : alarmStatus === "snoozed"
-                      ? "Alarm snoozed"
-                      : "Notifications"
-                }
+                aria-label="Notifications"
               >
                 <Bell
                   size={17}
@@ -834,22 +807,7 @@ export default function AppShell({
                   className="origin-top transition-transform group-hover:rotate-[14deg]"
                 />
 
-                {/* Active ringing indicator */}
-
-                {alarmRinging && (
-                  <span className="absolute right-2 top-2 flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-60" />
-
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-                  </span>
-                )}
-
-                {/* Snoozed indicator */}
-
-                {!alarmRinging &&
-                  alarmStatus === "snoozed" && (
-                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
-                  )}
+                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" />
               </button>
 
               {/* Profile */}
