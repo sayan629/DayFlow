@@ -2,19 +2,24 @@
 
 import {
   BarChart3,
+  Bell,
   CheckCircle2,
   Clock3,
   Flame,
   Target,
+  Timer,
   TrendingUp,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
+
 import {
   getTaskFocusStats,
   useFocusStore,
 } from "@/store/focusStore";
+
+import { useAlarmStore } from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -28,18 +33,33 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function AnalyticsPage() {
   const now = useScheduler();
 
-  const tasks = useTaskStore((state) => state.tasks);
+  const tasks = useTaskStore(
+    (state) => state.tasks
+  );
+
   const sessionHistory = useFocusStore(
     (state) => state.sessionHistory
   );
 
-const loadSessionHistory = useFocusStore(
-  (state) => state.loadSessionHistory
-);
+  const loadSessionHistory = useFocusStore(
+    (state) => state.loadSessionHistory
+  );
 
-useEffect(() => {
-  loadSessionHistory();
-}, [loadSessionHistory]);
+  const alarmHistory = useAlarmStore(
+    (state) => state.history
+  );
+
+  const loadAlarmHistory = useAlarmStore(
+    (state) => state.loadHistory
+  );
+
+  useEffect(() => {
+    loadSessionHistory();
+    loadAlarmHistory();
+  }, [
+    loadSessionHistory,
+    loadAlarmHistory,
+  ]);
 
   const today = useMemo(() => {
     if (!now) return null;
@@ -205,7 +225,9 @@ useEffect(() => {
             const sessionDate =
               session.completedAt.split("T")[0];
 
-            return sessionDate === dateString;
+            return (
+              sessionDate === dateString
+            );
           });
 
         const focusMinutes = Math.floor(
@@ -282,6 +304,92 @@ useEffect(() => {
       )
       .slice(0, 5);
 
+    // -----------------------------
+    // Alarm Analytics
+    // -----------------------------
+
+    const stoppedAlarms = alarmHistory.filter(
+      (alarm) => alarm.status === "stopped"
+    );
+
+    const snoozedAlarms = alarmHistory.filter(
+      (alarm) => alarm.status === "snoozed"
+    );
+
+    const alarmResponseTimes = stoppedAlarms
+      .map((alarm) => {
+        if (!alarm.stoppedAt) {
+          return null;
+        }
+
+        const triggeredAt = new Date(
+          alarm.triggeredAt
+        ).getTime();
+
+        const stoppedAt = new Date(
+          alarm.stoppedAt
+        ).getTime();
+
+        if (
+          Number.isNaN(triggeredAt) ||
+          Number.isNaN(stoppedAt) ||
+          stoppedAt < triggeredAt
+        ) {
+          return null;
+        }
+
+        return Math.max(
+          0,
+          Math.round(
+            (stoppedAt - triggeredAt) /
+              60000
+          )
+        );
+      })
+      .filter(
+        (value): value is number =>
+          value !== null
+      );
+
+    const averageAlarmResponse =
+      alarmResponseTimes.length > 0
+        ? Math.round(
+            alarmResponseTimes.reduce(
+              (total, value) =>
+                total + value,
+              0
+            ) / alarmResponseTimes.length
+          )
+        : null;
+
+    const fastestAlarmResponse =
+      alarmResponseTimes.length > 0
+        ? Math.min(...alarmResponseTimes)
+        : null;
+
+    const slowestAlarmResponse =
+      alarmResponseTimes.length > 0
+        ? Math.max(...alarmResponseTimes)
+        : null;
+
+    const formatAlarmResponse = (
+      minutes: number | null
+    ) => {
+      if (minutes === null) {
+        return "—";
+      }
+
+      if (minutes < 1) {
+        return "< 1m";
+      }
+
+      if (minutes === 1) {
+        return "1m";
+      }
+
+      return `${minutes}m`;
+    };
+
     return {
       todayTasks,
       completedTasks,
@@ -294,12 +402,22 @@ useEffect(() => {
       maxCompleted,
       maxFocus,
       focusedTasks,
+
+      alarmHistory,
+      stoppedAlarms,
+      snoozedAlarms,
+      alarmResponseTimes,
+      averageAlarmResponse,
+      fastestAlarmResponse,
+      slowestAlarmResponse,
+      formatAlarmResponse,
     };
   }, [
     today,
     now,
     tasks,
     sessionHistory,
+    alarmHistory,
   ]);
 
   if (!now || !analytics) {
@@ -309,7 +427,6 @@ useEffect(() => {
   return (
     <main className="min-h-screen bg-[#09090b] px-6 py-8 text-white lg:px-10">
       <div className="mx-auto min-h-screen max-w-7xl">
-
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3">
@@ -454,9 +571,102 @@ useEffect(() => {
           </div>
         </section>
 
+        {/* Alarm Analytics */}
+        <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
+                <Bell
+                  size={17}
+                  className="text-zinc-400"
+                />
+              </div>
+
+              <div>
+                <h2 className="font-semibold">
+                  Alarm Analytics
+                </h2>
+
+                <p className="mt-1 text-xs text-zinc-500">
+                  Understand how you respond to
+                  scheduled alarms.
+                </p>
+              </div>
+            </div>
+
+            <Timer
+              size={18}
+              className="text-zinc-600"
+            />
+          </div>
+
+          {analytics.alarmHistory.length ===
+          0 ? (
+            <div className="mt-6">
+              <EmptyState text="Trigger an alarm to start building alarm analytics." />
+            </div>
+          ) : (
+            <>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <AnalyticsMetric
+                  label="Total Alarms"
+                  value={String(
+                    analytics.alarmHistory.length
+                  )}
+                  subtitle="All recorded alarms"
+                />
+
+                <AnalyticsMetric
+                  label="Stopped"
+                  value={String(
+                    analytics.stoppedAlarms.length
+                  )}
+                  subtitle="Successfully handled"
+                />
+
+                <AnalyticsMetric
+                  label="Snoozed"
+                  value={String(
+                    analytics.snoozedAlarms.length
+                  )}
+                  subtitle="Deferred alarms"
+                />
+              </div>
+
+              {analytics.alarmResponseTimes
+                .length > 0 && (
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <AnalyticsMetric
+                    label="Average Response"
+                    value={analytics.formatAlarmResponse(
+                      analytics.averageAlarmResponse
+                    )}
+                    subtitle="Average time to stop"
+                  />
+
+                  <AnalyticsMetric
+                    label="Fastest Response"
+                    value={analytics.formatAlarmResponse(
+                      analytics.fastestAlarmResponse
+                    )}
+                    subtitle="Best response"
+                  />
+
+                  <AnalyticsMetric
+                    label="Slowest Response"
+                    value={analytics.formatAlarmResponse(
+                      analytics.slowestAlarmResponse
+                    )}
+                    subtitle="Longest response"
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </section>
+
         {/* Lower Analytics */}
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
-
           {/* Categories */}
           <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-6">
             <div>
@@ -698,6 +908,32 @@ function StatCard({
       </p>
 
       <p className="mt-1 text-[11px] text-zinc-600">
+        {subtitle}
+      </p>
+    </div>
+  );
+}
+
+function AnalyticsMetric({
+  label,
+  value,
+  subtitle,
+}: {
+  label: string;
+  value: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+      <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
+        {label}
+      </p>
+
+      <p className="mt-2 text-xl font-semibold text-zinc-200">
+        {value}
+      </p>
+
+      <p className="mt-1 text-[10px] text-zinc-600">
         {subtitle}
       </p>
     </div>
