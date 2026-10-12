@@ -22,6 +22,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
+import { useAlarmStore } from "@/store/alarmStore";
 import { useFocusStore } from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
 import { useUserStore } from "@/store/userStore";
@@ -50,9 +51,9 @@ function getTaskDateKey(dateString: string) {
 const focusRing =
   "outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0e]";
 
-/* ------------------------------------------------------------------ */
-/* Tooltip shown only when the sidebar is collapsed                   */
-/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------
+ * Tooltip shown only when the sidebar is collapsed
+ * ------------------------------------------------------------------ */
 
 function Tip({ label }: { label: string }) {
   return (
@@ -65,9 +66,9 @@ function Tip({ label }: { label: string }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Sidebar contents (shared by desktop sidebar + mobile drawer)       */
-/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------
+ * Sidebar contents (shared by desktop sidebar + mobile drawer)
+ * ------------------------------------------------------------------ */
 
 function SidebarContent({
   collapsed,
@@ -100,9 +101,9 @@ function SidebarContent({
    */
   const today = useScheduler();
 
-  /* -------------------------------------------------------------- */
-  /* Real productivity statistics                                   */
-  /* -------------------------------------------------------------- */
+  /* --------------------------------------------------------------
+   * Real productivity statistics
+   * -------------------------------------------------------------- */
 
   const productivityStats = useMemo(() => {
     if (!today) {
@@ -415,7 +416,9 @@ function SidebarContent({
             </span>
           )}
 
-          {collapsed && <Tip label="Settings" />}
+          {collapsed && (
+            <Tip label="Settings" />
+          )}
         </button>
       </div>
 
@@ -478,9 +481,7 @@ function SidebarContent({
                     0
                       ? "+"
                       : ""}
-                    {
-                      productivityStats.productivityChange
-                    }
+                    {productivityStats.productivityChange}
                     %
                   </span>
                 </div>
@@ -541,9 +542,9 @@ function SidebarContent({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* App shell                                                          */
-/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------
+ * App shell
+ * ------------------------------------------------------------------ */
 
 export default function AppShell({
   children,
@@ -570,9 +571,25 @@ export default function AppShell({
 
   const today = useScheduler();
 
-  /* -------------------------------------------------------------- */
-  /* Load tasks once at application-shell level                     */
-  /* -------------------------------------------------------------- */
+  /*
+   * Alarm state
+   *
+   * The header indicator now reflects the real alarm state:
+   * - ringing  -> animated red indicator
+   * - snoozed  -> amber indicator
+   * - idle      -> no indicator
+   */
+  const alarmRinging = useAlarmStore(
+    (state) => state.isRinging
+  );
+
+  const alarmStatus = useAlarmStore(
+    (state) => state.status
+  );
+
+  /* --------------------------------------------------------------
+   * Load tasks once at application-shell level
+   * -------------------------------------------------------------- */
 
   const loadTasks = useTaskStore(
     (state) => state.loadTasks
@@ -767,7 +784,13 @@ export default function AppShell({
               <button
                 type="button"
                 className="group relative rounded-xl border border-white/[0.07] bg-white/[0.025] p-2.5 text-zinc-500 outline-none transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white focus-visible:ring-2 focus-visible:ring-white/30"
-                aria-label="Notifications"
+                aria-label={
+                  alarmRinging
+                    ? "Alarm ringing"
+                    : alarmStatus === "snoozed"
+                      ? "Alarm snoozed"
+                      : "Notifications"
+                }
               >
                 <Bell
                   size={17}
@@ -775,7 +798,20 @@ export default function AppShell({
                   className="origin-top transition-transform group-hover:rotate-[14deg]"
                 />
 
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" />
+                {/* Active ringing indicator */}
+                {alarmRinging && (
+                  <span className="absolute right-2 top-2 flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-60" />
+
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                  </span>
+                )}
+
+                {/* Snoozed indicator */}
+                {!alarmRinging &&
+                  alarmStatus === "snoozed" && (
+                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+                  )}
               </button>
 
               {/* Profile */}
