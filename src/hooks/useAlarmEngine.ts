@@ -18,16 +18,16 @@ export function useAlarmEngine() {
     (state) => state.startAlarm
   );
 
-  // const recoverAlarm = useAlarmStore(
-  //   (state) => state.recoverAlarm
-  // );
-
   const enqueueAlarm = useAlarmStore(
     (state) => state.enqueueAlarm
   );
 
   const dequeueAlarm = useAlarmStore(
     (state) => state.dequeueAlarm
+  );
+
+  const restoreQueue = useAlarmStore(
+    (state) => state.restoreQueue
   );
 
   const notifiedTasks = useRef<Set<string>>(
@@ -41,6 +41,13 @@ export function useAlarmEngine() {
     useRef<ReturnType<typeof setTimeout> | null>(
       null
     );
+
+  /**
+   * Restore queued alarms after refresh/restart.
+   */
+  useEffect(() => {
+    restoreQueue();
+  }, [restoreQueue]);
 
   /**
    * Request browser notification permission once.
@@ -164,78 +171,81 @@ export function useAlarmEngine() {
    * even when one of the queued tasks
    * becomes invalid.
    */
-  const triggerNextQueuedAlarm = useCallback(() => {
-    let nextAlarm = dequeueAlarm();
+  const triggerNextQueuedAlarm =
+    useCallback(() => {
+      let nextAlarm = dequeueAlarm();
 
-    while (nextAlarm) {
-      const currentTask = useTaskStore
-        .getState()
-        .tasks.find(
-          (task) =>
-            task.id === nextAlarm?.taskId
-        );
+      while (nextAlarm) {
+        const currentTask =
+          useTaskStore
+            .getState()
+            .tasks.find(
+              (task) =>
+                task.id ===
+                nextAlarm?.taskId
+            );
 
-      /**
-       * Task was deleted.
-       */
-      if (!currentTask) {
-        console.log(
-          "⏭️ Skipping queued alarm: task no longer exists.",
-          nextAlarm.taskTitle
-        );
+        /**
+         * Task was deleted.
+         */
+        if (!currentTask) {
+          console.log(
+            "⏭️ Skipping queued alarm: task no longer exists.",
+            nextAlarm.taskTitle
+          );
 
-        nextAlarm = dequeueAlarm();
-        continue;
+          nextAlarm = dequeueAlarm();
+          continue;
+        }
+
+        /**
+         * Task was completed.
+         */
+        if (currentTask.completed) {
+          console.log(
+            "⏭️ Skipping queued alarm: task is completed.",
+            currentTask.title
+          );
+
+          nextAlarm = dequeueAlarm();
+          continue;
+        }
+
+        /**
+         * Alarm was disabled.
+         */
+        if (
+          currentTask.alarmEnabled === false
+        ) {
+          console.log(
+            "⏭️ Skipping queued alarm: alarm is disabled.",
+            currentTask.title
+          );
+
+          nextAlarm = dequeueAlarm();
+          continue;
+        }
+
+        /**
+         * Valid alarm found.
+         */
+        setTimeout(() => {
+          triggerAlarm(
+            currentTask.id,
+            currentTask.title
+          );
+        }, 100);
+
+        return;
       }
 
-      /**
-       * Task was completed.
-       */
-      if (currentTask.completed) {
-        console.log(
-          "⏭️ Skipping queued alarm: task is completed.",
-          currentTask.title
-        );
-
-        nextAlarm = dequeueAlarm();
-        continue;
-      }
-
-      /**
-       * Alarm was disabled.
-       */
-      if (
-        currentTask.alarmEnabled === false
-      ) {
-        console.log(
-          "⏭️ Skipping queued alarm: alarm is disabled.",
-          currentTask.title
-        );
-
-        nextAlarm = dequeueAlarm();
-        continue;
-      }
-
-      /**
-       * Valid alarm found.
-       */
-      setTimeout(() => {
-        triggerAlarm(
-          currentTask.id,
-          currentTask.title
-        );
-      }, 100);
-
-      return;
-    }
-
-    console.log(
-      "📭 Alarm queue is empty."
-    );
-  }, [
-    dequeueAlarm,
-    triggerAlarm,
-  ]);
+      console.log(
+        "📭 Alarm queue is empty."
+      );
+    }, [
+      dequeueAlarm,
+      triggerAlarm,
+    ]);
 
   /**
    * Stop alarm and advance queue.
@@ -848,7 +858,7 @@ function sendNotification(
   const message =
     reminderMinutes === 0
       ? `${title} is starting now.`
-      : `${title} starts in ${reminderMinutes} ${
+      : `${title} starts in ${
           reminderMinutes === 1
             ? "minute"
             : "minutes"
