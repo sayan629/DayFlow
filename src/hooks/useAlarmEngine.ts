@@ -11,6 +11,25 @@ export function useAlarmEngine() {
     (state) => state.startAlarm
   );
 
+    // Request browser notification permission once
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      !("Notification" in window)
+    ) {
+      return;
+    }
+
+    if (Notification.permission === "default") {
+      Notification.requestPermission().catch((error) => {
+        console.warn(
+          "Notification permission request failed:",
+          error
+        );
+      });
+    }
+  }, []);
+
   const notifiedTasks = useRef<Set<string>>(
     new Set()
   );
