@@ -67,7 +67,7 @@ function Tip({ label }: { label: string }) {
 }
 
 /* ------------------------------------------------------------------
- * Sidebar contents (shared by desktop sidebar + mobile drawer)
+ * Sidebar contents
  * ------------------------------------------------------------------ */
 
 function SidebarContent({
@@ -89,6 +89,18 @@ function SidebarContent({
     (state) => state.sessionHistory
   );
 
+  /* --------------------------------------------------------------
+   * Alarm state
+   * -------------------------------------------------------------- */
+
+  const alarmRinging = useAlarmStore(
+    (state) => state.isRinging
+  );
+
+  const alarmStatus = useAlarmStore(
+    (state) => state.status
+  );
+
   const userName = user?.name?.trim() || "User";
   const userInitial = userName.charAt(0).toUpperCase();
 
@@ -97,7 +109,6 @@ function SidebarContent({
    * Do not use new Date() during render.
    *
    * AppShell already gets the current time from useScheduler().
-   * We receive that value through the `today` variable below.
    */
   const today = useScheduler();
 
@@ -355,25 +366,40 @@ function SidebarContent({
                   </span>
                 )}
 
-                {item.label === "Alarms" && (
-                  <span
-                    className={`flex h-2 w-2 ${
-                      collapsed
-                        ? "absolute right-2.5 top-2.5"
-                        : "ml-auto"
-                    }`}
-                  >
-                    <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-red-500 opacity-50" />
+                {/* Dynamic Alarm Indicator */}
 
+                {item.label === "Alarms" &&
+                  alarmRinging && (
                     <span
-                      className={`relative inline-flex h-2 w-2 rounded-full bg-red-500 ${
+                      className={`flex h-2 w-2 ${
                         collapsed
-                          ? "ring-2 ring-[#0b0b0e]"
-                          : ""
+                          ? "absolute right-2.5 top-2.5"
+                          : "ml-auto"
+                      }`}
+                    >
+                      <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-red-500 opacity-50" />
+
+                      <span
+                        className={`relative inline-flex h-2 w-2 rounded-full bg-red-500 ${
+                          collapsed
+                            ? "ring-2 ring-[#0b0b0e]"
+                            : ""
+                        }`}
+                      />
+                    </span>
+                  )}
+
+                {item.label === "Alarms" &&
+                  !alarmRinging &&
+                  alarmStatus === "snoozed" && (
+                    <span
+                      className={`h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] ${
+                        collapsed
+                          ? "absolute right-2.5 top-2.5"
+                          : "ml-auto"
                       }`}
                     />
-                  </span>
-                )}
+                  )}
 
                 {collapsed && (
                   <Tip label={item.label} />
@@ -571,14 +597,15 @@ export default function AppShell({
 
   const today = useScheduler();
 
-  /*
+  /* --------------------------------------------------------------
    * Alarm state
    *
-   * The header indicator now reflects the real alarm state:
-   * - ringing  -> animated red indicator
-   * - snoozed  -> amber indicator
-   * - idle      -> no indicator
-   */
+   * The header indicator reflects the real alarm state:
+   * - ringing -> animated red indicator
+   * - snoozed -> amber indicator
+   * - idle    -> no indicator
+   * -------------------------------------------------------------- */
+
   const alarmRinging = useAlarmStore(
     (state) => state.isRinging
   );
@@ -633,6 +660,7 @@ export default function AppShell({
   }, [today]);
 
   /* Close drawer on Escape + lock body scroll while open */
+
   useEffect(() => {
     if (!mobileOpen) return;
 
@@ -669,6 +697,7 @@ export default function AppShell({
     <main className="min-h-screen bg-[#09090b] text-white antialiased selection:bg-white selection:text-black">
       <div className="flex min-h-screen">
         {/* ============ DESKTOP SIDEBAR ============ */}
+
         <aside
           className={`${
             sidebarOpen
@@ -683,6 +712,7 @@ export default function AppShell({
         </aside>
 
         {/* ============ MOBILE DRAWER ============ */}
+
         <div
           className={`fixed inset-0 z-40 lg:hidden ${
             mobileOpen
@@ -723,11 +753,14 @@ export default function AppShell({
         </div>
 
         {/* ============ MAIN ============ */}
+
         <section className="flex min-w-0 flex-1 flex-col">
           {/* Header */}
+
           <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-white/[0.07] bg-[#09090b]/80 px-5 backdrop-blur-xl md:px-8">
             <div className="flex items-center gap-3">
               {/* Mobile menu */}
+
               <button
                 type="button"
                 onClick={() =>
@@ -740,6 +773,7 @@ export default function AppShell({
               </button>
 
               {/* Desktop collapse */}
+
               <button
                 type="button"
                 onClick={() =>
@@ -781,6 +815,7 @@ export default function AppShell({
 
             <div className="flex items-center gap-3">
               {/* Notification */}
+
               <button
                 type="button"
                 className="group relative rounded-xl border border-white/[0.07] bg-white/[0.025] p-2.5 text-zinc-500 outline-none transition hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white focus-visible:ring-2 focus-visible:ring-white/30"
@@ -799,6 +834,7 @@ export default function AppShell({
                 />
 
                 {/* Active ringing indicator */}
+
                 {alarmRinging && (
                   <span className="absolute right-2 top-2 flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-60" />
@@ -808,6 +844,7 @@ export default function AppShell({
                 )}
 
                 {/* Snoozed indicator */}
+
                 {!alarmRinging &&
                   alarmStatus === "snoozed" && (
                     <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
@@ -815,6 +852,7 @@ export default function AppShell({
               </button>
 
               {/* Profile */}
+
               <button
                 type="button"
                 className="group flex items-center gap-3 rounded-2xl border-l border-white/[0.07] py-1 pl-4 pr-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-white/30"
@@ -837,6 +875,7 @@ export default function AppShell({
           </header>
 
           {/* Page content */}
+
           <div className="min-h-0 flex-1 overflow-y-auto">
             {children}
           </div>
