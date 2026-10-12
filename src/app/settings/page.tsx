@@ -3,6 +3,7 @@
 import {
   Bell,
   Check,
+  Clock,
   Flame,
   ListChecks,
   Settings,
@@ -46,6 +47,8 @@ const streakOptions: {
   },
 ];
 
+const focusDurationOptions = [15, 25, 50, 90];
+
 export default function SettingsPage() {
   const streakMode = usePreferencesStore(
     (state) => state.streakMode
@@ -55,35 +58,37 @@ export default function SettingsPage() {
     (state) => state.setStreakMode
   );
 
-  const notificationsEnabled =
-    useSettingsStore(
-      (state) => state.notificationsEnabled
-    );
+  const notificationsEnabled = useSettingsStore(
+    (state) => state.notificationsEnabled
+  );
 
-  const alarmSoundEnabled =
-    useSettingsStore(
-      (state) => state.alarmSoundEnabled
-    );
+  const alarmSoundEnabled = useSettingsStore(
+    (state) => state.alarmSoundEnabled
+  );
 
-  const defaultSnoozeMinutes =
-    useSettingsStore(
-      (state) => state.defaultSnoozeMinutes
-    );
+  const defaultSnoozeMinutes = useSettingsStore(
+    (state) => state.defaultSnoozeMinutes
+  );
 
-  const setNotificationsEnabled =
-    useSettingsStore(
-      (state) => state.setNotificationsEnabled
-    );
+  const defaultFocusMinutes = useSettingsStore(
+    (state) => state.defaultFocusMinutes
+  );
 
-  const setAlarmSoundEnabled =
-    useSettingsStore(
-      (state) => state.setAlarmSoundEnabled
-    );
+  const setNotificationsEnabled = useSettingsStore(
+    (state) => state.setNotificationsEnabled
+  );
 
-  const setDefaultSnoozeMinutes =
-    useSettingsStore(
-      (state) => state.setDefaultSnoozeMinutes
-    );
+  const setAlarmSoundEnabled = useSettingsStore(
+    (state) => state.setAlarmSoundEnabled
+  );
+
+  const setDefaultSnoozeMinutes = useSettingsStore(
+    (state) => state.setDefaultSnoozeMinutes
+  );
+
+  const setDefaultFocusMinutes = useSettingsStore(
+    (state) => state.setDefaultFocusMinutes
+  );
 
   return (
     <main className="min-h-full bg-[#09090b] p-5 text-white md:p-8">
@@ -104,7 +109,7 @@ export default function SettingsPage() {
         </div>
 
         {/* ------------------------------------------------------ */}
-        {/* Streak                                                 */}
+        {/* Streak                                                  */}
         {/* ------------------------------------------------------ */}
 
         <section className="mb-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
@@ -177,10 +182,10 @@ export default function SettingsPage() {
         </section>
 
         {/* ------------------------------------------------------ */}
-        {/* Alarms                                                 */}
+        {/* Alarms                                                   */}
         {/* ------------------------------------------------------ */}
 
-        <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
+        <section className="mb-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
           <div className="mb-6">
             <div className="flex items-center gap-2">
               <Bell
@@ -323,6 +328,53 @@ export default function SettingsPage() {
                 })}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------ */}
+        {/* Focus                                                     */}
+        {/* ------------------------------------------------------ */}
+
+        <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
+          <div className="mb-6">
+            <div className="flex items-center gap-2">
+              <Clock
+                size={18}
+                className="text-zinc-300"
+              />
+
+              <h2 className="text-sm font-semibold text-white">
+                Focus
+              </h2>
+            </div>
+
+            <p className="mt-2 text-xs text-zinc-500">
+              Choose the default duration for Focus sessions.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {focusDurationOptions.map((minutes) => {
+              const selected =
+                defaultFocusMinutes === minutes;
+
+              return (
+                <button
+                  key={minutes}
+                  type="button"
+                  onClick={() =>
+                    setDefaultFocusMinutes(minutes)
+                  }
+                  className={`rounded-xl border px-5 py-3 text-xs font-medium transition ${
+                    selected
+                      ? "border-white/20 bg-white text-black"
+                      : "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.07] hover:text-white"
+                  }`}
+                >
+                  {minutes} min
+                </button>
+              );
+            })}
           </div>
         </section>
       </div>
