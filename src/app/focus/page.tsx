@@ -93,10 +93,6 @@ function FocusPageContent() {
     (state) => state.setTestDuration
   );
 
-  const start = useFocusStore(
-  (state) => state.start
-);
-
   const setSelectedTask = useFocusStore(
     (state) => state.setSelectedTask
   );
@@ -109,9 +105,10 @@ function FocusPageContent() {
     (state) => state.loadSessionHistory
   );
 
-  const defaultFocusMinutes = useSettingsStore(
-    (state) => state.defaultFocusMinutes
-  );
+  const defaultFocusMinutes =
+    useSettingsStore(
+      (state) => state.defaultFocusMinutes
+    );
 
   // --------------------------------------------------
   // Sync Focus timer with Settings
@@ -125,7 +122,10 @@ function FocusPageContent() {
     const configuredSeconds =
       defaultFocusMinutes * 60;
 
-    if (remainingSeconds !== configuredSeconds) {
+    if (
+      remainingSeconds !==
+      configuredSeconds
+    ) {
       reset();
     }
   }, [
@@ -240,54 +240,61 @@ function FocusPageContent() {
   // Timer
   // --------------------------------------------------
 
-useEffect(() => {
-  if (!isRunning) {
-    return;
-  }
-
-  const interval = setInterval(() => {
-    const current = useFocusStore.getState();
-
-    if (!current.isRunning) {
-      clearInterval(interval);
+  useEffect(() => {
+    if (!isRunning) {
       return;
     }
 
-    if (current.remainingSeconds <= 1) {
-      clearInterval(interval);
+    const interval = setInterval(() => {
+      const current =
+        useFocusStore.getState();
 
-      useFocusStore.setState({
-        isRunning: false,
-        remainingSeconds: 0,
-      });
-
-      if (
-        current.mode === "focus" &&
-        current.selectedTaskId
-      ) {
-        void updateTask(
-          current.selectedTaskId,
-          {
-            completed: true,
-          }
-        );
+      if (!current.isRunning) {
+        clearInterval(interval);
+        return;
       }
 
-      void current.completeSession();
+      if (current.remainingSeconds <= 1) {
+        clearInterval(interval);
 
-      return;
-    }
+        // Stop immediately so the completion
+        // logic cannot run more than once.
+        useFocusStore.setState({
+          isRunning: false,
+          remainingSeconds: 0,
+        });
 
-    useFocusStore.setState({
-      remainingSeconds:
-        current.remainingSeconds - 1,
-    });
-  }, 1000);
+        // Complete the selected task only
+        // when a Focus session finishes.
+        if (
+          current.mode === "focus" &&
+          current.selectedTaskId
+        ) {
+          void updateTask(
+            current.selectedTaskId,
+            {
+              completed: true,
+            }
+          );
+        }
 
-  return () => {
-    clearInterval(interval);
-  };
-}, [isRunning, updateTask]);
+        // Save the completed Focus session
+        // and move to the appropriate break.
+        void current.completeSession();
+
+        return;
+      }
+
+      useFocusStore.setState({
+        remainingSeconds:
+          current.remainingSeconds - 1,
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isRunning, updateTask]);
 
   // --------------------------------------------------
   // Timer formatting
@@ -597,10 +604,9 @@ useEffect(() => {
     <main className="min-h-screen bg-[#09090b] text-white">
       <div className="flex min-h-screen">
         <section className="flex min-w-0 flex-1 flex-col">
-          {/* Content */}
-
           <div className="flex-1 overflow-y-auto p-5 md:p-8">
             <div className="mx-auto w-full max-w-2xl">
+
               {/* Heading */}
 
               <div className="text-center">
@@ -817,6 +823,7 @@ useEffect(() => {
 
               <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/[0.025] p-8 md:p-12">
                 <div className="flex flex-col items-center">
+
                   {/* Mode Selector */}
 
                   <div className="flex rounded-2xl border border-white/10 bg-black/20 p-1">
@@ -936,10 +943,10 @@ useEffect(() => {
 
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
                       setTestDuration(10);
                       start();
-                    }
+                    }}
                     className="mt-4 text-xs text-zinc-600 transition hover:text-zinc-300"
                   >
                     Test 10s
