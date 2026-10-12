@@ -58,6 +58,8 @@ interface AlarmStore {
 
   stopAlarm: () => void;
 
+  stopAlarmWithoutAdvancing: () => void;
+
   snoozeAlarm: (minutes: number) => void;
 
   clearHistory: () => Promise<void>;
@@ -149,7 +151,10 @@ export const useAlarmStore = create<AlarmStore>(
       });
     },
 
-    startAlarm: (taskId, taskTitle) => {
+    startAlarm: (
+      taskId,
+      taskTitle
+    ) => {
       const now =
         new Date().toISOString();
 
@@ -200,7 +205,9 @@ export const useAlarmStore = create<AlarmStore>(
     dequeueAlarm: () => {
       const state = get();
 
-      if (state.queue.length === 0) {
+      if (
+        state.queue.length === 0
+      ) {
         return null;
       }
 
@@ -223,6 +230,68 @@ export const useAlarmStore = create<AlarmStore>(
     },
 
     stopAlarm: () => {
+      const state = get();
+
+      const stoppedAt =
+        new Date().toISOString();
+
+      if (
+        typeof window !==
+        "undefined"
+      ) {
+        window.dispatchEvent(
+          new Event(
+            "dayflow-stop-alarm"
+          )
+        );
+      }
+
+      if (
+        state.taskId &&
+        state.taskTitle
+      ) {
+        const historyItem: AlarmHistoryItem =
+          {
+            id: crypto.randomUUID(),
+            taskId: state.taskId,
+            taskTitle:
+              state.taskTitle,
+            status: "stopped",
+            triggeredAt:
+              state.triggeredAt ??
+              stoppedAt,
+            stoppedAt,
+          };
+
+        set({
+          isRinging: false,
+          taskId: null,
+          taskTitle: null,
+          status: "stopped",
+          stoppedAt,
+          snoozedUntil: null,
+          history: [
+            historyItem,
+            ...state.history,
+          ],
+        });
+
+        void saveAlarmHistory(
+          historyItem
+        );
+      } else {
+        set({
+          isRinging: false,
+          taskId: null,
+          taskTitle: null,
+          status: "stopped",
+          stoppedAt,
+          snoozedUntil: null,
+        });
+      }
+    },
+
+    stopAlarmWithoutAdvancing: () => {
       const state = get();
 
       const stoppedAt =

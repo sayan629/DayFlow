@@ -34,6 +34,11 @@ export default function AlarmRinging() {
     (state) => state.stopAlarm
   );
 
+  const stopAlarmWithoutAdvancing =
+    useAlarmStore(
+      (state) => state.stopAlarmWithoutAdvancing
+    );
+
   const snoozeAlarm = useAlarmStore(
     (state) => state.snoozeAlarm
   );
@@ -47,7 +52,7 @@ export default function AlarmRinging() {
       return;
     }
 
-    stopAlarm();
+    stopAlarmWithoutAdvancing();
 
     router.push(
       `/focus?taskId=${encodeURIComponent(
