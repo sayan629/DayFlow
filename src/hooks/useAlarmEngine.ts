@@ -8,6 +8,7 @@ import {
 
 import { useAlarmStore } from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
+import { useSettingsStore } from "@/store/settingsStore";
 
 export function useAlarmEngine() {
   const tasks = useTaskStore(
@@ -28,6 +29,10 @@ export function useAlarmEngine() {
 
   const restoreQueue = useAlarmStore(
     (state) => state.restoreQueue
+  );
+
+  const alarmSoundEnabled = useSettingsStore(
+    (state) => state.alarmSoundEnabled
   );
 
   const notifiedTasks = useRef<Set<string>>(
@@ -105,6 +110,10 @@ export function useAlarmEngine() {
    * Play alarm sound.
    */
   const playAlarm = useCallback(() => {
+    if (!alarmSoundEnabled) {
+      return;
+    }
+
     const audio = audioRef.current;
 
     if (!audio) {
@@ -119,7 +128,7 @@ export function useAlarmEngine() {
         error
       );
     });
-  }, []);
+  }, [alarmSoundEnabled]);
 
   /**
    * Trigger alarm or add it to the Zustand queue.
@@ -159,13 +168,11 @@ export function useAlarmEngine() {
    * Process the next queued alarm.
    *
    * Invalid/stale alarms are skipped when:
-   *
    * - task no longer exists
    * - task is completed
    * - alarm is disabled
    *
    * This guarantees:
-   *
    * A → B → C
    *
    * even when one of the queued tasks
@@ -844,10 +851,21 @@ export function useAlarmEngine() {
   ]);
 }
 
+/**
+ * Send desktop notification.
+ */
 function sendNotification(
   title: string,
   reminderMinutes: number
 ) {
+  const {
+    notificationsEnabled,
+  } = useSettingsStore.getState();
+
+  if (!notificationsEnabled) {
+    return;
+  }
+
   if (
     typeof window === "undefined" ||
     !("Notification" in window)
