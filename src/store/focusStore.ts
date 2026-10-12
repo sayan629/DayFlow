@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { useSettingsStore } from "@/store/settingsStore";
+
 export type FocusMode =
   | "focus"
   | "shortBreak"
@@ -51,10 +53,18 @@ interface FocusStore {
   clearSessionHistory: () => void;
 }
 
-const MODE_DURATION: Record<FocusMode, number> = {
-  focus: 25 * 60,
-  shortBreak: 5 * 60,
-  longBreak: 15 * 60,
+const getModeDuration = (mode: FocusMode) => {
+  if (mode === "focus") {
+    return (
+      useSettingsStore.getState().defaultFocusMinutes * 60
+    );
+  }
+
+  if (mode === "shortBreak") {
+    return 5 * 60;
+  }
+
+  return 15 * 60;
 };
 
 /**
@@ -115,7 +125,8 @@ export const useFocusStore = create<FocusStore>()(
 
       mode: "focus",
 
-      remainingSeconds: MODE_DURATION.focus,
+      remainingSeconds:
+        getModeDuration("focus"),
 
       isRunning: false,
 
@@ -164,7 +175,7 @@ export const useFocusStore = create<FocusStore>()(
       reset: () => {
         set((state) => ({
           remainingSeconds:
-            MODE_DURATION[state.mode],
+            getModeDuration(state.mode),
 
           isRunning: false,
 
@@ -181,7 +192,7 @@ export const useFocusStore = create<FocusStore>()(
           mode,
 
           remainingSeconds:
-            MODE_DURATION[mode],
+            getModeDuration(mode),
 
           isRunning: false,
 
@@ -310,10 +321,12 @@ export const useFocusStore = create<FocusStore>()(
               "/api/focus-sessions",
               {
                 method: "POST",
+
                 headers: {
                   "Content-Type":
                     "application/json",
                 },
+
                 body: JSON.stringify(session),
               }
             );
@@ -341,7 +354,7 @@ export const useFocusStore = create<FocusStore>()(
               mode: nextMode,
 
               remainingSeconds:
-                MODE_DURATION[nextMode],
+                getModeDuration(nextMode),
 
               isRunning: false,
 
@@ -372,7 +385,7 @@ export const useFocusStore = create<FocusStore>()(
               mode: nextMode,
 
               remainingSeconds:
-                MODE_DURATION[nextMode],
+                getModeDuration(nextMode),
 
               isRunning: false,
 
@@ -392,7 +405,7 @@ export const useFocusStore = create<FocusStore>()(
           mode: "focus",
 
           remainingSeconds:
-            MODE_DURATION.focus,
+            getModeDuration("focus"),
 
           isRunning: false,
 
@@ -405,30 +418,30 @@ export const useFocusStore = create<FocusStore>()(
       // ------------------------------------------
 
       clearSessionHistory: async () => {
-  try {
-    const response = await fetch(
-      "/api/focus-sessions",
-      {
-        method: "DELETE",
-      }
-    );
+        try {
+          const response = await fetch(
+            "/api/focus-sessions",
+            {
+              method: "DELETE",
+            }
+          );
 
-    if (!response.ok) {
-      throw new Error(
-        "Failed to clear focus session history"
-      );
-    }
+          if (!response.ok) {
+            throw new Error(
+              "Failed to clear focus session history"
+            );
+          }
 
-    set({
-      sessionHistory: [],
-    });
-  } catch (error) {
-    console.error(
-      "Failed to clear focus session history:",
-      error
-    );
-  }
-},
+          set({
+            sessionHistory: [],
+          });
+        } catch (error) {
+          console.error(
+            "Failed to clear focus session history:",
+            error
+          );
+        }
+      },
     }),
 
     {
@@ -438,15 +451,22 @@ export const useFocusStore = create<FocusStore>()(
       // but sessionHistory is now controlled by Prisma.
       partialize: (state) => ({
         mode: state.mode,
+
         remainingSeconds:
           state.remainingSeconds,
-        isRunning: state.isRunning,
+
+        isRunning:
+          state.isRunning,
+
         completedSessions:
           state.completedSessions,
+
         selectedTaskId:
           state.selectedTaskId,
+
         selectedTaskTitle:
           state.selectedTaskTitle,
+
         sessionStartedAt:
           state.sessionStartedAt,
       }),
