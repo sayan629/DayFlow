@@ -13,14 +13,10 @@ import {
 import { useEffect, useMemo } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
-
-import {
-  getTaskFocusStats,
-  useFocusStore,
-} from "@/store/focusStore";
-
+import {  useFocusStore } from "@/store/focusStore";
 import { useAlarmStore } from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
+
 
 const CATEGORY_LABELS: Record<string, string> = {
   study: "Study",
@@ -29,6 +25,34 @@ const CATEGORY_LABELS: Record<string, string> = {
   fitness: "Fitness",
   other: "Other",
 };
+
+function AnalyticsMetric({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-zinc-600">
+          {label}
+        </span>
+
+        <span className="text-zinc-600">
+          {icon}
+        </span>
+      </div>
+
+      <div className="mt-3 text-2xl font-semibold tracking-tight text-white">
+        {value}
+      </div>
+    </div>
+  );
+}
 
 export default function AnalyticsPage() {
   const now = useScheduler();
@@ -41,12 +65,12 @@ export default function AnalyticsPage() {
     (state) => state.sessionHistory
   );
 
-  const loadSessionHistory = useFocusStore(
-    (state) => state.loadSessionHistory
-  );
-
   const alarmHistory = useAlarmStore(
     (state) => state.history
+  );
+
+  const loadSessionHistory = useFocusStore(
+    (state) => state.loadSessionHistory
   );
 
   const loadAlarmHistory = useAlarmStore(
@@ -54,158 +78,92 @@ export default function AnalyticsPage() {
   );
 
   useEffect(() => {
-    loadSessionHistory();
-    loadAlarmHistory();
+    void loadSessionHistory();
+    void loadAlarmHistory();
   }, [
     loadSessionHistory,
     loadAlarmHistory,
   ]);
 
-  const today = useMemo(() => {
-    if (!now) return null;
-
-    return now.toISOString().split("T")[0];
-  }, [now]);
-
   const analytics = useMemo(() => {
-    if (!today || !now) {
-      return null;
+    if (!now) {
+      return {
+        todayTasks: [],
+        completedToday: 0,
+        totalToday: 0,
+        completionRate: 0,
+        focusMinutes: 0,
+        focusSessions: 0,
+        streak: 0,
+        weeklyActivity: [],
+        categoryStats: [],
+        priorityStats: [],
+        mostFocusedTasks: [],
+        stoppedAlarms: [],
+        snoozedAlarms: [],
+        alarmResponseTimes: [],
+        averageAlarmResponse: null,
+        fastestAlarmResponse: null,
+        slowestAlarmResponse: null,
+        formatAlarmResponse: () => "—",
+        alarmHandlingRate: 0,
+        snoozeRate: 0,
+        alarmDisciplineScore: null,
+        alarmDisciplineLabel: "No data",
+        last7AlarmDays: [],
+        maxAlarmActivity: 1,
+      };
     }
 
-    // -----------------------------
-    // Today's Tasks
-    // -----------------------------
+    const today = now.toISOString().split("T")[0];
 
     const todayTasks = tasks.filter(
       (task) => task.date === today
     );
 
-    const completedTasks = todayTasks.filter(
+    const completedToday = todayTasks.filter(
       (task) => task.completed
-    );
+    ).length;
+
+    const totalToday = todayTasks.length;
 
     const completionRate =
-      todayTasks.length === 0
-        ? 0
-        : Math.round(
-            (completedTasks.length /
-              todayTasks.length) *
-              100
+      totalToday > 0
+        ? Math.round(
+            (completedToday / totalToday) * 100
+          )
+        : 0;
+
+    const todaySessions =
+      sessionHistory.filter((session) => {
+        const completedAt =
+          new Date(
+            session.completedAt
           );
 
-    // -----------------------------
-    // Focus Analytics
-    // -----------------------------
+        return (
+          completedAt.toISOString().split("T")[0] ===
+          today
+        );
+      });
 
-    const focusSessions = sessionHistory.filter(
-      (session) => session.mode === "focus"
-    );
-
-    const totalFocusSeconds =
-      focusSessions.reduce(
+    const focusMinutes = Math.round(
+      todaySessions.reduce(
         (total, session) =>
-          total + session.durationSeconds,
+          total +
+          session.durationSeconds / 60,
         0
-      );
-
-    const totalFocusMinutes = Math.floor(
-      totalFocusSeconds / 60
+      )
     );
 
-    const focusHours = Math.floor(
-      totalFocusMinutes / 60
-    );
-
-    const focusMinutes =
-      totalFocusMinutes % 60;
-
-    const focusTime =
-      focusHours > 0
-        ? `${focusHours}h ${focusMinutes}m`
-        : `${focusMinutes}m`;
+    const focusSessions =
+      todaySessions.length;
 
     // -----------------------------
-    // Task Categories
+    // 7-Day Activity
     // -----------------------------
 
-    const categoryMap = new Map<
-      string,
-      {
-        total: number;
-        completed: number;
-      }
-    >();
-
-    todayTasks.forEach((task) => {
-      const existing =
-        categoryMap.get(task.category) ?? {
-          total: 0,
-          completed: 0,
-        };
-
-      existing.total += 1;
-
-      if (task.completed) {
-        existing.completed += 1;
-      }
-
-      categoryMap.set(
-        task.category,
-        existing
-      );
-    });
-
-    const categories = Array.from(
-      categoryMap.entries()
-    )
-      .map(([category, data]) => ({
-        category,
-        ...data,
-        percentage:
-          data.total === 0
-            ? 0
-            : Math.round(
-                (data.completed /
-                  data.total) *
-                  100
-              ),
-      }))
-      .sort(
-        (a, b) => b.total - a.total
-      );
-
-    // -----------------------------
-    // Priority Breakdown
-    // -----------------------------
-
-    const priorityMap = new Map<
-      string,
-      number
-    >();
-
-    todayTasks.forEach((task) => {
-      priorityMap.set(
-        task.priority,
-        (priorityMap.get(task.priority) ?? 0) +
-          1
-      );
-    });
-
-    const priorities = [
-      "high",
-      "medium",
-      "low",
-    ].map((priority) => ({
-      priority,
-      count:
-        priorityMap.get(priority) ?? 0,
-    }));
-
-    // -----------------------------
-    // Last 7 Days
-    // -----------------------------
-
-    const last7Days = Array.from(
+    const weeklyActivity = Array.from(
       { length: 7 },
       (_, index) => {
         const date = new Date(
@@ -220,31 +178,36 @@ export default function AnalyticsPage() {
           date.toISOString().split("T")[0];
 
         const dayTasks = tasks.filter(
-          (task) =>
-            task.date === dateString
+          (task) => task.date === dateString
         );
 
-        const completed = dayTasks.filter(
-          (task) => task.completed
-        ).length;
+        const completed =
+          dayTasks.filter(
+            (task) => task.completed
+          ).length;
 
-        const focusForDay =
-          focusSessions.filter((session) => {
-            const sessionDate =
-              session.completedAt.split("T")[0];
+        const daySessions =
+          sessionHistory.filter((session) => {
+            const completedAt =
+              new Date(
+                session.completedAt
+              );
 
             return (
-              sessionDate === dateString
+              completedAt
+                .toISOString()
+                .split("T")[0] ===
+              dateString
             );
           });
 
-        const focusMinutes = Math.floor(
-          focusForDay.reduce(
+        const dayFocusMinutes = Math.round(
+          daySessions.reduce(
             (total, session) =>
               total +
-              session.durationSeconds,
+              session.durationSeconds / 60,
             0
-          ) / 60
+          )
         );
 
         return {
@@ -255,109 +218,229 @@ export default function AnalyticsPage() {
               weekday: "short",
             }
           ),
-          completed,
           total: dayTasks.length,
-          focusMinutes,
+          completed,
+          focusMinutes: dayFocusMinutes,
+          active:
+            completed > 0 ||
+            dayFocusMinutes > 0,
         };
       }
     );
 
-    const maxCompleted = Math.max(
-      ...last7Days.map(
-        (day) => day.completed
-      ),
-      1
-    );
-
-    const maxFocus = Math.max(
-      ...last7Days.map(
-        (day) => day.focusMinutes
-      ),
-      1
-    );
-
     // -----------------------------
-    // Task Focus Analytics
+    // Productivity Streak
     // -----------------------------
 
-    const taskFocusMap = new Map<
+    let streak = 0;
+
+    for (
+      let index = weeklyActivity.length - 1;
+      index >= 0;
+      index--
+    ) {
+      if (!weeklyActivity[index].active) {
+        break;
+      }
+
+      streak++;
+    }
+
+    // -----------------------------
+    // Category Statistics
+    // -----------------------------
+
+    const categoryMap = new Map<
       string,
-      ReturnType<typeof getTaskFocusStats>
+      {
+        total: number;
+        completed: number;
+      }
     >();
 
-    focusSessions.forEach((session) => {
-      if (!session.taskId) return;
+    tasks.forEach((task) => {
+      const current =
+        categoryMap.get(task.category) ?? {
+          total: 0,
+          completed: 0,
+        };
 
-      if (
-        !taskFocusMap.has(session.taskId)
-      ) {
-        taskFocusMap.set(
-          session.taskId,
-          getTaskFocusStats(
-            sessionHistory,
-            session.taskId
-          )
-        );
+      current.total++;
+
+      if (task.completed) {
+        current.completed++;
       }
+
+      categoryMap.set(
+        task.category,
+        current
+      );
     });
 
-    const focusedTasks = Array.from(
-      taskFocusMap.values()
+    const categoryStats = Array.from(
+      categoryMap.entries()
     )
-      .filter(Boolean)
+      .map(([category, stats]) => ({
+        category,
+        label:
+          CATEGORY_LABELS[category] ??
+          category,
+        total: stats.total,
+        completed: stats.completed,
+        rate:
+          stats.total > 0
+            ? Math.round(
+                (stats.completed /
+                  stats.total) *
+                  100
+              )
+            : 0,
+      }))
       .sort(
-        (a, b) =>
-          (b?.totalSeconds ?? 0) -
-          (a?.totalSeconds ?? 0)
+        (a, b) => b.total - a.total
+      );
+
+    // -----------------------------
+    // Priority Statistics
+    // -----------------------------
+
+    const priorityMap = new Map<
+      string,
+      {
+        total: number;
+        completed: number;
+      }
+    >();
+
+    tasks.forEach((task) => {
+      const current =
+        priorityMap.get(task.priority) ?? {
+          total: 0,
+          completed: 0,
+        };
+
+      current.total++;
+
+      if (task.completed) {
+        current.completed++;
+      }
+
+      priorityMap.set(
+        task.priority,
+        current
+      );
+    });
+
+    const priorityStats = Array.from(
+      priorityMap.entries()
+    )
+      .map(([priority, stats]) => ({
+        priority,
+        total: stats.total,
+        completed: stats.completed,
+        rate:
+          stats.total > 0
+            ? Math.round(
+                (stats.completed /
+                  stats.total) *
+                  100
+              )
+            : 0,
+      }))
+      .sort(
+        (a, b) => b.total - a.total
+      );
+
+    // -----------------------------
+    // Most Focused Tasks
+    // -----------------------------
+
+const mostFocusedTasks = tasks
+  .map((task) => {
+    const taskSessions = sessionHistory.filter(
+      (session) =>
+        session.taskId === task.id
+    );
+
+    const minutes = Math.round(
+      taskSessions.reduce(
+        (total, session) =>
+          total +
+          session.durationSeconds / 60,
+        0
       )
-      .slice(0, 5);
+    );
+
+    return {
+      task,
+      sessions: taskSessions.length,
+      minutes,
+    };
+  })
+  .filter(
+    (item) => item.sessions > 0
+  )
+  .sort(
+    (a, b) => b.minutes - a.minutes
+  )
+  .slice(0, 5);
 
     // -----------------------------
     // Alarm Analytics
     // -----------------------------
 
-    const stoppedAlarms = alarmHistory.filter(
-      (alarm) => alarm.status === "stopped"
-    );
-
-    const snoozedAlarms = alarmHistory.filter(
-      (alarm) => alarm.status === "snoozed"
-    );
-
-    const alarmResponseTimes = stoppedAlarms
-      .map((alarm) => {
-        if (!alarm.stoppedAt) {
-          return null;
-        }
-
-        const triggeredAt = new Date(
-          alarm.triggeredAt
-        ).getTime();
-
-        const stoppedAt = new Date(
-          alarm.stoppedAt
-        ).getTime();
-
-        if (
-          Number.isNaN(triggeredAt) ||
-          Number.isNaN(stoppedAt) ||
-          stoppedAt < triggeredAt
-        ) {
-          return null;
-        }
-
-        return Math.max(
-          0,
-          Math.round(
-            (stoppedAt - triggeredAt) /
-              60000
-          )
-        );
-      })
-      .filter(
-        (value): value is number =>
-          value !== null
+    const stoppedAlarms =
+      alarmHistory.filter(
+        (alarm) =>
+          alarm.status === "stopped"
       );
+
+    const snoozedAlarms =
+      alarmHistory.filter(
+        (alarm) =>
+          alarm.status === "snoozed"
+      );
+
+    const alarmResponseTimes =
+      stoppedAlarms
+        .map((alarm) => {
+          if (!alarm.stoppedAt) {
+            return null;
+          }
+
+          const triggeredAt =
+            new Date(
+              alarm.triggeredAt
+            ).getTime();
+
+          const stoppedAt =
+            new Date(
+              alarm.stoppedAt
+            ).getTime();
+
+          if (
+            Number.isNaN(triggeredAt) ||
+            Number.isNaN(stoppedAt) ||
+            stoppedAt < triggeredAt
+          ) {
+            return null;
+          }
+
+          return Math.max(
+            0,
+            Math.round(
+              (stoppedAt -
+                triggeredAt) /
+                60000
+            )
+          );
+        })
+        .filter(
+          (
+            value
+          ): value is number =>
+            value !== null
+        );
 
     const averageAlarmResponse =
       alarmResponseTimes.length > 0
@@ -366,18 +449,23 @@ export default function AnalyticsPage() {
               (total, value) =>
                 total + value,
               0
-            ) / alarmResponseTimes.length
+            ) /
+              alarmResponseTimes.length
           )
         : null;
 
     const fastestAlarmResponse =
       alarmResponseTimes.length > 0
-        ? Math.min(...alarmResponseTimes)
+        ? Math.min(
+            ...alarmResponseTimes
+          )
         : null;
 
     const slowestAlarmResponse =
       alarmResponseTimes.length > 0
-        ? Math.max(...alarmResponseTimes)
+        ? Math.max(
+            ...alarmResponseTimes
+          )
         : null;
 
     const formatAlarmResponse = (
@@ -464,24 +552,94 @@ export default function AnalyticsPage() {
               ? "Fair"
               : "Needs improvement";
 
+    // -----------------------------
+    // 7-Day Alarm Activity
+    // -----------------------------
+
+    const last7AlarmDays = Array.from(
+      { length: 7 },
+      (_, index) => {
+        const date = new Date(
+          now.getTime()
+        );
+
+        date.setDate(
+          date.getDate() -
+            (6 - index)
+        );
+
+        const dateString =
+          date
+            .toISOString()
+            .split("T")[0];
+
+        const dayAlarms =
+          alarmHistory.filter(
+            (alarm) => {
+              const alarmDate =
+                alarm.triggeredAt
+                  .split("T")[0];
+
+              return (
+                alarmDate ===
+                dateString
+              );
+            }
+          );
+
+        const triggered =
+          dayAlarms.length;
+
+        const stopped =
+          dayAlarms.filter(
+            (alarm) =>
+              alarm.status ===
+              "stopped"
+          ).length;
+
+        const snoozed =
+          dayAlarms.filter(
+            (alarm) =>
+              alarm.status ===
+              "snoozed"
+          ).length;
+
+        return {
+          date: dateString,
+          label:
+            date.toLocaleDateString(
+              "en-US",
+              {
+                weekday: "short",
+              }
+            ),
+          triggered,
+          stopped,
+          snoozed,
+        };
+      }
+    );
+
+    const maxAlarmActivity =
+      Math.max(
+        ...last7AlarmDays.map(
+          (day) => day.triggered
+        ),
+        1
+      );
+
     return {
       todayTasks,
-      completedTasks,
+      completedToday,
+      totalToday,
       completionRate,
-
+      focusMinutes,
       focusSessions,
-      focusTime,
-
-      categories,
-      priorities,
-
-      last7Days,
-      maxCompleted,
-      maxFocus,
-
-      focusedTasks,
-
-      alarmHistory,
+      streak,
+      weeklyActivity,
+      categoryStats,
+      priorityStats,
+      mostFocusedTasks,
       stoppedAlarms,
       snoozedAlarms,
       alarmResponseTimes,
@@ -489,31 +647,31 @@ export default function AnalyticsPage() {
       fastestAlarmResponse,
       slowestAlarmResponse,
       formatAlarmResponse,
-
       alarmHandlingRate,
       snoozeRate,
       alarmDisciplineScore,
       alarmDisciplineLabel,
+      last7AlarmDays,
+      maxAlarmActivity,
     };
   }, [
-    today,
     now,
     tasks,
     sessionHistory,
     alarmHistory,
   ]);
 
-  if (!now || !analytics) {
+  if (!now) {
     return null;
   }
 
   return (
-    <main className="min-h-screen bg-[#09090b] px-6 py-8 text-white lg:px-10">
-      <div className="mx-auto min-h-screen max-w-7xl">
+    <main className="min-h-screen bg-[#09090b] text-white">
+      <div className="mx-auto max-w-[1500px] p-5 md:p-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
               <BarChart3
                 size={20}
                 className="text-zinc-300"
@@ -521,328 +679,236 @@ export default function AnalyticsPage() {
             </div>
 
             <div>
-              <p className="text-[11px] uppercase tracking-[0.28em] text-zinc-600">
-                Personal OS
-              </p>
-
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight">
+              <h1 className="text-2xl font-semibold tracking-tight">
                 Analytics
               </h1>
 
-              <p className="mt-2 text-sm text-zinc-500">
-                Understand your productivity and
-                focus patterns.
+              <p className="mt-1 text-sm text-zinc-500">
+                Understand your productivity,
+                focus, and consistency.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Main Stats */}
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            icon={
-              <CheckCircle2 size={18} />
-            }
+        {/* Top Metrics */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <AnalyticsMetric
             label="Completion Rate"
             value={`${analytics.completionRate}%`}
-            subtitle={`${analytics.completedTasks.length} of ${analytics.todayTasks.length} tasks completed`}
+            icon={
+              <CheckCircle2 size={17} />
+            }
           />
 
-          <StatCard
-            icon={<Clock3 size={18} />}
+          <AnalyticsMetric
             label="Focus Time"
-            value={analytics.focusTime}
-            subtitle={`${analytics.focusSessions.length} focus sessions`}
+            value={`${analytics.focusMinutes}m`}
+            icon={
+              <Timer size={17} />
+            }
           />
 
-          <StatCard
-            icon={<Target size={18} />}
-            label="Tasks Today"
-            value={String(
-              analytics.todayTasks.length
-            )}
-            subtitle={`${analytics.completedTasks.length} completed`}
-          />
-
-          <StatCard
-            icon={<Flame size={18} />}
+          <AnalyticsMetric
             label="Focus Sessions"
-            value={String(
-              analytics.focusSessions.length
-            )}
-            subtitle="All recorded sessions"
+            value={analytics.focusSessions}
+            icon={
+              <Target size={17} />
+            }
+          />
+
+          <AnalyticsMetric
+            label="Current Streak"
+            value={`${analytics.streak}d`}
+            icon={
+              <Flame size={17} />
+            }
           />
         </div>
 
-        {/* 7-Day Activity */}
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
+        {/* Today's Overview */}
+        <section className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-semibold">
-                7-Day Activity
+              <h2 className="text-sm font-semibold text-zinc-200">
+                Today&apos;s Overview
               </h2>
 
-              <p className="mt-1 text-xs text-zinc-500">
-                Your task completion and focus
-                activity.
+              <p className="mt-1 text-xs text-zinc-600">
+                Your current productivity
+                snapshot.
               </p>
             </div>
 
             <TrendingUp
-              size={18}
-              className="text-zinc-500"
-            />
-          </div>
-
-          <div className="mt-8 grid grid-cols-7 gap-3">
-            {analytics.last7Days.map(
-              (day) => (
-                <div
-                  key={day.date}
-                  className="flex flex-col items-center"
-                >
-                  <div className="flex h-44 w-full items-end justify-center gap-1.5 rounded-2xl border border-white/5 bg-white/[0.015] px-2 pb-3">
-                    <div
-                      className="w-2.5 rounded-full bg-white/80 transition-all"
-                      style={{
-                        height: `${Math.max(
-                          6,
-                          (day.completed /
-                            analytics.maxCompleted) *
-                            100
-                        )}%`,
-                      }}
-                      title={`${day.completed} completed tasks`}
-                    />
-
-                    <div
-                      className="w-2.5 rounded-full bg-white/20 transition-all"
-                      style={{
-                        height: `${Math.max(
-                          6,
-                          (day.focusMinutes /
-                            analytics.maxFocus) *
-                            100
-                        )}%`,
-                      }}
-                      title={`${day.focusMinutes} focus minutes`}
-                    />
-                  </div>
-
-                  <span className="mt-3 text-[11px] text-zinc-500">
-                    {day.label}
-                  </span>
-
-                  <span className="mt-1 text-xs font-medium text-zinc-300">
-                    {day.completed}
-                  </span>
-                </div>
-              )
-            )}
-          </div>
-
-          <div className="mt-5 flex items-center gap-5 text-xs text-zinc-500">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-white/80" />
-              Completed tasks
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-white/20" />
-              Focus time
-            </div>
-          </div>
-        </section>
-
-        {/* Alarm Analytics */}
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
-                <Bell
-                  size={17}
-                  className="text-zinc-400"
-                />
-              </div>
-
-              <div>
-                <h2 className="font-semibold">
-                  Alarm Analytics
-                </h2>
-
-                <p className="mt-1 text-xs text-zinc-500">
-                  Understand how you respond to
-                  scheduled alarms.
-                </p>
-              </div>
-            </div>
-
-            <Timer
-              size={18}
+              size={17}
               className="text-zinc-600"
             />
           </div>
 
-          {analytics.alarmHistory.length ===
-          0 ? (
-            <div className="mt-6">
-              <EmptyState text="Trigger an alarm to start building alarm analytics." />
-            </div>
-          ) : (
-            <>
-              {/* Basic Alarm Statistics */}
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <AnalyticsMetric
-                  label="Total Alarms"
-                  value={String(
-                    analytics.alarmHistory.length
-                  )}
-                  subtitle="All recorded alarms"
-                />
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <p className="text-xs text-zinc-600">
+                Tasks
+              </p>
 
-                <AnalyticsMetric
-                  label="Stopped"
-                  value={String(
-                    analytics.stoppedAlarms.length
-                  )}
-                  subtitle="Successfully handled"
-                />
-
-                <AnalyticsMetric
-                  label="Snoozed"
-                  value={String(
-                    analytics.snoozedAlarms.length
-                  )}
-                  subtitle="Deferred alarms"
-                />
-              </div>
-
-              {/* Response Analytics */}
-              {analytics.alarmResponseTimes
-                .length > 0 && (
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <AnalyticsMetric
-                    label="Average Response"
-                    value={analytics.formatAlarmResponse(
-                      analytics.averageAlarmResponse
-                    )}
-                    subtitle="Average time to stop"
-                  />
-
-                  <AnalyticsMetric
-                    label="Fastest Response"
-                    value={analytics.formatAlarmResponse(
-                      analytics.fastestAlarmResponse
-                    )}
-                    subtitle="Best response"
-                  />
-
-                  <AnalyticsMetric
-                    label="Slowest Response"
-                    value={analytics.formatAlarmResponse(
-                      analytics.slowestAlarmResponse
-                    )}
-                    subtitle="Longest response"
-                  />
-                </div>
-              )}
-
-              {/* Alarm Discipline */}
-              <div className="mt-3 grid gap-3 lg:grid-cols-[1.2fr_1fr_1fr]">
-                <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-                        Alarm Discipline
-                      </p>
-
-                      <p className="mt-2 text-3xl font-semibold text-white">
-                        {analytics.alarmDisciplineScore ??
-                          "—"}
-                        {analytics.alarmDisciplineScore !==
-                          null && "%"}
-                      </p>
-
-                      <p className="mt-1 text-xs text-zinc-500">
-                        {analytics.alarmDisciplineLabel}
-                      </p>
-                    </div>
-
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
-                      <Target
-                        size={17}
-                        className="text-zinc-400"
-                      />
-                    </div>
-                  </div>
-
-                  {analytics.alarmDisciplineScore !==
-                    null && (
-                    <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/5">
-                      <div
-                        className="h-full rounded-full bg-white transition-all"
-                        style={{
-                          width: `${analytics.alarmDisciplineScore}%`,
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <AnalyticsMetric
-                  label="Handling Rate"
-                  value={`${Math.round(
-                    analytics.alarmHandlingRate
-                  )}%`}
-                  subtitle="Alarms stopped"
-                />
-
-                <AnalyticsMetric
-                  label="Snooze Rate"
-                  value={`${Math.round(
-                    analytics.snoozeRate
-                  )}%`}
-                  subtitle="Alarms deferred"
-                />
-              </div>
-            </>
-          )}
-        </section>
-
-        {/* Lower Analytics */}
-        <div className="mt-6 grid gap-6 xl:grid-cols-2">
-          {/* Categories */}
-          <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-6">
-            <div>
-              <h2 className="font-semibold">
-                Task Categories
-              </h2>
-
-              <p className="mt-1 text-xs text-zinc-500">
-                How today&apos;s workload is
-                distributed.
+              <p className="mt-2 text-xl font-semibold text-white">
+                {analytics.completedToday}
+                <span className="ml-1 text-sm font-normal text-zinc-600">
+                  / {analytics.totalToday}
+                </span>
               </p>
             </div>
 
-            <div className="mt-6 space-y-5">
-              {analytics.categories.length ===
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <p className="text-xs text-zinc-600">
+                Focus
+              </p>
+
+              <p className="mt-2 text-xl font-semibold text-white">
+                {analytics.focusMinutes}
+                <span className="ml-1 text-sm font-normal text-zinc-600">
+                  min
+                </span>
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <p className="text-xs text-zinc-600">
+                Sessions
+              </p>
+
+              <p className="mt-2 text-xl font-semibold text-white">
+                {analytics.focusSessions}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between text-xs">
+              <span className="text-zinc-600">
+                Daily completion
+              </span>
+
+              <span className="text-zinc-400">
+                {analytics.completionRate}%
+              </span>
+            </div>
+
+            <div className="h-2 overflow-hidden rounded-full bg-white/5">
+              <div
+                className="h-full rounded-full bg-white transition-all"
+                style={{
+                  width: `${analytics.completionRate}%`,
+                }}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Weekly Activity */}
+        <section className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-200">
+                Weekly Activity
+              </h2>
+
+              <p className="mt-1 text-xs text-zinc-600">
+                Tasks completed and focus time
+                over the last seven days.
+              </p>
+            </div>
+
+            <Clock3
+              size={17}
+              className="text-zinc-600"
+            />
+          </div>
+
+          <div className="mt-6 grid grid-cols-7 gap-2">
+            {analytics.weeklyActivity.map(
+              (day) => {
+                const maxCompleted =
+                  Math.max(
+                    ...analytics.weeklyActivity.map(
+                      (item) =>
+                        item.completed
+                    ),
+                    1
+                  );
+
+                const height =
+                  day.completed > 0
+                    ? Math.max(
+                        8,
+                        (day.completed /
+                          maxCompleted) *
+                          100
+                      )
+                    : 2;
+
+                return (
+                  <div
+                    key={day.date}
+                    className="flex min-w-0 flex-col items-center"
+                  >
+                    <div className="flex h-32 w-full items-end justify-center rounded-xl border border-white/5 bg-white/[0.015] px-2 pb-2">
+                      <div
+                        className="w-full max-w-8 rounded-t-xl bg-white/60 transition-all"
+                        style={{
+                          height: `${height}%`,
+                        }}
+                        title={`${day.completed} completed`}
+                      />
+                    </div>
+
+                    <span className="mt-2 text-[10px] text-zinc-600">
+                      {day.label}
+                    </span>
+
+                    <span className="mt-1 text-[10px] text-zinc-500">
+                      {day.completed}
+                    </span>
+                  </div>
+                );
+              }
+            )}
+          </div>
+        </section>
+
+        {/* Task Breakdown */}
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          {/* Categories */}
+          <section className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-200">
+                Category Performance
+              </h2>
+
+              <p className="mt-1 text-xs text-zinc-600">
+                Completion by task category.
+              </p>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              {analytics.categoryStats.length ===
               0 ? (
-                <EmptyState text="No tasks recorded today." />
+                <p className="text-sm text-zinc-600">
+                  No category data yet.
+                </p>
               ) : (
-                analytics.categories.map(
+                analytics.categoryStats.map(
                   (item) => (
                     <div
                       key={item.category}
                     >
-                      <div className="mb-2 flex items-center justify-between text-sm">
-                        <span className="font-medium text-zinc-200">
-                          {CATEGORY_LABELS[
-                            item.category
-                          ] ??
-                            item.category}
+                      <div className="mb-2 flex items-center justify-between text-xs">
+                        <span className="text-zinc-400">
+                          {item.label}
                         </span>
 
-                        <span className="text-xs text-zinc-500">
+                        <span className="text-zinc-600">
                           {item.completed}/
                           {item.total}
                         </span>
@@ -850,16 +916,12 @@ export default function AnalyticsPage() {
 
                       <div className="h-2 overflow-hidden rounded-full bg-white/5">
                         <div
-                          className="h-full rounded-full bg-white"
+                          className="h-full rounded-full bg-white/60 transition-all"
                           style={{
-                            width: `${item.percentage}%`,
+                            width: `${item.rate}%`,
                           }}
                         />
                       </div>
-
-                      <p className="mt-1.5 text-[11px] text-zinc-600">
-                        {item.percentage}% complete
-                      </p>
                     </div>
                   )
                 )
@@ -867,270 +929,421 @@ export default function AnalyticsPage() {
             </div>
           </section>
 
-          {/* Priority */}
-          <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-6">
+          {/* Priorities */}
+          <section className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
             <div>
-              <h2 className="font-semibold">
-                Priority Breakdown
+              <h2 className="text-sm font-semibold text-zinc-200">
+                Priority Performance
               </h2>
 
-              <p className="mt-1 text-xs text-zinc-500">
-                Today&apos;s tasks by priority.
+              <p className="mt-1 text-xs text-zinc-600">
+                Completion by task priority.
               </p>
             </div>
 
-            <div className="mt-6 grid gap-3">
-              {analytics.priorities.map(
-                (item) => {
-                  const label =
-                    item.priority
-                      .charAt(0)
-                      .toUpperCase() +
-                    item.priority.slice(1);
-
-                  return (
+            <div className="mt-5 space-y-4">
+              {analytics.priorityStats.length ===
+              0 ? (
+                <p className="text-sm text-zinc-600">
+                  No priority data yet.
+                </p>
+              ) : (
+                analytics.priorityStats.map(
+                  (item) => (
                     <div
                       key={item.priority}
-                      className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-4"
                     >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${
-                            item.priority ===
-                            "high"
-                              ? "bg-white"
-                              : item.priority ===
-                                  "medium"
-                                ? "bg-white/50"
-                                : "bg-white/20"
-                          }`}
-                        />
+                      <div className="mb-2 flex items-center justify-between text-xs">
+                        <span className="capitalize text-zinc-400">
+                          {item.priority}
+                        </span>
 
-                        <span className="text-sm text-zinc-300">
-                          {label}
+                        <span className="text-zinc-600">
+                          {item.completed}/
+                          {item.total}
                         </span>
                       </div>
 
-                      <span className="text-sm font-semibold text-zinc-200">
-                        {item.count}
-                      </span>
+                      <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                        <div
+                          className="h-full rounded-full bg-white/60 transition-all"
+                          style={{
+                            width: `${item.rate}%`,
+                          }}
+                        />
+                      </div>
                     </div>
-                  );
-                }
+                  )
+                )
               )}
             </div>
           </section>
         </div>
 
-        {/* Focused Tasks */}
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
+        {/* Most Focused Tasks */}
+        <section className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
           <div>
-            <h2 className="font-semibold">
+            <h2 className="text-sm font-semibold text-zinc-200">
               Most Focused Tasks
             </h2>
 
-            <p className="mt-1 text-xs text-zinc-500">
-              Tasks where you have spent the most
-              focus time.
+            <p className="mt-1 text-xs text-zinc-600">
+              Tasks that received the most focus
+              time.
             </p>
           </div>
 
-          <div className="mt-6">
-            {analytics.focusedTasks.length ===
+          <div className="mt-5 space-y-3">
+            {analytics.mostFocusedTasks.length ===
             0 ? (
-              <EmptyState text="Complete a focus session to see task analytics." />
-            ) : (
-              <div className="space-y-3">
-                {analytics.focusedTasks.map(
-                  (item, index) => {
-                    if (!item) return null;
+              <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.015] p-6 text-center">
+                <Timer
+                  size={22}
+                  className="mx-auto text-zinc-700"
+                />
 
-                    return (
-                      <div
-                        key={item.taskId}
-                        className="flex items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.02] px-4 py-4"
-                      >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] text-xs font-semibold text-zinc-400">
-                          {index + 1}
-                        </div>
+                <p className="mt-3 text-sm text-zinc-500">
+                  No focus sessions yet.
+                </p>
 
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-zinc-200">
-                            {item.taskTitle}
-                          </p>
-
-                          <p className="mt-1 text-xs text-zinc-600">
-                            {item.sessions}{" "}
-                            {item.sessions === 1
-                              ? "session"
-                              : "sessions"}
-                          </p>
-                        </div>
-
-                        <span className="text-sm font-medium text-zinc-300">
-                          {formatDuration(
-                            item.totalSeconds
-                          )}
-                        </span>
-                      </div>
-                    );
-                  }
-                )}
+                <p className="mt-1 text-xs text-zinc-700">
+                  Start a focus session from a
+                  task to see your focus analytics.
+                </p>
               </div>
+            ) : (
+              analytics.mostFocusedTasks.map(
+                (item) => (
+                  <div
+                    key={item.task.id}
+                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.015] p-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-zinc-300">
+                        {item.task.title}
+                      </p>
+
+                      <p className="mt-1 text-xs text-zinc-600">
+                        {item.sessions}{" "}
+                        {item.sessions === 1
+                          ? "session"
+                          : "sessions"}
+                      </p>
+                    </div>
+
+                    <div className="ml-4 text-right">
+                      <p className="text-sm font-semibold text-white">
+                        {item.minutes}m
+                      </p>
+
+                      <p className="text-[10px] text-zinc-600">
+                        focus time
+                      </p>
+                    </div>
+                  </div>
+                )
+              )
             )}
           </div>
         </section>
 
-        {/* Today's Summary */}
-        <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.02] p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
-              <Target
-                size={17}
-                className="text-zinc-400"
-              />
+        {/* Alarm Analytics */}
+        <section className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Bell
+                  size={17}
+                  className="text-zinc-500"
+                />
+
+                <h2 className="text-sm font-semibold text-zinc-200">
+                  Alarm Analytics
+                </h2>
+              </div>
+
+              <p className="mt-1 text-xs text-zinc-600">
+                Understand how you respond to
+                scheduled alarms.
+              </p>
             </div>
 
-            <div>
-              <h2 className="font-semibold">
-                Today&apos;s Summary
-              </h2>
+            <Timer
+              size={17}
+              className="text-zinc-600"
+            />
+          </div>
 
-              <p className="mt-1 text-xs text-zinc-500">
-                Your current productivity snapshot.
-              </p>
+          {/* Alarm Overview */}
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <AnalyticsMetric
+              label="Total Alarms"
+              value={alarmHistory.length}
+              icon={
+                <Bell size={16} />
+              }
+            />
+
+            <AnalyticsMetric
+              label="Stopped"
+              value={
+                analytics.stoppedAlarms.length
+              }
+              icon={
+                <CheckCircle2 size={16} />
+              }
+            />
+
+            <AnalyticsMetric
+              label="Snoozed"
+              value={
+                analytics.snoozedAlarms.length
+              }
+              icon={
+                <Clock3 size={16} />
+              }
+            />
+          </div>
+
+          {/* Response Analytics */}
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <AnalyticsMetric
+              label="Average Response"
+              value={analytics.formatAlarmResponse(
+                analytics.averageAlarmResponse
+              )}
+              icon={
+                <Timer size={16} />
+              }
+            />
+
+            <AnalyticsMetric
+              label="Fastest Response"
+              value={analytics.formatAlarmResponse(
+                analytics.fastestAlarmResponse
+              )}
+              icon={
+                <TrendingUp size={16} />
+              }
+            />
+
+            <AnalyticsMetric
+              label="Slowest Response"
+              value={analytics.formatAlarmResponse(
+                analytics.slowestAlarmResponse
+              )}
+              icon={
+                <Clock3 size={16} />
+              }
+            />
+          </div>
+
+          {/* Alarm Discipline */}
+          <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.015] p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-200">
+                  Alarm Discipline
+                </h3>
+
+                <p className="mt-1 text-xs text-zinc-600">
+                  A score based on response speed
+                  and how often alarms are stopped
+                  instead of snoozed.
+                </p>
+              </div>
+
+              <div className="text-right">
+                <div className="text-2xl font-semibold text-white">
+                  {analytics.alarmDisciplineScore ??
+                    "—"}
+                  {analytics.alarmDisciplineScore !==
+                    null && (
+                    <span className="ml-0.5 text-sm text-zinc-600">
+                      %
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-[10px] text-zinc-600">
+                  {analytics.alarmDisciplineLabel}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/5">
+              <div
+                className="h-full rounded-full bg-white transition-all"
+                style={{
+                  width: `${
+                    analytics.alarmDisciplineScore ??
+                    0
+                  }%`,
+                }}
+              />
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <SummaryItem
-              label="Tasks completed"
-              value={`${analytics.completedTasks.length}/${analytics.todayTasks.length}`}
-            />
+          {/* Alarm Rates */}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/5 bg-white/[0.015] p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-zinc-600">
+                  Handling Rate
+                </span>
 
-            <SummaryItem
-              label="Focus time"
-              value={analytics.focusTime}
-            />
+                <span className="text-sm font-semibold text-zinc-300">
+                  {Math.round(
+                    analytics.alarmHandlingRate
+                  )}
+                  %
+                </span>
+              </div>
 
-            <SummaryItem
-              label="Completion"
-              value={`${analytics.completionRate}%`}
-            />
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-full rounded-full bg-emerald-400/70"
+                  style={{
+                    width: `${analytics.alarmHandlingRate}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/5 bg-white/[0.015] p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-zinc-600">
+                  Snooze Rate
+                </span>
+
+                <span className="text-sm font-semibold text-zinc-300">
+                  {Math.round(
+                    analytics.snoozeRate
+                  )}
+                  %
+                </span>
+              </div>
+
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-full rounded-full bg-amber-400/70"
+                  style={{
+                    width: `${analytics.snoozeRate}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 7-Day Alarm Activity */}
+          <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-200">
+                  7-Day Alarm Activity
+                </h3>
+
+                <p className="mt-1 text-xs text-zinc-600">
+                  Your alarm behavior over the last
+                  seven days.
+                </p>
+              </div>
+
+              <BarChart3
+                size={17}
+                className="text-zinc-600"
+              />
+            </div>
+
+            <div className="mt-6 grid grid-cols-7 gap-2">
+              {analytics.last7AlarmDays.map(
+                (day) => (
+                  <div
+                    key={day.date}
+                    className="flex min-w-0 flex-col items-center"
+                  >
+                    <div className="flex h-36 w-full items-end justify-center gap-1 rounded-xl border border-white/5 bg-white/[0.015] px-1.5 pb-2">
+                      {/* Triggered */}
+                      <div
+                        className="w-2 rounded-full bg-white/70 transition-all"
+                        style={{
+                          height: `${Math.max(
+                            day.triggered > 0
+                              ? 8
+                              : 2,
+                            (day.triggered /
+                              analytics.maxAlarmActivity) *
+                              100
+                          )}%`,
+                        }}
+                        title={`${day.triggered} triggered`}
+                      />
+
+                      {/* Stopped */}
+                      <div
+                        className="w-2 rounded-full bg-emerald-400/70 transition-all"
+                        style={{
+                          height: `${Math.max(
+                            day.stopped > 0
+                              ? 8
+                              : 2,
+                            (day.stopped /
+                              analytics.maxAlarmActivity) *
+                              100
+                          )}%`,
+                        }}
+                        title={`${day.stopped} stopped`}
+                      />
+
+                      {/* Snoozed */}
+                      <div
+                        className="w-2 rounded-full bg-amber-400/70 transition-all"
+                        style={{
+                          height: `${Math.max(
+                            day.snoozed > 0
+                              ? 8
+                              : 2,
+                            (day.snoozed /
+                              analytics.maxAlarmActivity) *
+                              100
+                          )}%`,
+                        }}
+                        title={`${day.snoozed} snoozed`}
+                      />
+                    </div>
+
+                    <span className="mt-2 text-[10px] text-zinc-600">
+                      {day.label}
+                    </span>
+
+                    <span className="mt-1 text-[10px] font-medium text-zinc-400">
+                      {day.triggered}
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* Legend */}
+            <div className="mt-5 flex flex-wrap items-center gap-5 text-[10px] text-zinc-600">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-white/70" />
+                Triggered
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400/70" />
+                Stopped
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-amber-400/70" />
+                Snoozed
+              </div>
+            </div>
           </div>
         </section>
       </div>
     </main>
   );
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  subtitle,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-zinc-400">
-          {icon}
-        </div>
-      </div>
-
-      <p className="mt-5 text-xs text-zinc-500">
-        {label}
-      </p>
-
-      <p className="mt-1 text-2xl font-semibold tracking-tight text-white">
-        {value}
-      </p>
-
-      <p className="mt-1 text-[11px] text-zinc-600">
-        {subtitle}
-      </p>
-    </div>
-  );
-}
-
-function AnalyticsMetric({
-  label,
-  value,
-  subtitle,
-}: {
-  label: string;
-  value: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">
-        {label}
-      </p>
-
-      <p className="mt-2 text-xl font-semibold text-zinc-200">
-        {value}
-      </p>
-
-      <p className="mt-1 text-[10px] text-zinc-600">
-        {subtitle}
-      </p>
-    </div>
-  );
-}
-
-function SummaryItem({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-4">
-      <p className="text-xs text-zinc-500">
-        {label}
-      </p>
-
-      <p className="mt-2 text-lg font-semibold text-zinc-200">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function EmptyState({
-  text,
-}: {
-  text: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-dashed border-white/10 px-4 py-10 text-center text-sm text-zinc-600">
-      {text}
-    </div>
-  );
-}
-
-function formatDuration(seconds: number) {
-  const minutes = Math.floor(
-    seconds / 60
-  );
-
-  const hours = Math.floor(
-    minutes / 60
-  );
-
-  const remainingMinutes =
-    minutes % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${remainingMinutes}m`;
-  }
-
-  return `${minutes}m`;
 }
