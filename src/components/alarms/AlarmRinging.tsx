@@ -9,6 +9,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useAlarmStore } from "@/store/alarmStore";
 
+
 export default function AlarmRinging() {
   const router = useRouter();
 

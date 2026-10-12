@@ -12,6 +12,11 @@ export interface AlarmHistoryItem {
   snoozedUntil?: string;
 }
 
+export interface QueuedAlarm {
+  taskId: string;
+  taskTitle: string;
+}
+
 interface AlarmStore {
   isRinging: boolean;
   taskId: string | null;
@@ -20,6 +25,8 @@ interface AlarmStore {
   triggeredAt: string | null;
   stoppedAt: string | null;
   snoozedUntil: string | null;
+
+  queue: QueuedAlarm[];
 
   history: AlarmHistoryItem[];
   historyLoaded: boolean;
@@ -36,6 +43,15 @@ interface AlarmStore {
     taskId: string,
     taskTitle: string
   ) => void;
+
+  enqueueAlarm: (
+    taskId: string,
+    taskTitle: string
+  ) => void;
+
+  dequeueAlarm: () => QueuedAlarm | null;
+
+  clearQueue: () => void;
 
   stopAlarm: () => void;
 
@@ -81,6 +97,8 @@ export const useAlarmStore = create<AlarmStore>(
     triggeredAt: null,
     stoppedAt: null,
     snoozedUntil: null,
+
+    queue: [],
 
     history: [],
     historyLoaded: false,
@@ -139,6 +157,57 @@ export const useAlarmStore = create<AlarmStore>(
         triggeredAt: now,
         stoppedAt: null,
         snoozedUntil: null,
+      });
+    },
+
+    enqueueAlarm: (taskId, taskTitle) => {
+      const state = get();
+
+      const alreadyQueued = state.queue.some(
+        (alarm) => alarm.taskId === taskId
+      );
+
+      const isCurrentAlarm =
+        state.taskId === taskId;
+
+      if (
+        alreadyQueued ||
+        isCurrentAlarm
+      ) {
+        return;
+      }
+
+      set({
+        queue: [
+          ...state.queue,
+          {
+            taskId,
+            taskTitle,
+          },
+        ],
+      });
+    },
+
+    dequeueAlarm: () => {
+      const state = get();
+
+      if (state.queue.length === 0) {
+        return null;
+      }
+
+      const [nextAlarm, ...remaining] =
+        state.queue;
+
+      set({
+        queue: remaining,
+      });
+
+      return nextAlarm;
+    },
+
+    clearQueue: () => {
+      set({
+        queue: [],
       });
     },
 
