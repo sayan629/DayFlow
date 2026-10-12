@@ -6,15 +6,22 @@ import {
   CheckCircle2,
   Clock3,
   Flame,
+  History,
   Target,
   Timer,
   TrendingUp,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 import { useScheduler } from "@/hooks/useScheduler";
-import { useFocusStore } from "@/store/focusStore";
-import { useAlarmStore } from "@/store/alarmStore";
+import {
+  useFocusStore,
+} from "@/store/focusStore";
+import {
+  useAlarmStore,
+  type AlarmHistoryItem,
+} from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -53,7 +60,63 @@ function AnalyticsMetric({
   );
 }
 
+function formatAlarmTime(timestamp: string) {
+  const date = new Date(timestamp);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getAlarmResponseLabel(
+  alarm: AlarmHistoryItem
+) {
+  if (alarm.status === "snoozed") {
+    return "Snoozed";
+  }
+
+  if (
+    alarm.status !== "stopped" ||
+    !alarm.stoppedAt
+  ) {
+    return "Stopped";
+  }
+
+  const triggeredAt = new Date(
+    alarm.triggeredAt
+  ).getTime();
+
+  const stoppedAt = new Date(
+    alarm.stoppedAt
+  ).getTime();
+
+  if (
+    Number.isNaN(triggeredAt) ||
+    Number.isNaN(stoppedAt) ||
+    stoppedAt < triggeredAt
+  ) {
+    return "Stopped";
+  }
+
+  const minutes = Math.round(
+    (stoppedAt - triggeredAt) / 60000
+  );
+
+  if (minutes < 1) {
+    return "Responded in < 1m";
+  }
+
+  return `Responded in ${minutes}m`;
+}
+
 export default function AnalyticsPage() {
+  const router = useRouter();
+
   const now = useScheduler();
 
   const tasks = useTaskStore(
@@ -113,6 +176,8 @@ export default function AnalyticsPage() {
         maxAlarmActivity: 1,
         alarmInsight: "No alarm activity yet.",
         mostActiveAlarmDay: null,
+        recentAlarms:
+          [] as AlarmHistoryItem[],
       };
     }
 
@@ -150,10 +215,9 @@ export default function AnalyticsPage() {
 
     const todaySessions =
       sessionHistory.filter((session) => {
-        const completedAt =
-          new Date(
-            session.completedAt
-          );
+        const completedAt = new Date(
+          session.completedAt
+        );
 
         return (
           completedAt
@@ -162,16 +226,14 @@ export default function AnalyticsPage() {
         );
       });
 
-    const focusMinutes =
-      Math.round(
-        todaySessions.reduce(
-          (total, session) =>
-            total +
-            session.durationSeconds /
-              60,
-          0
-        )
-      );
+    const focusMinutes = Math.round(
+      todaySessions.reduce(
+        (total, session) =>
+          total +
+          session.durationSeconds / 60,
+        0
+      )
+    );
 
     const focusSessions =
       todaySessions.length;
@@ -229,7 +291,10 @@ export default function AnalyticsPage() {
         const dayFocusMinutes =
           Math.round(
             daySessions.reduce(
-              (total, session) =>
+              (
+                total,
+                session
+              ) =>
                 total +
                 session.durationSeconds /
                   60,
@@ -408,19 +473,18 @@ export default function AnalyticsPage() {
                 task.id
             );
 
-          const minutes =
-            Math.round(
-              taskSessions.reduce(
-                (
-                  total,
-                  session
-                ) =>
-                  total +
-                  session.durationSeconds /
-                    60,
-                0
-              )
-            );
+          const minutes = Math.round(
+            taskSessions.reduce(
+              (
+                total,
+                session
+              ) =>
+                total +
+                session.durationSeconds /
+                  60,
+              0
+            )
+          );
 
           return {
             task,
@@ -446,15 +510,13 @@ export default function AnalyticsPage() {
     const stoppedAlarms =
       alarmHistory.filter(
         (alarm) =>
-          alarm.status ===
-          "stopped"
+          alarm.status === "stopped"
       );
 
     const snoozedAlarms =
       alarmHistory.filter(
         (alarm) =>
-          alarm.status ===
-          "snoozed"
+          alarm.status === "snoozed"
       );
 
     const alarmResponseTimes =
@@ -553,7 +615,7 @@ export default function AnalyticsPage() {
     };
 
     // -----------------------------
-    // Alarm Discipline Score
+    // Alarm Discipline
     // -----------------------------
 
     const alarmCount =
@@ -580,28 +642,23 @@ export default function AnalyticsPage() {
       null
     ) {
       if (
-        averageAlarmResponse <=
-        1
+        averageAlarmResponse <= 1
       ) {
         responseScore = 100;
       } else if (
-        averageAlarmResponse <=
-        2
+        averageAlarmResponse <= 2
       ) {
         responseScore = 95;
       } else if (
-        averageAlarmResponse <=
-        5
+        averageAlarmResponse <= 5
       ) {
         responseScore = 85;
       } else if (
-        averageAlarmResponse <=
-        10
+        averageAlarmResponse <= 10
       ) {
         responseScore = 70;
       } else if (
-        averageAlarmResponse <=
-        20
+        averageAlarmResponse <= 20
       ) {
         responseScore = 50;
       } else {
@@ -761,6 +818,23 @@ export default function AnalyticsPage() {
       }
     }
 
+    // -----------------------------
+    // Recent Alarm Activity
+    // -----------------------------
+
+    const recentAlarms: AlarmHistoryItem[] =
+      [...alarmHistory]
+        .sort(
+          (a, b) =>
+            new Date(
+              b.triggeredAt
+            ).getTime() -
+            new Date(
+              a.triggeredAt
+            ).getTime()
+        )
+        .slice(0, 5);
+
     return {
       todayTasks,
       completedToday,
@@ -788,6 +862,7 @@ export default function AnalyticsPage() {
       maxAlarmActivity,
       alarmInsight,
       mostActiveAlarmDay,
+      recentAlarms,
     };
   }, [
     now,
@@ -1445,7 +1520,6 @@ export default function AnalyticsPage() {
                     className="flex min-w-0 flex-col items-center"
                   >
                     <div className="flex h-36 w-full items-end justify-center gap-1 rounded-xl border border-white/5 bg-white/[0.015] px-1.5 pb-2">
-                      {/* Triggered */}
                       <div
                         className="w-2 rounded-full bg-white/70 transition-all"
                         style={{
@@ -1462,7 +1536,6 @@ export default function AnalyticsPage() {
                         title={`${day.triggered} triggered`}
                       />
 
-                      {/* Stopped */}
                       <div
                         className="w-2 rounded-full bg-emerald-400/70 transition-all"
                         style={{
@@ -1479,7 +1552,6 @@ export default function AnalyticsPage() {
                         title={`${day.stopped} stopped`}
                       />
 
-                      {/* Snoozed */}
                       <div
                         className="w-2 rounded-full bg-amber-400/70 transition-all"
                         style={{
@@ -1509,7 +1581,6 @@ export default function AnalyticsPage() {
               )}
             </div>
 
-            {/* Legend */}
             <div className="mt-5 flex flex-wrap items-center gap-5 text-[10px] text-zinc-600">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-white/70" />
@@ -1575,6 +1646,144 @@ export default function AnalyticsPage() {
                   </span>
                 </div>
               )}
+          </div>
+
+          {/* Recent Alarm Activity */}
+          <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <History
+                    size={16}
+                    className="text-zinc-500"
+                  />
+
+                  <h3 className="text-sm font-semibold text-zinc-200">
+                    Recent Alarm Activity
+                  </h3>
+                </div>
+
+                <p className="mt-1 text-xs text-zinc-600">
+                  Your five most recent alarm
+                  events.
+                </p>
+              </div>
+
+              {analytics.recentAlarms
+                .length > 0 && (
+                <span className="text-[10px] text-zinc-700">
+                  Latest
+                </span>
+              )}
+            </div>
+
+            <div className="mt-5 space-y-2">
+              {analytics.recentAlarms
+                .length === 0 ? (
+                <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.015] p-6 text-center">
+                  <Bell
+                    size={21}
+                    className="mx-auto text-zinc-700"
+                  />
+
+                  <p className="mt-3 text-sm text-zinc-500">
+                    No alarm activity yet.
+                  </p>
+
+                  <p className="mt-1 text-xs text-zinc-700">
+                    Your alarm responses will
+                    appear here.
+                  </p>
+                </div>
+              ) : (
+                analytics.recentAlarms.map(
+                  (alarm: AlarmHistoryItem) => {
+                    const responseLabel =
+                      getAlarmResponseLabel(
+                        alarm
+                      );
+
+                    const isStopped =
+                      alarm.status ===
+                      "stopped";
+
+                    return (
+                      <div
+                        key={alarm.id}
+                        className="flex items-center justify-between gap-4 rounded-xl border border-white/5 bg-white/[0.015] px-4 py-3"
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                              isStopped
+                                ? "bg-emerald-400/10 text-emerald-400"
+                                : "bg-amber-400/10 text-amber-400"
+                            }`}
+                          >
+                            {isStopped ? (
+                              <CheckCircle2
+                                size={16}
+                              />
+                            ) : (
+                              <Clock3
+                                size={16}
+                              />
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-zinc-300">
+                              {
+                                alarm.taskTitle
+                              }
+                            </p>
+
+                            <p className="mt-1 truncate text-xs text-zinc-600">
+                              {
+                                responseLabel
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right">
+                          <span
+                            className={`text-[10px] font-medium ${
+                              isStopped
+                                ? "text-emerald-400/80"
+                                : "text-amber-400/80"
+                            }`}
+                          >
+                            {isStopped
+                              ? "Stopped"
+                              : "Snoozed"}
+                          </span>
+
+                          <p className="mt-1 text-[10px] text-zinc-700">
+                            {formatAlarmTime(
+                              alarm.triggeredAt
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                )
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  "/alarms"
+                )
+              }
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs font-medium text-zinc-400 transition hover:bg-white/[0.06] hover:text-white"
+            >
+              <History size={14} />
+              View Full Alarm History
+            </button>
           </div>
         </section>
       </div>
