@@ -1,3 +1,5 @@
+"use client";
+
 import { create } from "zustand";
 
 export type AlarmStatus =
@@ -302,8 +304,13 @@ export const useAlarmStore = create<AlarmStore>(
         "undefined"
       ) {
         window.dispatchEvent(
-          new Event(
-            "dayflow-stop-alarm"
+          new CustomEvent(
+            "dayflow-stop-alarm",
+            {
+              detail: {
+                advanceQueue: false,
+              },
+            }
           )
         );
       }

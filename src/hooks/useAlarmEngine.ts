@@ -1,6 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
 
 import { useAlarmStore } from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
@@ -22,17 +26,19 @@ export function useAlarmEngine() {
     (state) => state.dequeueAlarm
   );
 
-  const notifiedTasks = useRef<Set<string>>(
-    new Set()
-  );
+  const notifiedTasks = useRef<
+    Set<string>
+  >(new Set());
 
   const audioRef =
-    useRef<HTMLAudioElement | null>(null);
-
-  const snoozeTimeoutRef =
-    useRef<ReturnType<typeof setTimeout> | null>(
+    useRef<HTMLAudioElement | null>(
       null
     );
+
+  const snoozeTimeoutRef =
+    useRef<
+      ReturnType<typeof setTimeout> | null
+    >(null);
 
   /*
    * Request browser notification permission once
@@ -45,7 +51,10 @@ export function useAlarmEngine() {
       return;
     }
 
-    if (Notification.permission === "default") {
+    if (
+      Notification.permission ===
+      "default"
+    ) {
       Notification.requestPermission().catch(
         (error) => {
           console.warn(
@@ -144,7 +153,14 @@ export function useAlarmEngine() {
    * Stop alarm and advance queue
    */
   useEffect(() => {
-    const handleStopAlarm = () => {
+    const handleStopAlarm = (
+      event: Event
+    ) => {
+      const customEvent =
+        event as CustomEvent<{
+          advanceQueue?: boolean;
+        }>;
+
       const audio = audioRef.current;
 
       if (audio) {
@@ -158,6 +174,17 @@ export function useAlarmEngine() {
         );
 
         snoozeTimeoutRef.current = null;
+      }
+
+      /*
+       * Start Focus stops the current alarm
+       * without advancing to the next queued alarm.
+       */
+      if (
+        customEvent.detail
+          ?.advanceQueue === false
+      ) {
+        return;
       }
 
       const nextAlarm =
@@ -380,7 +407,9 @@ export function useAlarmEngine() {
             snoozeTimeoutRef.current =
               null;
           },
-          minutes * 60 * 1000
+          minutes *
+            60 *
+            1000
         );
     };
 
@@ -417,106 +446,111 @@ export function useAlarmEngine() {
    * additional alarms if one is already ringing.
    */
   useEffect(() => {
-    const recoverPersistedSnooze = () => {
-      const now = Date.now();
+    const recoverPersistedSnooze =
+      () => {
+        const now = Date.now();
 
-      const currentTasks =
-        useTaskStore.getState().tasks;
+        const currentTasks =
+          useTaskStore
+            .getState()
+            .tasks;
 
-      currentTasks.forEach((task) => {
-        if (!task.snoozedUntil) {
-          return;
-        }
-
-        if (task.completed) {
-          return;
-        }
-
-        if (task.alarmEnabled === false) {
-          return;
-        }
-
-        const snoozeTime =
-          new Date(
-            task.snoozedUntil
-          ).getTime();
-
-        /*
-         * Ignore invalid or future snoozes.
-         */
-        if (
-          Number.isNaN(snoozeTime) ||
-          snoozeTime > now
-        ) {
-          return;
-        }
-
-        const recoveryKey =
-          `snoozed-${task.id}-${task.snoozedUntil}`;
-
-        /*
-         * Prevent the same recovered alarm
-         * from being triggered repeatedly.
-         */
-        if (
-          notifiedTasks.current.has(
-            recoveryKey
-          )
-        ) {
-          return;
-        }
-
-        notifiedTasks.current.add(
-          recoveryKey
-        );
-
-        /*
-         * Clear persisted snooze.
-         */
-        void fetch(
-          `/api/tasks/${task.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              snoozedUntil: null,
-            }),
+        currentTasks.forEach((task) => {
+          if (!task.snoozedUntil) {
+            return;
           }
-        ).catch((error) => {
-          console.error(
-            "Failed to clear recovered snooze:",
-            error
+
+          if (task.completed) {
+            return;
+          }
+
+          if (
+            task.alarmEnabled === false
+          ) {
+            return;
+          }
+
+          const snoozeTime =
+            new Date(
+              task.snoozedUntil
+            ).getTime();
+
+          /*
+           * Ignore invalid or future snoozes.
+           */
+          if (
+            Number.isNaN(snoozeTime) ||
+            snoozeTime > now
+          ) {
+            return;
+          }
+
+          const recoveryKey =
+            `snoozed-${task.id}-${task.snoozedUntil}`;
+
+          /*
+           * Prevent the same recovered alarm
+           * from being triggered repeatedly.
+           */
+          if (
+            notifiedTasks.current.has(
+              recoveryKey
+            )
+          ) {
+            return;
+          }
+
+          notifiedTasks.current.add(
+            recoveryKey
+          );
+
+          /*
+           * Clear persisted snooze.
+           */
+          void fetch(
+            `/api/tasks/${task.id}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                snoozedUntil: null,
+              }),
+            }
+          ).catch((error) => {
+            console.error(
+              "Failed to clear recovered snooze:",
+              error
+            );
+          });
+
+          /*
+           * Use the normal alarm pipeline.
+           *
+           * If another alarm is already
+           * ringing, this alarm is queued.
+           */
+          triggerAlarm(
+            task.id,
+            task.title
+          );
+
+          /*
+           * Desktop notification
+           */
+          sendNotification(
+            task.title,
+            0
+          );
+
+          console.log(
+            "🔔 Recovered persisted snoozed alarm:",
+            task.title
           );
         });
-
-        /*
-         * Use the normal alarm pipeline.
-         *
-         * If another alarm is already
-         * ringing, this alarm is queued.
-         */
-        triggerAlarm(
-          task.id,
-          task.title
-        );
-
-        /*
-         * Desktop notification
-         */
-        sendNotification(
-          task.title,
-          0
-        );
-
-        console.log(
-          "🔔 Recovered persisted snoozed alarm:",
-          task.title
-        );
-      });
-    };
+      };
 
     /*
      * Check immediately.
@@ -555,8 +589,6 @@ export function useAlarmEngine() {
         now.getMinutes();
 
       /*
-       * IMPORTANT:
-       *
        * Do not return when another alarm
        * is ringing.
        *
@@ -631,7 +663,8 @@ export function useAlarmEngine() {
           hour * 60 + minute;
 
         const reminderMinutes =
-          taskMinutes - task.reminder;
+          taskMinutes -
+          task.reminder;
 
         const notificationKey =
           `${task.id}-${task.date}-${task.startTime}-${task.reminder}`;
@@ -740,11 +773,14 @@ function sendNotification(
   }
 
   if (
-    Notification.permission !== "denied"
+    Notification.permission !==
+    "denied"
   ) {
     Notification.requestPermission().then(
       (permission) => {
-        if (permission === "granted") {
+        if (
+          permission === "granted"
+        ) {
           new Notification(
             "DayFlow 🔔",
             {
