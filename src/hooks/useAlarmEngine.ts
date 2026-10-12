@@ -18,6 +18,10 @@ export function useAlarmEngine() {
     (state) => state.startAlarm
   );
 
+  // const recoverAlarm = useAlarmStore(
+  //   (state) => state.recoverAlarm
+  // );
+
   const enqueueAlarm = useAlarmStore(
     (state) => state.enqueueAlarm
   );
@@ -26,22 +30,20 @@ export function useAlarmEngine() {
     (state) => state.dequeueAlarm
   );
 
-  const notifiedTasks = useRef<
-    Set<string>
-  >(new Set());
+  const notifiedTasks = useRef<Set<string>>(
+    new Set()
+  );
 
   const audioRef =
-    useRef<HTMLAudioElement | null>(
+    useRef<HTMLAudioElement | null>(null);
+
+  const snoozeTimeoutRef =
+    useRef<ReturnType<typeof setTimeout> | null>(
       null
     );
 
-  const snoozeTimeoutRef =
-    useRef<
-      ReturnType<typeof setTimeout> | null
-    >(null);
-
-  /*
-   * Request browser notification permission once
+  /**
+   * Request browser notification permission once.
    */
   useEffect(() => {
     if (
@@ -51,10 +53,7 @@ export function useAlarmEngine() {
       return;
     }
 
-    if (
-      Notification.permission ===
-      "default"
-    ) {
+    if (Notification.permission === "default") {
       Notification.requestPermission().catch(
         (error) => {
           console.warn(
@@ -66,8 +65,8 @@ export function useAlarmEngine() {
     }
   }, []);
 
-  /*
-   * Create alarm audio
+  /**
+   * Create alarm audio.
    */
   useEffect(() => {
     const audio = new Audio(
@@ -95,8 +94,8 @@ export function useAlarmEngine() {
     };
   }, []);
 
-  /*
-   * Play alarm sound
+  /**
+   * Play alarm sound.
    */
   const playAlarm = useCallback(() => {
     const audio = audioRef.current;
@@ -115,8 +114,8 @@ export function useAlarmEngine() {
     });
   }, []);
 
-  /*
-   * Trigger alarm or add it to the Zustand queue
+  /**
+   * Trigger alarm or add it to the Zustand queue.
    */
   const triggerAlarm = useCallback(
     (
@@ -149,8 +148,97 @@ export function useAlarmEngine() {
     ]
   );
 
-  /*
-   * Stop alarm and advance queue
+  /**
+   * Process the next queued alarm.
+   *
+   * Invalid/stale alarms are skipped when:
+   *
+   * - task no longer exists
+   * - task is completed
+   * - alarm is disabled
+   *
+   * This guarantees:
+   *
+   * A → B → C
+   *
+   * even when one of the queued tasks
+   * becomes invalid.
+   */
+  const triggerNextQueuedAlarm = useCallback(() => {
+    let nextAlarm = dequeueAlarm();
+
+    while (nextAlarm) {
+      const currentTask = useTaskStore
+        .getState()
+        .tasks.find(
+          (task) =>
+            task.id === nextAlarm?.taskId
+        );
+
+      /**
+       * Task was deleted.
+       */
+      if (!currentTask) {
+        console.log(
+          "⏭️ Skipping queued alarm: task no longer exists.",
+          nextAlarm.taskTitle
+        );
+
+        nextAlarm = dequeueAlarm();
+        continue;
+      }
+
+      /**
+       * Task was completed.
+       */
+      if (currentTask.completed) {
+        console.log(
+          "⏭️ Skipping queued alarm: task is completed.",
+          currentTask.title
+        );
+
+        nextAlarm = dequeueAlarm();
+        continue;
+      }
+
+      /**
+       * Alarm was disabled.
+       */
+      if (
+        currentTask.alarmEnabled === false
+      ) {
+        console.log(
+          "⏭️ Skipping queued alarm: alarm is disabled.",
+          currentTask.title
+        );
+
+        nextAlarm = dequeueAlarm();
+        continue;
+      }
+
+      /**
+       * Valid alarm found.
+       */
+      setTimeout(() => {
+        triggerAlarm(
+          currentTask.id,
+          currentTask.title
+        );
+      }, 100);
+
+      return;
+    }
+
+    console.log(
+      "📭 Alarm queue is empty."
+    );
+  }, [
+    dequeueAlarm,
+    triggerAlarm,
+  ]);
+
+  /**
+   * Stop alarm and advance queue.
    */
   useEffect(() => {
     const handleStopAlarm = (
@@ -176,9 +264,10 @@ export function useAlarmEngine() {
         snoozeTimeoutRef.current = null;
       }
 
-      /*
-       * Start Focus stops the current alarm
-       * without advancing to the next queued alarm.
+      /**
+       * Start Focus / manual stop can stop
+       * the current alarm without advancing
+       * to the next queued alarm.
        */
       if (
         customEvent.detail
@@ -187,17 +276,12 @@ export function useAlarmEngine() {
         return;
       }
 
-      const nextAlarm =
-        dequeueAlarm();
-
-      if (nextAlarm) {
-        setTimeout(() => {
-          triggerAlarm(
-            nextAlarm.taskId,
-            nextAlarm.taskTitle
-          );
-        }, 100);
-      }
+      /**
+       * Process the next queued alarm.
+       *
+       * Stale entries are skipped automatically.
+       */
+      triggerNextQueuedAlarm();
     };
 
     window.addEventListener(
@@ -212,12 +296,11 @@ export function useAlarmEngine() {
       );
     };
   }, [
-    dequeueAlarm,
-    triggerAlarm,
+    triggerNextQueuedAlarm,
   ]);
 
-  /*
-   * Smart snooze recovery
+  /**
+   * Smart snooze recovery.
    */
   useEffect(() => {
     const handleSnoozeAlarm = (
@@ -238,8 +321,8 @@ export function useAlarmEngine() {
         return;
       }
 
-      /*
-       * Stop current alarm sound
+      /**
+       * Stop current alarm sound.
        */
       const audio = audioRef.current;
 
@@ -248,8 +331,8 @@ export function useAlarmEngine() {
         audio.currentTime = 0;
       }
 
-      /*
-       * Cancel previous in-memory snooze
+      /**
+       * Cancel previous in-memory snooze.
        */
       if (snoozeTimeoutRef.current) {
         clearTimeout(
@@ -259,9 +342,9 @@ export function useAlarmEngine() {
         snoozeTimeoutRef.current = null;
       }
 
-      /*
-       * Capture the alarm task before
-       * the store clears it.
+      /**
+       * Capture the current alarm task
+       * before the store clears it.
        */
       const alarmState =
         useAlarmStore.getState();
@@ -276,7 +359,7 @@ export function useAlarmEngine() {
         return;
       }
 
-      /*
+      /**
        * Keep the existing queue.
        *
        * Snoozing the current alarm must
@@ -291,8 +374,8 @@ export function useAlarmEngine() {
         taskTitle
       );
 
-      /*
-       * Schedule in-memory recovery
+      /**
+       * Schedule in-memory recovery.
        */
       snoozeTimeoutRef.current =
         setTimeout(
@@ -305,6 +388,9 @@ export function useAlarmEngine() {
                     task.id === taskId
                 );
 
+            /**
+             * Task no longer exists.
+             */
             if (!currentTask) {
               console.log(
                 "Snoozed alarm cancelled: task no longer exists."
@@ -316,6 +402,9 @@ export function useAlarmEngine() {
               return;
             }
 
+            /**
+             * Task completed.
+             */
             if (currentTask.completed) {
               console.log(
                 "Snoozed alarm cancelled: task is completed."
@@ -327,6 +416,9 @@ export function useAlarmEngine() {
               return;
             }
 
+            /**
+             * Alarm disabled.
+             */
             if (
               currentTask.alarmEnabled ===
               false
@@ -341,7 +433,7 @@ export function useAlarmEngine() {
               return;
             }
 
-            /*
+            /**
              * Clear persisted snooze
              * before ringing again.
              */
@@ -364,7 +456,7 @@ export function useAlarmEngine() {
               );
             });
 
-            /*
+            /**
              * Trigger normally.
              *
              * If another alarm is currently
@@ -376,9 +468,10 @@ export function useAlarmEngine() {
               currentTask.title
             );
 
-            /*
-             * Restore alarms that were already
-             * waiting before this alarm was snoozed.
+            /**
+             * Restore alarms that were
+             * already waiting before
+             * this alarm was snoozed.
              *
              * enqueueAlarm prevents duplicates.
              */
@@ -391,8 +484,8 @@ export function useAlarmEngine() {
               }
             );
 
-            /*
-             * Desktop notification
+            /**
+             * Desktop notification.
              */
             sendNotification(
               currentTask.title,
@@ -437,13 +530,9 @@ export function useAlarmEngine() {
     triggerAlarm,
   ]);
 
-  /*
+  /**
    * Recover persisted snoozed alarms
    * after refresh/restart.
-   *
-   * Multiple recovered alarms are allowed.
-   * triggerAlarm() automatically queues
-   * additional alarms if one is already ringing.
    */
   useEffect(() => {
     const recoverPersistedSnooze =
@@ -460,10 +549,16 @@ export function useAlarmEngine() {
             return;
           }
 
+          /**
+           * Ignore completed tasks.
+           */
           if (task.completed) {
             return;
           }
 
+          /**
+           * Ignore disabled alarms.
+           */
           if (
             task.alarmEnabled === false
           ) {
@@ -475,7 +570,7 @@ export function useAlarmEngine() {
               task.snoozedUntil
             ).getTime();
 
-          /*
+          /**
            * Ignore invalid or future snoozes.
            */
           if (
@@ -488,9 +583,10 @@ export function useAlarmEngine() {
           const recoveryKey =
             `snoozed-${task.id}-${task.snoozedUntil}`;
 
-          /*
-           * Prevent the same recovered alarm
-           * from being triggered repeatedly.
+          /**
+           * Prevent the same recovered
+           * alarm from being triggered
+           * repeatedly.
            */
           if (
             notifiedTasks.current.has(
@@ -504,7 +600,7 @@ export function useAlarmEngine() {
             recoveryKey
           );
 
-          /*
+          /**
            * Clear persisted snooze.
            */
           void fetch(
@@ -526,8 +622,8 @@ export function useAlarmEngine() {
             );
           });
 
-          /*
-           * Use the normal alarm pipeline.
+          /**
+           * Use normal alarm pipeline.
            *
            * If another alarm is already
            * ringing, this alarm is queued.
@@ -537,8 +633,8 @@ export function useAlarmEngine() {
             task.title
           );
 
-          /*
-           * Desktop notification
+          /**
+           * Desktop notification.
            */
           sendNotification(
             task.title,
@@ -552,12 +648,12 @@ export function useAlarmEngine() {
         });
       };
 
-    /*
+    /**
      * Check immediately.
      */
     recoverPersistedSnooze();
 
-    /*
+    /**
      * Continue checking every second.
      */
     const interval = setInterval(
@@ -573,8 +669,8 @@ export function useAlarmEngine() {
     triggerAlarm,
   ]);
 
-  /*
-   * Check scheduled alarms
+  /**
+   * Check scheduled alarms.
    */
   useEffect(() => {
     const checkAlarms = () => {
@@ -588,22 +684,23 @@ export function useAlarmEngine() {
         now.getHours() * 60 +
         now.getMinutes();
 
-      /*
-       * Do not return when another alarm
+      /**
+       * Do not block scheduled alarm
+       * detection when another alarm
        * is ringing.
        *
        * triggerAlarm() will automatically
        * queue additional alarms.
        */
       tasks.forEach((task) => {
-        /*
+        /**
          * Ignore completed tasks.
          */
         if (task.completed) {
           return;
         }
 
-        /*
+        /**
          * Ignore disabled alarms.
          */
         if (
@@ -612,7 +709,7 @@ export function useAlarmEngine() {
           return;
         }
 
-        /*
+        /**
          * Ignore tasks with an active
          * persisted snooze.
          */
@@ -630,21 +727,21 @@ export function useAlarmEngine() {
           }
         }
 
-        /*
+        /**
          * Only check today's tasks.
          */
         if (task.date !== today) {
           return;
         }
 
-        /*
+        /**
          * Task must have a start time.
          */
         if (!task.startTime) {
           return;
         }
 
-        /*
+        /**
          * Task must have a reminder value.
          */
         if (
@@ -669,7 +766,7 @@ export function useAlarmEngine() {
         const notificationKey =
           `${task.id}-${task.date}-${task.startTime}-${task.reminder}`;
 
-        /*
+        /**
          * Allow the alarm to trigger:
          *
          * exactly at the reminder time
@@ -696,7 +793,7 @@ export function useAlarmEngine() {
             notificationKey
           );
 
-          /*
+          /**
            * Trigger alarm or queue it.
            */
           triggerAlarm(
@@ -704,7 +801,7 @@ export function useAlarmEngine() {
             task.title
           );
 
-          /*
+          /**
            * Desktop notification.
            */
           sendNotification(
@@ -715,12 +812,12 @@ export function useAlarmEngine() {
       });
     };
 
-    /*
+    /**
      * Check immediately.
      */
     checkAlarms();
 
-    /*
+    /**
      * Check every second.
      */
     const interval = setInterval(
