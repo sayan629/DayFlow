@@ -2,13 +2,14 @@
 
 import {
   BellRing,
+  ListChecks,
   Moon,
   Play,
   Square,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAlarmStore } from "@/store/alarmStore";
 
+import { useAlarmStore } from "@/store/alarmStore";
 
 export default function AlarmRinging() {
   const router = useRouter();
@@ -16,37 +17,48 @@ export default function AlarmRinging() {
   const isRinging = useAlarmStore(
     (state) => state.isRinging
   );
+
   const taskId = useAlarmStore(
     (state) => state.taskId
   );
+
   const taskTitle = useAlarmStore(
     (state) => state.taskTitle
+  );
+
+  const queue = useAlarmStore(
+    (state) => state.queue
   );
 
   const stopAlarm = useAlarmStore(
     (state) => state.stopAlarm
   );
+
   const snoozeAlarm = useAlarmStore(
     (state) => state.snoozeAlarm
   );
 
-  if (!isRinging) return null;
+  if (!isRinging) {
+    return null;
+  }
 
   const handleStartFocus = () => {
-    if (!taskId) return;
+    if (!taskId) {
+      return;
+    }
 
     stopAlarm();
 
     router.push(
-      `/focus?taskId=${encodeURIComponent(taskId)}`
+      `/focus?taskId=${encodeURIComponent(
+        taskId
+      )}`
     );
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
       <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#111114] shadow-2xl">
-
-        {/* Header */}
         <div className="p-8 text-center">
           <div className="mx-auto flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl bg-white text-black">
             <BellRing size={28} />
@@ -65,10 +77,43 @@ export default function AlarmRinging() {
           </p>
         </div>
 
-        {/* Actions */}
-        <div className="space-y-3 border-t border-white/10 bg-white/[0.02] p-6">
+        {queue.length > 0 && (
+          <div className="mx-6 mb-2 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+              <ListChecks
+                size={16}
+                className="text-zinc-400"
+              />
 
-          {/* Start Focus */}
+              <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+                {queue.length}{" "}
+                {queue.length === 1
+                  ? "alarm"
+                  : "alarms"}{" "}
+                waiting
+              </span>
+            </div>
+
+            <div className="max-h-32 overflow-y-auto p-2">
+              {queue.map((alarm, index) => (
+                <div
+                  key={`${alarm.taskId}-${index}`}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-400"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-[11px] text-zinc-500">
+                    {index + 1}
+                  </span>
+
+                  <span className="truncate">
+                    {alarm.taskTitle}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-3 border-t border-white/10 bg-white/[0.02] p-6">
           <button
             type="button"
             onClick={handleStartFocus}
@@ -79,7 +124,6 @@ export default function AlarmRinging() {
             Start Focus
           </button>
 
-          {/* Snooze */}
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -100,7 +144,6 @@ export default function AlarmRinging() {
             </button>
           </div>
 
-          {/* Stop */}
           <button
             type="button"
             onClick={stopAlarm}
