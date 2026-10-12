@@ -31,6 +31,7 @@ import {
 } from "@/store/focusStore";
 
 import { useTaskStore } from "@/store/taskStore";
+import { useSettingsStore } from "@/store/settingsStore";
 
 function FocusPageContent() {
   const searchParams = useSearchParams();
@@ -92,6 +93,10 @@ function FocusPageContent() {
     (state) => state.setTestDuration
   );
 
+  const start = useFocusStore(
+  (state) => state.start
+);
+
   const setSelectedTask = useFocusStore(
     (state) => state.setSelectedTask
   );
@@ -103,6 +108,33 @@ function FocusPageContent() {
   const loadSessionHistory = useFocusStore(
     (state) => state.loadSessionHistory
   );
+
+  const defaultFocusMinutes = useSettingsStore(
+    (state) => state.defaultFocusMinutes
+  );
+
+  // --------------------------------------------------
+  // Sync Focus timer with Settings
+  // --------------------------------------------------
+
+  useEffect(() => {
+    if (mode !== "focus" || isRunning) {
+      return;
+    }
+
+    const configuredSeconds =
+      defaultFocusMinutes * 60;
+
+    if (remainingSeconds !== configuredSeconds) {
+      reset();
+    }
+  }, [
+    defaultFocusMinutes,
+    mode,
+    isRunning,
+    remainingSeconds,
+    reset,
+  ]);
 
   // --------------------------------------------------
   // Load Focus history from Prisma
@@ -208,46 +240,54 @@ function FocusPageContent() {
   // Timer
   // --------------------------------------------------
 
-  useEffect(() => {
-    if (!isRunning) {
+useEffect(() => {
+  if (!isRunning) {
+    return;
+  }
+
+  const interval = setInterval(() => {
+    const current = useFocusStore.getState();
+
+    if (!current.isRunning) {
+      clearInterval(interval);
       return;
     }
 
-    const interval = setInterval(() => {
-      const current =
-        useFocusStore.getState();
-
-      if (
-        current.remainingSeconds <= 1
-      ) {
-        // Focus session completed
-        if (
-          current.mode === "focus" &&
-          current.selectedTaskId
-        ) {
-          updateTask(
-            current.selectedTaskId,
-            {
-              completed: true,
-            }
-          );
-        }
-
-        // Save session and move to break.
-        current.completeSession();
-
-        return;
-      }
+    if (current.remainingSeconds <= 1) {
+      clearInterval(interval);
 
       useFocusStore.setState({
-        remainingSeconds:
-          current.remainingSeconds - 1,
+        isRunning: false,
+        remainingSeconds: 0,
       });
-    }, 1000);
 
-    return () =>
-      clearInterval(interval);
-  }, [isRunning, updateTask]);
+      if (
+        current.mode === "focus" &&
+        current.selectedTaskId
+      ) {
+        void updateTask(
+          current.selectedTaskId,
+          {
+            completed: true,
+          }
+        );
+      }
+
+      void current.completeSession();
+
+      return;
+    }
+
+    useFocusStore.setState({
+      remainingSeconds:
+        current.remainingSeconds - 1,
+    });
+  }, 1000);
+
+  return () => {
+    clearInterval(interval);
+  };
+}, [isRunning, updateTask]);
 
   // --------------------------------------------------
   // Timer formatting
@@ -897,7 +937,8 @@ function FocusPageContent() {
                   <button
                     type="button"
                     onClick={() =>
-                      setTestDuration(10)
+                      setTestDuration(10);
+                      start();
                     }
                     className="mt-4 text-xs text-zinc-600 transition hover:text-zinc-300"
                   >
