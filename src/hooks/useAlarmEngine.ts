@@ -21,6 +21,13 @@ export function useAlarmEngine() {
     new Set()
   );
 
+  const pendingAlarmQueue = useRef<
+    Array<{
+      taskId: string;
+      taskTitle: string;
+    }>
+  >([]);
+
   const audioRef =
     useRef<HTMLAudioElement | null>(null);
 
@@ -95,6 +102,42 @@ export function useAlarmEngine() {
     });
   }, []);
 
+  // Trigger alarm or add it to the queue
+  const triggerAlarm = useCallback(
+    (
+      taskId: string,
+      taskTitle: string
+    ) => {
+      const alarmState =
+        useAlarmStore.getState();
+
+      if (alarmState.isRinging) {
+        const alreadyQueued =
+          pendingAlarmQueue.current.some(
+            (alarm) =>
+              alarm.taskId === taskId
+          );
+
+        if (!alreadyQueued) {
+          pendingAlarmQueue.current.push({
+            taskId,
+            taskTitle,
+          });
+        }
+
+        return;
+      }
+
+      startAlarm(
+        taskId,
+        taskTitle
+      );
+
+      playAlarm();
+    },
+    [startAlarm, playAlarm]
+  );
+
   // Stop alarm
   useEffect(() => {
     const handleStopAlarm = () => {
@@ -112,6 +155,18 @@ export function useAlarmEngine() {
 
         snoozeTimeoutRef.current = null;
       }
+
+      const nextAlarm =
+        pendingAlarmQueue.current.shift();
+
+      if (nextAlarm) {
+        setTimeout(() => {
+          triggerAlarm(
+            nextAlarm.taskId,
+            nextAlarm.taskTitle
+          );
+        }, 100);
+      }
     };
 
     window.addEventListener(
@@ -125,7 +180,7 @@ export function useAlarmEngine() {
         handleStopAlarm
       );
     };
-  }, []);
+  }, [triggerAlarm]);
 
   // Smart snooze recovery
   useEffect(() => {
@@ -162,11 +217,13 @@ export function useAlarmEngine() {
         snoozeTimeoutRef.current = null;
       }
 
-      // Capture the alarm task before the store clears it
+      // Capture the alarm task before
+      // the store clears it
       const alarmState =
         useAlarmStore.getState();
 
-      const taskId = alarmState.taskId;
+      const taskId =
+        alarmState.taskId;
 
       const taskTitle =
         alarmState.taskTitle;
@@ -182,91 +239,95 @@ export function useAlarmEngine() {
 
       // Schedule in-memory recovery
       snoozeTimeoutRef.current =
-        setTimeout(() => {
-          const currentTask =
-            useTaskStore
-              .getState()
-              .tasks.find(
-                (task) =>
-                  task.id === taskId
+        setTimeout(
+          () => {
+            const currentTask =
+              useTaskStore
+                .getState()
+                .tasks.find(
+                  (task) =>
+                    task.id === taskId
+                );
+
+            if (!currentTask) {
+              console.log(
+                "Snoozed alarm cancelled: task no longer exists."
               );
 
-          if (!currentTask) {
-            console.log(
-              "Snoozed alarm cancelled: task no longer exists."
-            );
+              snoozeTimeoutRef.current =
+                null;
 
-            snoozeTimeoutRef.current = null;
-
-            return;
-          }
-
-          if (currentTask.completed) {
-            console.log(
-              "Snoozed alarm cancelled: task is completed."
-            );
-
-            snoozeTimeoutRef.current = null;
-
-            return;
-          }
-
-          if (
-            currentTask.alarmEnabled === false
-          ) {
-            console.log(
-              "Snoozed alarm cancelled: alarm disabled."
-            );
-
-            snoozeTimeoutRef.current = null;
-
-            return;
-          }
-
-          // Clear persisted snooze before ringing
-          void fetch(
-            `/api/tasks/${taskId}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                snoozedUntil: null,
-              }),
+              return;
             }
-          ).catch((error) => {
-            console.error(
-              "Failed to clear snooze:",
-              error
-            );
-          });
 
-          // Restore alarm state
-          useAlarmStore
-            .getState()
-            .startAlarm(
+            if (currentTask.completed) {
+              console.log(
+                "Snoozed alarm cancelled: task is completed."
+              );
+
+              snoozeTimeoutRef.current =
+                null;
+
+              return;
+            }
+
+            if (
+              currentTask.alarmEnabled ===
+              false
+            ) {
+              console.log(
+                "Snoozed alarm cancelled: alarm disabled."
+              );
+
+              snoozeTimeoutRef.current =
+                null;
+
+              return;
+            }
+
+            // Clear persisted snooze
+            // before ringing
+            void fetch(
+              `/api/tasks/${taskId}`,
+              {
+                method: "PATCH",
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+                body: JSON.stringify({
+                  snoozedUntil: null,
+                }),
+              }
+            ).catch((error) => {
+              console.error(
+                "Failed to clear snooze:",
+                error
+              );
+            });
+
+            // Trigger alarm or queue it
+            triggerAlarm(
               currentTask.id,
               currentTask.title
             );
 
-          // Play alarm again
-          playAlarm();
+            // Desktop notification
+            sendNotification(
+              currentTask.title,
+              0
+            );
 
-          // Desktop notification
-          sendNotification(
-            currentTask.title,
-            0
-          );
+            console.log(
+              "🔔 Snoozed alarm triggered again:",
+              currentTask.title
+            );
 
-          console.log(
-            "🔔 Snoozed alarm triggered again:",
-            currentTask.title
-          );
-
-          snoozeTimeoutRef.current = null;
-        }, minutes * 60 * 1000);
+            snoozeTimeoutRef.current =
+              null;
+          },
+          minutes * 60 * 1000
+        );
     };
 
     window.addEventListener(
@@ -288,12 +349,22 @@ export function useAlarmEngine() {
         snoozeTimeoutRef.current = null;
       }
     };
-  }, [playAlarm]);
+  }, [triggerAlarm]);
 
-  // Recover persisted snoozed alarms after refresh/restart
+  // Recover persisted snoozed alarms
+  // after refresh/restart
   useEffect(() => {
     const recoverPersistedSnooze = () => {
       const now = Date.now();
+
+      const alarmState =
+        useAlarmStore.getState();
+
+      // Do not recover another alarm
+      // while one is already ringing.
+      if (alarmState.isRinging) {
+        return;
+      }
 
       const currentTasks =
         useTaskStore.getState().tasks;
@@ -311,9 +382,10 @@ export function useAlarmEngine() {
           return;
         }
 
-        const snoozeTime = new Date(
-          task.snoozedUntil
-        ).getTime();
+        const snoozeTime =
+          new Date(
+            task.snoozedUntil
+          ).getTime();
 
         if (
           Number.isNaN(snoozeTime) ||
@@ -392,7 +464,6 @@ export function useAlarmEngine() {
     };
   }, [
     tasks,
-    startAlarm,
     recoverAlarm,
     playAlarm,
   ]);
@@ -410,6 +481,13 @@ export function useAlarmEngine() {
         now.getHours() * 60 +
         now.getMinutes();
 
+      const alarmState =
+        useAlarmStore.getState();
+
+      if (alarmState.isRinging) {
+        return;
+      }
+
       tasks.forEach((task) => {
         // Ignore completed tasks
         if (task.completed) {
@@ -417,15 +495,19 @@ export function useAlarmEngine() {
         }
 
         // Ignore disabled alarms
-        if (task.alarmEnabled === false) {
+        if (
+          task.alarmEnabled === false
+        ) {
           return;
         }
 
-        // Ignore tasks with an active persisted snooze
+        // Ignore tasks with an active
+        // persisted snooze
         if (task.snoozedUntil) {
-          const snoozeTime = new Date(
-            task.snoozedUntil
-          ).getTime();
+          const snoozeTime =
+            new Date(
+              task.snoozedUntil
+            ).getTime();
 
           if (
             !Number.isNaN(snoozeTime) &&
@@ -445,7 +527,8 @@ export function useAlarmEngine() {
           return;
         }
 
-        // Task must have a reminder value
+        // Task must have a reminder
+        // value
         if (
           task.reminder === undefined ||
           task.reminder === null
@@ -469,6 +552,7 @@ export function useAlarmEngine() {
 
         /**
          * Allow the alarm to trigger:
+         *
          * exactly at the reminder time
          * OR
          * up to 2 minutes afterwards.
@@ -491,11 +575,8 @@ export function useAlarmEngine() {
             notificationKey
           );
 
-          // Start alarm sound
-          playAlarm();
-
-          // Start alarm state
-          startAlarm(
+          // Trigger alarm or queue it
+          triggerAlarm(
             task.id,
             task.title
           );
@@ -523,8 +604,7 @@ export function useAlarmEngine() {
     };
   }, [
     tasks,
-    startAlarm,
-    playAlarm,
+    triggerAlarm,
   ]);
 }
 
