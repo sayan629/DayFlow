@@ -13,10 +13,9 @@ import {
 import { useEffect, useMemo } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
-import {  useFocusStore } from "@/store/focusStore";
+import { useFocusStore } from "@/store/focusStore";
 import { useAlarmStore } from "@/store/alarmStore";
 import { useTaskStore } from "@/store/taskStore";
-
 
 const CATEGORY_LABELS: Record<string, string> = {
   study: "Study",
@@ -112,27 +111,42 @@ export default function AnalyticsPage() {
         alarmDisciplineLabel: "No data",
         last7AlarmDays: [],
         maxAlarmActivity: 1,
+        alarmInsight: "No alarm activity yet.",
+        mostActiveAlarmDay: null,
       };
     }
 
-    const today = now.toISOString().split("T")[0];
+    const today =
+      now.toISOString().split("T")[0];
+
+    // -----------------------------
+    // Today's Tasks
+    // -----------------------------
 
     const todayTasks = tasks.filter(
       (task) => task.date === today
     );
 
-    const completedToday = todayTasks.filter(
-      (task) => task.completed
-    ).length;
+    const completedToday =
+      todayTasks.filter(
+        (task) => task.completed
+      ).length;
 
-    const totalToday = todayTasks.length;
+    const totalToday =
+      todayTasks.length;
 
     const completionRate =
       totalToday > 0
         ? Math.round(
-            (completedToday / totalToday) * 100
+            (completedToday /
+              totalToday) *
+              100
           )
         : 0;
+
+    // -----------------------------
+    // Today's Focus
+    // -----------------------------
 
     const todaySessions =
       sessionHistory.filter((session) => {
@@ -142,19 +156,22 @@ export default function AnalyticsPage() {
           );
 
         return (
-          completedAt.toISOString().split("T")[0] ===
-          today
+          completedAt
+            .toISOString()
+            .split("T")[0] === today
         );
       });
 
-    const focusMinutes = Math.round(
-      todaySessions.reduce(
-        (total, session) =>
-          total +
-          session.durationSeconds / 60,
-        0
-      )
-    );
+    const focusMinutes =
+      Math.round(
+        todaySessions.reduce(
+          (total, session) =>
+            total +
+            session.durationSeconds /
+              60,
+          0
+        )
+      );
 
     const focusSessions =
       todaySessions.length;
@@ -171,56 +188,68 @@ export default function AnalyticsPage() {
         );
 
         date.setDate(
-          date.getDate() - (6 - index)
+          date.getDate() -
+            (6 - index)
         );
 
         const dateString =
-          date.toISOString().split("T")[0];
+          date
+            .toISOString()
+            .split("T")[0];
 
-        const dayTasks = tasks.filter(
-          (task) => task.date === dateString
-        );
+        const dayTasks =
+          tasks.filter(
+            (task) =>
+              task.date === dateString
+          );
 
         const completed =
           dayTasks.filter(
-            (task) => task.completed
+            (task) =>
+              task.completed
           ).length;
 
         const daySessions =
-          sessionHistory.filter((session) => {
-            const completedAt =
-              new Date(
-                session.completedAt
+          sessionHistory.filter(
+            (session) => {
+              const completedAt =
+                new Date(
+                  session.completedAt
+                );
+
+              return (
+                completedAt
+                  .toISOString()
+                  .split("T")[0] ===
+                dateString
               );
+            }
+          );
 
-            return (
-              completedAt
-                .toISOString()
-                .split("T")[0] ===
-              dateString
-            );
-          });
-
-        const dayFocusMinutes = Math.round(
-          daySessions.reduce(
-            (total, session) =>
-              total +
-              session.durationSeconds / 60,
-            0
-          )
-        );
+        const dayFocusMinutes =
+          Math.round(
+            daySessions.reduce(
+              (total, session) =>
+                total +
+                session.durationSeconds /
+                  60,
+              0
+            )
+          );
 
         return {
           date: dateString,
-          label: date.toLocaleDateString(
-            "en-US",
-            {
-              weekday: "short",
-            }
-          ),
+          label:
+            date.toLocaleDateString(
+              "en-US",
+              {
+                weekday: "short",
+              }
+            ),
           total: dayTasks.length,
           completed,
-          focusMinutes: dayFocusMinutes,
+          focusMinutes:
+            dayFocusMinutes,
           active:
             completed > 0 ||
             dayFocusMinutes > 0,
@@ -235,11 +264,14 @@ export default function AnalyticsPage() {
     let streak = 0;
 
     for (
-      let index = weeklyActivity.length - 1;
+      let index =
+        weeklyActivity.length - 1;
       index >= 0;
       index--
     ) {
-      if (!weeklyActivity[index].active) {
+      if (
+        !weeklyActivity[index].active
+      ) {
         break;
       }
 
@@ -260,7 +292,9 @@ export default function AnalyticsPage() {
 
     tasks.forEach((task) => {
       const current =
-        categoryMap.get(task.category) ?? {
+        categoryMap.get(
+          task.category
+        ) ?? {
           total: 0,
           completed: 0,
         };
@@ -277,28 +311,32 @@ export default function AnalyticsPage() {
       );
     });
 
-    const categoryStats = Array.from(
-      categoryMap.entries()
-    )
-      .map(([category, stats]) => ({
-        category,
-        label:
-          CATEGORY_LABELS[category] ??
+    const categoryStats =
+      Array.from(
+        categoryMap.entries()
+      )
+        .map(([category, stats]) => ({
           category,
-        total: stats.total,
-        completed: stats.completed,
-        rate:
-          stats.total > 0
-            ? Math.round(
-                (stats.completed /
-                  stats.total) *
-                  100
-              )
-            : 0,
-      }))
-      .sort(
-        (a, b) => b.total - a.total
-      );
+          label:
+            CATEGORY_LABELS[
+              category
+            ] ?? category,
+          total: stats.total,
+          completed:
+            stats.completed,
+          rate:
+            stats.total > 0
+              ? Math.round(
+                  (stats.completed /
+                    stats.total) *
+                    100
+                )
+              : 0,
+        }))
+        .sort(
+          (a, b) =>
+            b.total - a.total
+        );
 
     // -----------------------------
     // Priority Statistics
@@ -314,7 +352,9 @@ export default function AnalyticsPage() {
 
     tasks.forEach((task) => {
       const current =
-        priorityMap.get(task.priority) ?? {
+        priorityMap.get(
+          task.priority
+        ) ?? {
           total: 0,
           completed: 0,
         };
@@ -331,59 +371,73 @@ export default function AnalyticsPage() {
       );
     });
 
-    const priorityStats = Array.from(
-      priorityMap.entries()
-    )
-      .map(([priority, stats]) => ({
-        priority,
-        total: stats.total,
-        completed: stats.completed,
-        rate:
-          stats.total > 0
-            ? Math.round(
-                (stats.completed /
-                  stats.total) *
-                  100
-              )
-            : 0,
-      }))
-      .sort(
-        (a, b) => b.total - a.total
-      );
+    const priorityStats =
+      Array.from(
+        priorityMap.entries()
+      )
+        .map(([priority, stats]) => ({
+          priority,
+          total: stats.total,
+          completed:
+            stats.completed,
+          rate:
+            stats.total > 0
+              ? Math.round(
+                  (stats.completed /
+                    stats.total) *
+                    100
+                )
+              : 0,
+        }))
+        .sort(
+          (a, b) =>
+            b.total - a.total
+        );
 
     // -----------------------------
     // Most Focused Tasks
     // -----------------------------
 
-const mostFocusedTasks = tasks
-  .map((task) => {
-    const taskSessions = sessionHistory.filter(
-      (session) =>
-        session.taskId === task.id
-    );
+    const mostFocusedTasks =
+      tasks
+        .map((task) => {
+          const taskSessions =
+            sessionHistory.filter(
+              (session) =>
+                session.taskId ===
+                task.id
+            );
 
-    const minutes = Math.round(
-      taskSessions.reduce(
-        (total, session) =>
-          total +
-          session.durationSeconds / 60,
-        0
-      )
-    );
+          const minutes =
+            Math.round(
+              taskSessions.reduce(
+                (
+                  total,
+                  session
+                ) =>
+                  total +
+                  session.durationSeconds /
+                    60,
+                0
+              )
+            );
 
-    return {
-      task,
-      sessions: taskSessions.length,
-      minutes,
-    };
-  })
-  .filter(
-    (item) => item.sessions > 0
-  )
-  .sort(
-    (a, b) => b.minutes - a.minutes
-  )
-  .slice(0, 5);
+          return {
+            task,
+            sessions:
+              taskSessions.length,
+            minutes,
+          };
+        })
+        .filter(
+          (item) =>
+            item.sessions > 0
+        )
+        .sort(
+          (a, b) =>
+            b.minutes - a.minutes
+        )
+        .slice(0, 5);
 
     // -----------------------------
     // Alarm Analytics
@@ -392,13 +446,15 @@ const mostFocusedTasks = tasks
     const stoppedAlarms =
       alarmHistory.filter(
         (alarm) =>
-          alarm.status === "stopped"
+          alarm.status ===
+          "stopped"
       );
 
     const snoozedAlarms =
       alarmHistory.filter(
         (alarm) =>
-          alarm.status === "snoozed"
+          alarm.status ===
+          "snoozed"
       );
 
     const alarmResponseTimes =
@@ -419,8 +475,12 @@ const mostFocusedTasks = tasks
             ).getTime();
 
           if (
-            Number.isNaN(triggeredAt) ||
-            Number.isNaN(stoppedAt) ||
+            Number.isNaN(
+              triggeredAt
+            ) ||
+            Number.isNaN(
+              stoppedAt
+            ) ||
             stoppedAt < triggeredAt
           ) {
             return null;
@@ -443,10 +503,14 @@ const mostFocusedTasks = tasks
         );
 
     const averageAlarmResponse =
-      alarmResponseTimes.length > 0
+      alarmResponseTimes.length >
+      0
         ? Math.round(
             alarmResponseTimes.reduce(
-              (total, value) =>
+              (
+                total,
+                value
+              ) =>
                 total + value,
               0
             ) /
@@ -455,14 +519,16 @@ const mostFocusedTasks = tasks
         : null;
 
     const fastestAlarmResponse =
-      alarmResponseTimes.length > 0
+      alarmResponseTimes.length >
+      0
         ? Math.min(
             ...alarmResponseTimes
           )
         : null;
 
     const slowestAlarmResponse =
-      alarmResponseTimes.length > 0
+      alarmResponseTimes.length >
+      0
         ? Math.max(
             ...alarmResponseTimes
           )
@@ -509,23 +575,33 @@ const mostFocusedTasks = tasks
 
     let responseScore = 100;
 
-    if (averageAlarmResponse !== null) {
-      if (averageAlarmResponse <= 1) {
+    if (
+      averageAlarmResponse !==
+      null
+    ) {
+      if (
+        averageAlarmResponse <=
+        1
+      ) {
         responseScore = 100;
       } else if (
-        averageAlarmResponse <= 2
+        averageAlarmResponse <=
+        2
       ) {
         responseScore = 95;
       } else if (
-        averageAlarmResponse <= 5
+        averageAlarmResponse <=
+        5
       ) {
         responseScore = 85;
       } else if (
-        averageAlarmResponse <= 10
+        averageAlarmResponse <=
+        10
       ) {
         responseScore = 70;
       } else if (
-        averageAlarmResponse <= 20
+        averageAlarmResponse <=
+        20
       ) {
         responseScore = 50;
       } else {
@@ -538,17 +614,22 @@ const mostFocusedTasks = tasks
         ? null
         : Math.round(
             responseScore * 0.7 +
-              alarmHandlingRate * 0.3
+              alarmHandlingRate *
+                0.3
           );
 
     const alarmDisciplineLabel =
-      alarmDisciplineScore === null
+      alarmDisciplineScore ===
+      null
         ? "No data"
-        : alarmDisciplineScore >= 90
+        : alarmDisciplineScore >=
+            90
           ? "Excellent"
-          : alarmDisciplineScore >= 75
+          : alarmDisciplineScore >=
+              75
             ? "Good"
-            : alarmDisciplineScore >= 60
+            : alarmDisciplineScore >=
+                60
               ? "Fair"
               : "Needs improvement";
 
@@ -556,77 +637,129 @@ const mostFocusedTasks = tasks
     // 7-Day Alarm Activity
     // -----------------------------
 
-    const last7AlarmDays = Array.from(
-      { length: 7 },
-      (_, index) => {
-        const date = new Date(
-          now.getTime()
-        );
-
-        date.setDate(
-          date.getDate() -
-            (6 - index)
-        );
-
-        const dateString =
-          date
-            .toISOString()
-            .split("T")[0];
-
-        const dayAlarms =
-          alarmHistory.filter(
-            (alarm) => {
-              const alarmDate =
-                alarm.triggeredAt
-                  .split("T")[0];
-
-              return (
-                alarmDate ===
-                dateString
-              );
-            }
+    const last7AlarmDays =
+      Array.from(
+        { length: 7 },
+        (_, index) => {
+          const date = new Date(
+            now.getTime()
           );
 
-        const triggered =
-          dayAlarms.length;
+          date.setDate(
+            date.getDate() -
+              (6 - index)
+          );
 
-        const stopped =
-          dayAlarms.filter(
-            (alarm) =>
-              alarm.status ===
-              "stopped"
-          ).length;
+          const dateString =
+            date
+              .toISOString()
+              .split("T")[0];
 
-        const snoozed =
-          dayAlarms.filter(
-            (alarm) =>
-              alarm.status ===
-              "snoozed"
-          ).length;
+          const dayAlarms =
+            alarmHistory.filter(
+              (alarm) => {
+                const alarmDate =
+                  alarm.triggeredAt.split(
+                    "T"
+                  )[0];
 
-        return {
-          date: dateString,
-          label:
-            date.toLocaleDateString(
-              "en-US",
-              {
-                weekday: "short",
+                return (
+                  alarmDate ===
+                  dateString
+                );
               }
-            ),
-          triggered,
-          stopped,
-          snoozed,
-        };
-      }
-    );
+            );
+
+          const triggered =
+            dayAlarms.length;
+
+          const stopped =
+            dayAlarms.filter(
+              (alarm) =>
+                alarm.status ===
+                "stopped"
+            ).length;
+
+          const snoozed =
+            dayAlarms.filter(
+              (alarm) =>
+                alarm.status ===
+                "snoozed"
+            ).length;
+
+          return {
+            date: dateString,
+            label:
+              date.toLocaleDateString(
+                "en-US",
+                {
+                  weekday: "short",
+                }
+              ),
+            triggered,
+            stopped,
+            snoozed,
+          };
+        }
+      );
 
     const maxAlarmActivity =
       Math.max(
         ...last7AlarmDays.map(
-          (day) => day.triggered
+          (day) =>
+            day.triggered
         ),
         1
       );
+
+    // -----------------------------
+    // Alarm Insights
+    // -----------------------------
+
+    const mostActiveAlarmDay =
+      last7AlarmDays.reduce(
+        (best, day) =>
+          day.triggered >
+          best.triggered
+            ? day
+            : best,
+        last7AlarmDays[0]
+      );
+
+    let alarmInsight =
+      "No alarm activity yet.";
+
+    if (alarmHistory.length > 0) {
+      if (
+        averageAlarmResponse !==
+          null &&
+        averageAlarmResponse <= 2
+      ) {
+        alarmInsight =
+          "You respond quickly to your alarms. Your average response time is under 2 minutes.";
+      } else if (
+        snoozeRate >= 50
+      ) {
+        alarmInsight =
+          "You snooze more than half of your alarms. Consider reducing snooze usage to improve consistency.";
+      } else if (
+        alarmHandlingRate >= 80
+      ) {
+        alarmInsight =
+          "You have strong alarm discipline. Most of your alarms are handled without repeated snoozing.";
+      } else if (
+        mostActiveAlarmDay &&
+        mostActiveAlarmDay.triggered >
+          0
+      ) {
+        alarmInsight = `${mostActiveAlarmDay.label} was your most active alarm day with ${mostActiveAlarmDay.triggered} alarm${
+          mostActiveAlarmDay.triggered ===
+          1
+            ? ""
+            : "s"
+        }.`;
+      }
+    }
 
     return {
       todayTasks,
@@ -653,6 +786,8 @@ const mostFocusedTasks = tasks
       alarmDisciplineLabel,
       last7AlarmDays,
       maxAlarmActivity,
+      alarmInsight,
+      mostActiveAlarmDay,
     };
   }, [
     now,
@@ -711,7 +846,9 @@ const mostFocusedTasks = tasks
 
           <AnalyticsMetric
             label="Focus Sessions"
-            value={analytics.focusSessions}
+            value={
+              analytics.focusSessions
+            }
             icon={
               <Target size={17} />
             }
@@ -753,9 +890,15 @@ const mostFocusedTasks = tasks
               </p>
 
               <p className="mt-2 text-xl font-semibold text-white">
-                {analytics.completedToday}
+                {
+                  analytics.completedToday
+                }
+
                 <span className="ml-1 text-sm font-normal text-zinc-600">
-                  / {analytics.totalToday}
+                  /{" "}
+                  {
+                    analytics.totalToday
+                  }
                 </span>
               </p>
             </div>
@@ -766,7 +909,10 @@ const mostFocusedTasks = tasks
               </p>
 
               <p className="mt-2 text-xl font-semibold text-white">
-                {analytics.focusMinutes}
+                {
+                  analytics.focusMinutes
+                }
+
                 <span className="ml-1 text-sm font-normal text-zinc-600">
                   min
                 </span>
@@ -779,7 +925,9 @@ const mostFocusedTasks = tasks
               </p>
 
               <p className="mt-2 text-xl font-semibold text-white">
-                {analytics.focusSessions}
+                {
+                  analytics.focusSessions
+                }
               </p>
             </div>
           </div>
@@ -791,7 +939,10 @@ const mostFocusedTasks = tasks
               </span>
 
               <span className="text-zinc-400">
-                {analytics.completionRate}%
+                {
+                  analytics.completionRate
+                }
+                %
               </span>
             </div>
 
@@ -868,7 +1019,9 @@ const mostFocusedTasks = tasks
                     </span>
 
                     <span className="mt-1 text-[10px] text-zinc-500">
-                      {day.completed}
+                      {
+                        day.completed
+                      }
                     </span>
                   </div>
                 );
@@ -892,8 +1045,8 @@ const mostFocusedTasks = tasks
             </div>
 
             <div className="mt-5 space-y-4">
-              {analytics.categoryStats.length ===
-              0 ? (
+              {analytics.categoryStats
+                .length === 0 ? (
                 <p className="text-sm text-zinc-600">
                   No category data yet.
                 </p>
@@ -901,7 +1054,9 @@ const mostFocusedTasks = tasks
                 analytics.categoryStats.map(
                   (item) => (
                     <div
-                      key={item.category}
+                      key={
+                        item.category
+                      }
                     >
                       <div className="mb-2 flex items-center justify-between text-xs">
                         <span className="text-zinc-400">
@@ -909,7 +1064,10 @@ const mostFocusedTasks = tasks
                         </span>
 
                         <span className="text-zinc-600">
-                          {item.completed}/
+                          {
+                            item.completed
+                          }
+                          /
                           {item.total}
                         </span>
                       </div>
@@ -942,8 +1100,8 @@ const mostFocusedTasks = tasks
             </div>
 
             <div className="mt-5 space-y-4">
-              {analytics.priorityStats.length ===
-              0 ? (
+              {analytics.priorityStats
+                .length === 0 ? (
                 <p className="text-sm text-zinc-600">
                   No priority data yet.
                 </p>
@@ -951,15 +1109,22 @@ const mostFocusedTasks = tasks
                 analytics.priorityStats.map(
                   (item) => (
                     <div
-                      key={item.priority}
+                      key={
+                        item.priority
+                      }
                     >
                       <div className="mb-2 flex items-center justify-between text-xs">
                         <span className="capitalize text-zinc-400">
-                          {item.priority}
+                          {
+                            item.priority
+                          }
                         </span>
 
                         <span className="text-zinc-600">
-                          {item.completed}/
+                          {
+                            item.completed
+                          }
+                          /
                           {item.total}
                         </span>
                       </div>
@@ -994,8 +1159,8 @@ const mostFocusedTasks = tasks
           </div>
 
           <div className="mt-5 space-y-3">
-            {analytics.mostFocusedTasks.length ===
-            0 ? (
+            {analytics.mostFocusedTasks
+              .length === 0 ? (
               <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.015] p-6 text-center">
                 <Timer
                   size={22}
@@ -1007,8 +1172,9 @@ const mostFocusedTasks = tasks
                 </p>
 
                 <p className="mt-1 text-xs text-zinc-700">
-                  Start a focus session from a
-                  task to see your focus analytics.
+                  Start a focus session from
+                  a task to see your focus
+                  analytics.
                 </p>
               </div>
             ) : (
@@ -1020,12 +1186,15 @@ const mostFocusedTasks = tasks
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-zinc-300">
-                        {item.task.title}
+                        {
+                          item.task.title
+                        }
                       </p>
 
                       <p className="mt-1 text-xs text-zinc-600">
                         {item.sessions}{" "}
-                        {item.sessions === 1
+                        {item.sessions ===
+                        1
                           ? "session"
                           : "sessions"}
                       </p>
@@ -1078,7 +1247,9 @@ const mostFocusedTasks = tasks
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <AnalyticsMetric
               label="Total Alarms"
-              value={alarmHistory.length}
+              value={
+                alarmHistory.length
+              }
               icon={
                 <Bell size={16} />
               }
@@ -1087,17 +1258,21 @@ const mostFocusedTasks = tasks
             <AnalyticsMetric
               label="Stopped"
               value={
-                analytics.stoppedAlarms.length
+                analytics.stoppedAlarms
+                  .length
               }
               icon={
-                <CheckCircle2 size={16} />
+                <CheckCircle2
+                  size={16}
+                />
               }
             />
 
             <AnalyticsMetric
               label="Snoozed"
               value={
-                analytics.snoozedAlarms.length
+                analytics.snoozedAlarms
+                  .length
               }
               icon={
                 <Clock3 size={16} />
@@ -1123,7 +1298,9 @@ const mostFocusedTasks = tasks
                 analytics.fastestAlarmResponse
               )}
               icon={
-                <TrendingUp size={16} />
+                <TrendingUp
+                  size={16}
+                />
               }
             />
 
@@ -1155,8 +1332,11 @@ const mostFocusedTasks = tasks
 
               <div className="text-right">
                 <div className="text-2xl font-semibold text-white">
-                  {analytics.alarmDisciplineScore ??
-                    "—"}
+                  {
+                    analytics.alarmDisciplineScore ??
+                    "—"
+                  }
+
                   {analytics.alarmDisciplineScore !==
                     null && (
                     <span className="ml-0.5 text-sm text-zinc-600">
@@ -1166,7 +1346,9 @@ const mostFocusedTasks = tasks
                 </div>
 
                 <p className="text-[10px] text-zinc-600">
-                  {analytics.alarmDisciplineLabel}
+                  {
+                    analytics.alarmDisciplineLabel
+                  }
                 </p>
               </div>
             </div>
@@ -1268,7 +1450,8 @@ const mostFocusedTasks = tasks
                         className="w-2 rounded-full bg-white/70 transition-all"
                         style={{
                           height: `${Math.max(
-                            day.triggered > 0
+                            day.triggered >
+                              0
                               ? 8
                               : 2,
                             (day.triggered /
@@ -1284,7 +1467,8 @@ const mostFocusedTasks = tasks
                         className="w-2 rounded-full bg-emerald-400/70 transition-all"
                         style={{
                           height: `${Math.max(
-                            day.stopped > 0
+                            day.stopped >
+                              0
                               ? 8
                               : 2,
                             (day.stopped /
@@ -1300,7 +1484,8 @@ const mostFocusedTasks = tasks
                         className="w-2 rounded-full bg-amber-400/70 transition-all"
                         style={{
                           height: `${Math.max(
-                            day.snoozed > 0
+                            day.snoozed >
+                              0
                               ? 8
                               : 2,
                             (day.snoozed /
@@ -1341,6 +1526,55 @@ const mostFocusedTasks = tasks
                 Snoozed
               </div>
             </div>
+          </div>
+
+          {/* Alarm Insights */}
+          <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.015] p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
+                <TrendingUp
+                  size={16}
+                  className="text-zinc-400"
+                />
+              </div>
+
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-zinc-200">
+                  Alarm Insight
+                </h3>
+
+                <p className="mt-1 text-sm leading-6 text-zinc-500">
+                  {analytics.alarmInsight}
+                </p>
+              </div>
+            </div>
+
+            {analytics.mostActiveAlarmDay &&
+              analytics.mostActiveAlarmDay
+                .triggered > 0 && (
+                <div className="mt-4 flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+                  <span className="text-xs text-zinc-600">
+                    Most active day
+                  </span>
+
+                  <span className="text-xs font-medium text-zinc-300">
+                    {
+                      analytics
+                        .mostActiveAlarmDay
+                        .label
+                    }
+
+                    {" · "}
+
+                    {
+                      analytics
+                        .mostActiveAlarmDay
+                        .triggered
+                    }{" "}
+                    alarms
+                  </span>
+                </div>
+              )}
           </div>
         </section>
       </div>
