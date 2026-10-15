@@ -4,6 +4,7 @@ import "./globals.css";
 import AppShell from "@/components/layout/AppShell";
 import AlarmEngine from "@/components/alarms/AlarmEngine";
 import AlarmRinging from "@/components/alarms/AlarmRinging";
+import AuthBootstrap from "@/components/auth/AuthBootstrap";
 
 export const metadata: Metadata = {
   title: "DayFlow",
@@ -19,6 +20,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-[#09090b] text-white antialiased">
+        <AuthBootstrap />
+
         <AlarmEngine />
         <AlarmRinging />
 
