@@ -5,12 +5,9 @@ import { useRouter } from "next/navigation";
 import { useUserStore } from "@/store/userStore";
 import { logout } from "@/lib/clientAuth";
 
-
 export default function UserMenu() {
   const router = useRouter();
-
   const user = useUserStore((state) => state.user);
-
   const [loading, setLoading] = useState(false);
 
   if (!user) {

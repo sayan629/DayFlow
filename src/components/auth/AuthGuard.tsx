@@ -33,26 +33,19 @@ export default function AuthGuard({
       router.replace("/login");
     }
   }, [
-    user,
-    loading,
     initialized,
+    loading,
+    user,
     isPublicRoute,
-    pathname,
     router,
   ]);
 
-  /*
-   * Login and register must remain accessible
-   * without authentication.
-   */
+  // Login and register pages are always accessible
   if (isPublicRoute) {
     return <>{children}</>;
   }
 
-  /*
-   * Wait until AuthBootstrap finishes checking
-   * the session.
-   */
+  // Wait until authentication has been restored
   if (!initialized || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#09090b] text-white">
@@ -67,12 +60,21 @@ export default function AuthGuard({
     );
   }
 
-  /*
-   * User is not authenticated.
-   */
+  // User is not authenticated
   if (!user) {
-    return null;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#09090b] text-white">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+
+          <p className="text-sm text-white/60">
+            Redirecting to login...
+          </p>
+        </div>
+      </div>
+    );
   }
 
+  // Authenticated
   return <>{children}</>;
 }
