@@ -1,9 +1,22 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
     const tasks = await prisma.task.findMany({
+      where: {
+        userId: user.id,
+      },
       orderBy: [
         { date: "asc" },
         { startTime: "asc" },
@@ -15,7 +28,7 @@ export async function GET() {
   } catch (error) {
     console.error("GET /api/tasks error:", error);
 
-        return NextResponse.json(
+    return NextResponse.json(
       { error: "Failed to fetch tasks" },
       { status: 500 }
     );
@@ -24,28 +37,44 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     const task = await prisma.task.create({
       data: {
         id: body.id,
+        userId: user.id,
+
         title: body.title,
         description: body.description || null,
         date: body.date,
         startTime: body.startTime || null,
         endTime: body.endTime || null,
+
         priority: body.priority ?? "medium",
         category: body.category ?? "other",
+
         completed: body.completed ?? false,
         reminder: body.reminder ?? null,
         alarmEnabled: body.alarmEnabled ?? true,
+
         createdAt: body.createdAt
           ? new Date(body.createdAt)
           : new Date(),
       },
     });
 
-        return NextResponse.json(task, { status: 201 });
+    return NextResponse.json(task, {
+      status: 201,
+    });
   } catch (error) {
     console.error("POST /api/tasks error:", error);
 
