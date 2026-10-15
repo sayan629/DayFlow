@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 import { prisma } from "@/lib/prisma";
 import { normalizeEmail } from "@/lib/auth";
+import { sendPasswordResetEmail } from "@/lib/mailer";
 
 const RESET_TOKEN_EXPIRY_MINUTES = 15;
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     const genericResponse = NextResponse.json({
       success: true,
       message:
-        "If an account with that email exists, a password reset link has been generated.",
+        "If an account with that email exists, a password reset link has been sent.",
     });
 
     if (!email) {
@@ -66,27 +67,25 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Development-only reset URL.
-    // Later this URL will be sent through email.
+    // Build the reset URL.
+    const appUrl =
+      process.env.APP_URL || new URL(request.url).origin;
+
     const resetUrl = new URL(
       "/reset-password",
-      request.url
+      appUrl
     );
 
     resetUrl.searchParams.set("token", resetToken);
 
-    console.log(
-      "=========================================="
+    // Send reset email to the user's registered email.
+    await sendPasswordResetEmail(
+      user.email,
+      resetUrl.toString()
     );
-    console.log("DAYFLOW PASSWORD RESET");
-    console.log("User:", user.email);
-    console.log("Reset URL:", resetUrl.toString());
+
     console.log(
-      "Expires:",
-      expiresAt.toISOString()
-    );
-    console.log(
-      "=========================================="
+      `Password reset email sent to ${user.email}`
     );
 
     return genericResponse;
