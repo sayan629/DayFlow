@@ -26,6 +26,7 @@ import { useFocusStore } from "@/store/focusStore";
 import { useTaskStore } from "@/store/taskStore";
 import { useUserStore } from "@/store/userStore";
 import { usePreferencesStore } from "@/store/preferencesStore";
+import UserMenu from "@/components/auth/UserMenu";
 
 const navigation = [
   { label: "Dashboard", icon: Home, href: "/" },
@@ -831,6 +832,7 @@ export default function AppShell({
                 </div>
               </button>
             </div>
+            <UserMenu />
           </header>
 
           {/* Page content */}
