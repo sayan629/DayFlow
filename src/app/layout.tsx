@@ -4,7 +4,9 @@ import "./globals.css";
 import AppShell from "@/components/layout/AppShell";
 import AlarmEngine from "@/components/alarms/AlarmEngine";
 import AlarmRinging from "@/components/alarms/AlarmRinging";
+
 import AuthBootstrap from "@/components/auth/AuthBootstrap";
+import AuthGuard from "@/components/auth/AuthGuard";
 
 export const metadata: Metadata = {
   title: "DayFlow",
@@ -25,9 +27,11 @@ export default function RootLayout({
         <AlarmEngine />
         <AlarmRinging />
 
-        <AppShell>
-          {children}
-        </AppShell>
+        <AuthGuard>
+          <AppShell>
+            {children}
+          </AppShell>
+        </AuthGuard>
       </body>
     </html>
   );
