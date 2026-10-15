@@ -19,6 +19,10 @@ export function useAlarmEngine() {
     (state) => state.startAlarm
   );
 
+  const stopAlarm = useAlarmStore(
+    (state) => state.stopAlarm
+  );
+
   const enqueueAlarm = useAlarmStore(
     (state) => state.enqueueAlarm
   );
@@ -294,6 +298,18 @@ export function useAlarmEngine() {
       }
 
       /**
+       * IMPORTANT:
+       *
+       * Clear the current alarm state BEFORE
+       * processing the next queued alarm.
+       *
+       * Otherwise triggerAlarm() sees
+       * isRinging === true and re-enqueues
+       * the next alarm instead of starting it.
+       */
+      stopAlarm();
+
+      /**
        * Process the next queued alarm.
        *
        * Stale entries are skipped automatically.
@@ -313,6 +329,7 @@ export function useAlarmEngine() {
       );
     };
   }, [
+    stopAlarm,
     triggerNextQueuedAlarm,
   ]);
 
