@@ -6,6 +6,8 @@ import {
   Bell,
   Check,
   Clock,
+  Eye,
+  EyeOff,
   Flame,
   ListChecks,
   Save,
@@ -55,11 +57,9 @@ const streakOptions: {
 const focusDurationOptions = [15, 25, 50, 90];
 
 export default function SettingsPage() {
-  /*
-   * ------------------------------------------------------
-   * Profile
-   * ------------------------------------------------------
-   */
+  // ------------------------------------------------------
+  // Profile
+  // ------------------------------------------------------
 
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
@@ -69,17 +69,41 @@ export default function SettingsPage() {
   const [profileMessage, setProfileMessage] = useState("");
   const [profileError, setProfileError] = useState("");
 
+  // ------------------------------------------------------
+  // Change Password
+  // ------------------------------------------------------
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showCurrentPassword, setShowCurrentPassword] =
+    useState(false);
+
+  const [showNewPassword, setShowNewPassword] =
+    useState(false);
+
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
+
+  const [changingPassword, setChangingPassword] =
+    useState(false);
+
+  const [passwordMessage, setPasswordMessage] =
+    useState("");
+
+  const [passwordError, setPasswordError] =
+    useState("");
+
   useEffect(() => {
     if (user) {
       setName(user.name);
     }
   }, [user]);
 
-  /*
-   * ------------------------------------------------------
-   * Streak
-   * ------------------------------------------------------
-   */
+  // ------------------------------------------------------
+  // Streak
+  // ------------------------------------------------------
 
   const streakMode = usePreferencesStore(
     (state) => state.streakMode
@@ -89,11 +113,9 @@ export default function SettingsPage() {
     (state) => state.setStreakMode
   );
 
-  /*
-   * ------------------------------------------------------
-   * Alarms
-   * ------------------------------------------------------
-   */
+  // ------------------------------------------------------
+  // Alarms
+  // ------------------------------------------------------
 
   const notificationsEnabled = useSettingsStore(
     (state) => state.notificationsEnabled
@@ -107,11 +129,9 @@ export default function SettingsPage() {
     (state) => state.defaultSnoozeMinutes
   );
 
-  /*
-   * ------------------------------------------------------
-   * Focus
-   * ------------------------------------------------------
-   */
+  // ------------------------------------------------------
+  // Focus
+  // ------------------------------------------------------
 
   const defaultFocusMinutes = useSettingsStore(
     (state) => state.defaultFocusMinutes
@@ -133,11 +153,9 @@ export default function SettingsPage() {
     (state) => state.setDefaultFocusMinutes
   );
 
-  /*
-   * ------------------------------------------------------
-   * Profile Save
-   * ------------------------------------------------------
-   */
+  // ------------------------------------------------------
+  // Profile Save
+  // ------------------------------------------------------
 
   const handleSaveProfile = async () => {
     setProfileError("");
@@ -205,18 +223,117 @@ export default function SettingsPage() {
     }
   };
 
-  /*
-   * ------------------------------------------------------
-   * Render
-   * ------------------------------------------------------
-   */
+  // ------------------------------------------------------
+  // Change Password
+  // ------------------------------------------------------
+
+  const handleChangePassword = async () => {
+    setPasswordError("");
+    setPasswordMessage("");
+
+    if (!currentPassword) {
+      setPasswordError(
+        "Current password is required."
+      );
+      return;
+    }
+
+    if (!newPassword) {
+      setPasswordError(
+        "New password is required."
+      );
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError(
+        "New password must be at least 8 characters."
+      );
+      return;
+    }
+
+    if (newPassword.length > 100) {
+      setPasswordError(
+        "New password must be less than 100 characters."
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError(
+        "New passwords do not match."
+      );
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setPasswordError(
+        "New password must be different from your current password."
+      );
+      return;
+    }
+
+    setChangingPassword(true);
+
+    try {
+      const response = await fetch(
+        "/api/user/change-password",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            currentPassword,
+            newPassword,
+            confirmPassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Failed to change password."
+        );
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      setPasswordMessage(
+        "Password changed successfully."
+      );
+    } catch (error) {
+      setPasswordError(
+        error instanceof Error
+          ? error.message
+          : "Failed to change password."
+      );
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  // ------------------------------------------------------
+  // Password Input Helper
+  // ------------------------------------------------------
+
+  const passwordInputClass =
+    "w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 pr-12 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/20 focus:bg-white/[0.05]";
+
+  // ------------------------------------------------------
+  // Render
+  // ------------------------------------------------------
 
   return (
     <main className="min-h-full bg-[#09090b] p-5 text-white md:p-8">
       <div className="mx-auto max-w-4xl">
 
         {/* ------------------------------------------------------ */}
-        {/* Header                                                   */}
+        {/* Header */}
         {/* ------------------------------------------------------ */}
 
         <div className="mb-8">
@@ -234,7 +351,7 @@ export default function SettingsPage() {
         </div>
 
         {/* ------------------------------------------------------ */}
-        {/* Profile                                                  */}
+        {/* Profile */}
         {/* ------------------------------------------------------ */}
 
         <section className="mb-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
@@ -255,7 +372,7 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-8">
 
             {/* Avatar */}
 
@@ -338,7 +455,7 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            {/* Save */}
+            {/* Save Profile */}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
@@ -370,11 +487,229 @@ export default function SettingsPage() {
                 </p>
               )}
             </div>
+
+            {/* -------------------------------------------------- */}
+            {/* Change Password */}
+            {/* -------------------------------------------------- */}
+
+            <div className="border-t border-white/10 pt-8">
+              <div className="mb-5">
+                <h3 className="text-sm font-semibold text-white">
+                  Change Password
+                </h3>
+
+                <p className="mt-2 text-xs text-zinc-500">
+                  Update your password to keep your account secure.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+
+                {/* Current Password */}
+
+                <div>
+                  <label
+                    htmlFor="current-password"
+                    className="mb-2 block text-xs font-medium text-zinc-300"
+                  >
+                    Current Password
+                  </label>
+
+                  <div className="relative">
+                    <input
+                      id="current-password"
+                      type={
+                        showCurrentPassword
+                          ? "text"
+                          : "password"
+                      }
+                      value={currentPassword}
+                      onChange={(event) => {
+                        setCurrentPassword(
+                          event.target.value
+                        );
+                        setPasswordMessage("");
+                        setPasswordError("");
+                      }}
+                      placeholder="Enter current password"
+                      autoComplete="current-password"
+                      className={passwordInputClass}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowCurrentPassword(
+                          !showCurrentPassword
+                        )
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-white"
+                      aria-label={
+                        showCurrentPassword
+                          ? "Hide current password"
+                          : "Show current password"
+                      }
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff size={17} />
+                      ) : (
+                        <Eye size={17} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Password */}
+
+                <div>
+                  <label
+                    htmlFor="new-password"
+                    className="mb-2 block text-xs font-medium text-zinc-300"
+                  >
+                    New Password
+                  </label>
+
+                  <div className="relative">
+                    <input
+                      id="new-password"
+                      type={
+                        showNewPassword
+                          ? "text"
+                          : "password"
+                      }
+                      value={newPassword}
+                      onChange={(event) => {
+                        setNewPassword(
+                          event.target.value
+                        );
+                        setPasswordMessage("");
+                        setPasswordError("");
+                      }}
+                      placeholder="Enter new password"
+                      autoComplete="new-password"
+                      className={passwordInputClass}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowNewPassword(
+                          !showNewPassword
+                        )
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-white"
+                      aria-label={
+                        showNewPassword
+                          ? "Hide new password"
+                          : "Show new password"
+                      }
+                    >
+                      {showNewPassword ? (
+                        <EyeOff size={17} />
+                      ) : (
+                        <Eye size={17} />
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="mt-2 text-xs text-zinc-600">
+                    Use at least 8 characters.
+                  </p>
+                </div>
+
+                {/* Confirm Password */}
+
+                <div>
+                  <label
+                    htmlFor="confirm-password"
+                    className="mb-2 block text-xs font-medium text-zinc-300"
+                  >
+                    Confirm New Password
+                  </label>
+
+                  <div className="relative">
+                    <input
+                      id="confirm-password"
+                      type={
+                        showConfirmPassword
+                          ? "text"
+                          : "password"
+                      }
+                      value={confirmPassword}
+                      onChange={(event) => {
+                        setConfirmPassword(
+                          event.target.value
+                        );
+                        setPasswordMessage("");
+                        setPasswordError("");
+                      }}
+                      placeholder="Confirm new password"
+                      autoComplete="new-password"
+                      className={passwordInputClass}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(
+                          !showConfirmPassword
+                        )
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-white"
+                      aria-label={
+                        showConfirmPassword
+                          ? "Hide confirm password"
+                          : "Show confirm password"
+                      }
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff size={17} />
+                      ) : (
+                        <Eye size={17} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password Action */}
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <button
+                    type="button"
+                    disabled={changingPassword}
+                    onClick={handleChangePassword}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {changingPassword ? (
+                      "Changing Password..."
+                    ) : (
+                      <>
+                        <Save size={15} />
+                        Change Password
+                      </>
+                    )}
+                  </button>
+
+                  {passwordMessage && (
+                    <div className="flex items-center gap-2 text-xs text-emerald-400">
+                      <Check size={14} />
+                      {passwordMessage}
+                    </div>
+                  )}
+
+                  {passwordError && (
+                    <p className="text-xs text-red-400">
+                      {passwordError}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
         {/* ------------------------------------------------------ */}
-        {/* Streak                                                   */}
+        {/* Streak */}
         {/* ------------------------------------------------------ */}
 
         <section className="mb-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
@@ -447,7 +782,7 @@ export default function SettingsPage() {
         </section>
 
         {/* ------------------------------------------------------ */}
-        {/* Alarms                                                   */}
+        {/* Alarms */}
         {/* ------------------------------------------------------ */}
 
         <section className="mb-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
@@ -601,7 +936,7 @@ export default function SettingsPage() {
         </section>
 
         {/* ------------------------------------------------------ */}
-        {/* Focus                                                    */}
+        {/* Focus */}
         {/* ------------------------------------------------------ */}
 
         <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
