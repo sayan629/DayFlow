@@ -1,13 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import {
   Bell,
   Check,
   Clock,
   Flame,
   ListChecks,
+  Save,
   Settings,
   Target,
+  User,
   Volume2,
 } from "lucide-react";
 
@@ -17,6 +21,7 @@ import {
 } from "@/store/preferencesStore";
 
 import { useSettingsStore } from "@/store/settingsStore";
+import { useUserStore } from "@/store/userStore";
 
 const streakOptions: {
   value: StreakMode;
@@ -50,6 +55,32 @@ const streakOptions: {
 const focusDurationOptions = [15, 25, 50, 90];
 
 export default function SettingsPage() {
+  /*
+   * ------------------------------------------------------
+   * Profile
+   * ------------------------------------------------------
+   */
+
+  const user = useUserStore((state) => state.user);
+  const setUser = useUserStore((state) => state.setUser);
+
+  const [name, setName] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileError, setProfileError] = useState("");
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name);
+    }
+  }, [user]);
+
+  /*
+   * ------------------------------------------------------
+   * Streak
+   * ------------------------------------------------------
+   */
+
   const streakMode = usePreferencesStore(
     (state) => state.streakMode
   );
@@ -57,6 +88,12 @@ export default function SettingsPage() {
   const setStreakMode = usePreferencesStore(
     (state) => state.setStreakMode
   );
+
+  /*
+   * ------------------------------------------------------
+   * Alarms
+   * ------------------------------------------------------
+   */
 
   const notificationsEnabled = useSettingsStore(
     (state) => state.notificationsEnabled
@@ -69,6 +106,12 @@ export default function SettingsPage() {
   const defaultSnoozeMinutes = useSettingsStore(
     (state) => state.defaultSnoozeMinutes
   );
+
+  /*
+   * ------------------------------------------------------
+   * Focus
+   * ------------------------------------------------------
+   */
 
   const defaultFocusMinutes = useSettingsStore(
     (state) => state.defaultFocusMinutes
@@ -90,10 +133,92 @@ export default function SettingsPage() {
     (state) => state.setDefaultFocusMinutes
   );
 
+  /*
+   * ------------------------------------------------------
+   * Profile Save
+   * ------------------------------------------------------
+   */
+
+  const handleSaveProfile = async () => {
+    setProfileError("");
+    setProfileMessage("");
+
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      setProfileError("Name is required.");
+      return;
+    }
+
+    if (trimmedName.length < 2) {
+      setProfileError(
+        "Name must be at least 2 characters."
+      );
+      return;
+    }
+
+    if (trimmedName.length > 100) {
+      setProfileError(
+        "Name must be less than 100 characters."
+      );
+      return;
+    }
+
+    setSavingProfile(true);
+
+    try {
+      const response = await fetch(
+        "/api/user/profile",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: trimmedName,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Failed to update profile."
+        );
+      }
+
+      setUser(data.user);
+      setName(data.user.name);
+
+      setProfileMessage(
+        "Profile updated successfully."
+      );
+    } catch (error) {
+      setProfileError(
+        error instanceof Error
+          ? error.message
+          : "Failed to update profile."
+      );
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  /*
+   * ------------------------------------------------------
+   * Render
+   * ------------------------------------------------------
+   */
+
   return (
     <main className="min-h-full bg-[#09090b] p-5 text-white md:p-8">
       <div className="mx-auto max-w-4xl">
-        {/* Header */}
+
+        {/* ------------------------------------------------------ */}
+        {/* Header                                                   */}
+        {/* ------------------------------------------------------ */}
+
         <div className="mb-8">
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06]">
             <Settings size={20} />
@@ -109,7 +234,147 @@ export default function SettingsPage() {
         </div>
 
         {/* ------------------------------------------------------ */}
-        {/* Streak                                                  */}
+        {/* Profile                                                  */}
+        {/* ------------------------------------------------------ */}
+
+        <section className="mb-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
+          <div className="mb-6">
+            <div className="flex items-center gap-2">
+              <User
+                size={18}
+                className="text-zinc-300"
+              />
+
+              <h2 className="text-sm font-semibold text-white">
+                Profile
+              </h2>
+            </div>
+
+            <p className="mt-2 text-xs text-zinc-500">
+              Manage your DayFlow profile information.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+
+            {/* Avatar */}
+
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white text-lg font-semibold text-black">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  user?.name
+                    ?.split(" ")
+                    .filter(Boolean)
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase() || "U"
+                )}
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-white">
+                  Profile picture
+                </p>
+
+                <p className="mt-1 text-xs text-zinc-500">
+                  Your profile picture comes from your
+                  connected Google or GitHub account.
+                </p>
+              </div>
+            </div>
+
+            {/* Name */}
+
+            <div>
+              <label
+                htmlFor="profile-name"
+                className="mb-2 block text-xs font-medium text-zinc-300"
+              >
+                Name
+              </label>
+
+              <input
+                id="profile-name"
+                type="text"
+                value={name}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setProfileMessage("");
+                  setProfileError("");
+                }}
+                placeholder="Enter your name"
+                maxLength={100}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/20 focus:bg-white/[0.05]"
+              />
+            </div>
+
+            {/* Email */}
+
+            <div>
+              <label
+                htmlFor="profile-email"
+                className="mb-2 block text-xs font-medium text-zinc-300"
+              >
+                Email
+              </label>
+
+              <input
+                id="profile-email"
+                type="email"
+                value={user?.email ?? ""}
+                disabled
+                className="w-full cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-zinc-500 outline-none"
+              />
+
+              <p className="mt-2 text-xs text-zinc-600">
+                Your email address cannot be changed here.
+              </p>
+            </div>
+
+            {/* Save */}
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                disabled={savingProfile}
+                onClick={handleSaveProfile}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-xs font-semibold text-black transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {savingProfile ? (
+                  "Saving..."
+                ) : (
+                  <>
+                    <Save size={15} />
+                    Save Changes
+                  </>
+                )}
+              </button>
+
+              {profileMessage && (
+                <div className="flex items-center gap-2 text-xs text-emerald-400">
+                  <Check size={14} />
+                  {profileMessage}
+                </div>
+              )}
+
+              {profileError && (
+                <p className="text-xs text-red-400">
+                  {profileError}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------ */}
+        {/* Streak                                                   */}
         {/* ------------------------------------------------------ */}
 
         <section className="mb-5 rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
@@ -204,7 +469,9 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-3">
+
             {/* Notifications */}
+
             <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.02] p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.06] text-zinc-400">
@@ -248,6 +515,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Alarm Sound */}
+
             <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.02] p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.06] text-zinc-400">
@@ -291,6 +559,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Snooze */}
+
             <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-white">
@@ -332,7 +601,7 @@ export default function SettingsPage() {
         </section>
 
         {/* ------------------------------------------------------ */}
-        {/* Focus                                                     */}
+        {/* Focus                                                    */}
         {/* ------------------------------------------------------ */}
 
         <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 md:p-6">

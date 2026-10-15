@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
@@ -17,7 +17,6 @@ export async function GET() {
       );
     }
 
-    // Generate CSRF protection state
     const state = randomBytes(32).toString("hex");
 
     const cookieStore = await cookies();
@@ -51,7 +50,8 @@ export async function GET() {
 
     return NextResponse.json(
       {
-        error: "Unable to start GitHub authentication",
+        error:
+          "Unable to start GitHub authentication",
       },
       { status: 500 }
     );

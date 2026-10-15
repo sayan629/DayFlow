@@ -222,6 +222,15 @@ export async function GET(request: Request) {
       githubUser.name?.trim() ||
       githubUser.login;
 
+    const avatar =
+      githubUser.avatar_url || null;
+
+    console.log("GitHub user:", {
+      email,
+      name,
+      avatar,
+    });
+
     // Find existing DayFlow account.
     let user =
       await prisma.user.findUnique({
@@ -230,7 +239,7 @@ export async function GET(request: Request) {
         },
       });
 
-    // Existing account -> login.
+    // Existing account.
     if (user) {
       user =
         await prisma.user.update({
@@ -239,9 +248,10 @@ export async function GET(request: Request) {
           },
           data: {
             name,
-            avatar:
-              githubUser.avatar_url ||
-              user.avatar,
+            avatar: avatar || user.avatar,
+            emailVerifiedAt:
+              user.emailVerifiedAt ??
+              new Date(),
           },
         });
     } else {
@@ -260,8 +270,8 @@ export async function GET(request: Request) {
             name,
             email,
             passwordHash,
-            avatar:
-              githubUser.avatar_url,
+            avatar,
+            emailVerifiedAt: new Date(),
           },
         });
     }
