@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import AppShell from "@/components/layout/AppShell";
 import { useUserStore } from "@/store/userStore";
 
 interface AuthGuardProps {
@@ -32,6 +33,10 @@ export default function AuthGuard({
     if (!user && !isPublicRoute) {
       router.replace("/login");
     }
+
+    if (user && isPublicRoute) {
+      router.replace("/");
+    }
   }, [
     initialized,
     loading,
@@ -40,12 +45,22 @@ export default function AuthGuard({
     router,
   ]);
 
-  // Login and register pages are always accessible
+  /*
+   * LOGIN / REGISTER
+   *
+   * Public pages are rendered WITHOUT AppShell.
+   * Therefore:
+   * - no sidebar
+   * - no dashboard header
+   * - no workspace menu
+   */
   if (isPublicRoute) {
     return <>{children}</>;
   }
 
-  // Wait until authentication has been restored
+  /*
+   * Protected pages
+   */
   if (!initialized || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#09090b] text-white">
@@ -60,7 +75,6 @@ export default function AuthGuard({
     );
   }
 
-  // User is not authenticated
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#09090b] text-white">
@@ -75,6 +89,9 @@ export default function AuthGuard({
     );
   }
 
-  // Authenticated
-  return <>{children}</>;
+  return (
+    <AppShell>
+      {children}
+    </AppShell>
+  );
 }

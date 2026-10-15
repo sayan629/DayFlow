@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-import AppShell from "@/components/layout/AppShell";
 import AlarmEngine from "@/components/alarms/AlarmEngine";
 import AlarmRinging from "@/components/alarms/AlarmRinging";
-
 import AuthBootstrap from "@/components/auth/AuthBootstrap";
 import AuthGuard from "@/components/auth/AuthGuard";
 
@@ -24,14 +22,12 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#09090b] text-white antialiased">
         <AuthBootstrap />
 
+        <AuthGuard>
+          {children}
+        </AuthGuard>
+
         <AlarmEngine />
         <AlarmRinging />
-
-        <AuthGuard>
-          <AppShell>
-            {children}
-          </AppShell>
-        </AuthGuard>
       </body>
     </html>
   );

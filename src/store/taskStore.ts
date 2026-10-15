@@ -15,13 +15,37 @@ interface TaskStore {
   clearTasks: () => Promise<void>;
 }
 
+async function handleUnauthorized(response: Response) {
+  if (response.status === 401) {
+    console.warn("Authentication required. Session may have expired.");
+    return true;
+  }
+
+  return false;
+}
+
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   initialized: false,
 
   loadTasks: async () => {
     try {
-      const response = await fetch("/api/tasks");
+      set({ initialized: false });
+
+      const response = await fetch("/api/tasks", {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (await handleUnauthorized(response)) {
+        set({
+          tasks: [],
+          initialized: true,
+        });
+
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to load tasks");
@@ -35,6 +59,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       });
     } catch (error) {
       console.error("Failed to load tasks:", error);
+
+      set({
+        tasks: [],
+        initialized: true,
+      });
     }
   },
 
@@ -45,8 +74,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(task),
       });
+
+      if (await handleUnauthorized(response)) {
+        throw new Error("Authentication required");
+      }
 
       if (!response.ok) {
         throw new Error("Failed to create task");
@@ -69,8 +103,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(updates),
       });
+
+      if (await handleUnauthorized(response)) {
+        throw new Error("Authentication required");
+      }
 
       if (!response.ok) {
         throw new Error("Failed to update task");
@@ -92,7 +131,12 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       const response = await fetch(`/api/tasks/${id}`, {
         method: "DELETE",
+        credentials: "include",
       });
+
+      if (await handleUnauthorized(response)) {
+        throw new Error("Authentication required");
+      }
 
       if (!response.ok) {
         throw new Error("Failed to delete task");
@@ -107,9 +151,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   toggleTask: async (id) => {
-    const task = get().tasks.find((item) => item.id === id);
+    const task = get().tasks.find(
+      (item) => item.id === id
+    );
 
-    if (!task) return;
+    if (!task) {
+      return;
+    }
 
     await get().updateTask(id, {
       completed: !task.completed,
@@ -121,16 +169,36 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     try {
       await Promise.all(
-        tasks.map((task) =>
-          fetch(`/api/tasks/${task.id}`, {
-            method: "DELETE",
-          })
-        )
+        tasks.map(async (task) => {
+          const response = await fetch(
+            `/api/tasks/${task.id}`,
+            {
+              method: "DELETE",
+              credentials: "include",
+            }
+          );
+
+          if (response.status === 401) {
+            throw new Error("Authentication required");
+          }
+
+          if (!response.ok) {
+            throw new Error(
+              `Failed to delete task ${task.id}`
+            );
+          }
+        })
       );
 
-      set({ tasks: [] });
+      set({
+        tasks: [],
+      });
     } catch (error) {
       console.error("Failed to clear tasks:", error);
+
+      // Reload from server so the UI doesn't
+      // incorrectly claim everything was deleted.
+      await get().loadTasks();
     }
   },
 }));
