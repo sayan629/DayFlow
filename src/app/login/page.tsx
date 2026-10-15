@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import {
   Mail,
   Lock,
@@ -12,7 +14,11 @@ import {
 
 import { useUserStore } from "@/store/userStore";
 
-function GithubLogo({ size = 16 }: { size?: number }) {
+function GithubLogo({
+  size = 16,
+}: {
+  size?: number;
+}) {
   return (
     <svg
       width={size}
@@ -26,7 +32,11 @@ function GithubLogo({ size = 16 }: { size?: number }) {
   );
 }
 
-function GoogleLogo({ size = 16 }: { size?: number }) {
+function GoogleLogo({
+  size = 16,
+}: {
+  size?: number;
+}) {
   return (
     <svg
       width={size}
@@ -51,7 +61,7 @@ function GoogleLogo({ size = 16 }: { size?: number }) {
 
       <path
         fill="#EA4335"
-        d="M12 6.18c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.84 3.26 14.63 2.3 12 2.3a9.74 9.74 0 0 0-8.7 5.38l3.24 2.53c1.01-1.96 3.16-3.68 5.46-3.68Z"
+        d="M12 6.18c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.84 3.26 14.63 2.3 12 2.3a9.74 9.74 0 0 0-8.7 5.38l3.24 2.53c1.01-1.96 3.16-3.68 5.7-3.68Z"
       />
     </svg>
   );
@@ -64,28 +74,44 @@ export default function LoginPage() {
     (state) => state.setUser
   );
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] =
+    useState("");
 
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [password, setPassword] =
+    useState("");
 
-  const [lampOn, setLampOn] = useState(false);
-  const [pulling, setPulling] = useState(false);
+  const [error, setError] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  // ============================================================
+  // Lamp state
+  // ============================================================
+
+  const [lampOn, setLampOn] =
+    useState(false);
+
+  const [pulling, setPulling] =
+    useState(false);
 
   function handlePull() {
-    if (pulling) {
-      return;
-    }
+    if (pulling) return;
 
     setPulling(true);
 
-    setLampOn((previous) => !previous);
+    setLampOn((prev) => !prev);
 
-    setTimeout(() => {
-      setPulling(false);
-    }, 220);
+    setTimeout(
+      () => setPulling(false),
+      220
+    );
   }
+
+  // ============================================================
+  // Login
+  // ============================================================
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
@@ -101,7 +127,8 @@ export default function LoginPage() {
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
           },
           credentials: "include",
           body: JSON.stringify({
@@ -111,12 +138,15 @@ export default function LoginPage() {
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         setError(
-          data.error || "Unable to login"
+          data.error ||
+            "Unable to login"
         );
+
         return;
       }
 
@@ -138,6 +168,18 @@ export default function LoginPage() {
     }
   }
 
+  // ============================================================
+  // OAuth
+  // ============================================================
+
+  function handleOAuth(
+    provider: string
+  ) {
+    setError(
+      `${provider} sign in will be available after OAuth setup.`
+    );
+  }
+
   return (
     <main
       className={`relative min-h-screen overflow-hidden text-white transition-colors duration-700 ${
@@ -146,7 +188,10 @@ export default function LoginPage() {
           : "bg-[#050505]"
       }`}
     >
-      {/* Ambient Background */}
+      {/* ========================================================
+          Ambient background
+         ======================================================== */}
+
       <div
         className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${
           lampOn
@@ -161,7 +206,10 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,220,80,0.07),transparent_28%)]" />
       </div>
 
-      {/* Floating Particles */}
+      {/* ========================================================
+          Floating particles
+         ======================================================== */}
+
       <div
         className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${
           lampOn
@@ -183,8 +231,10 @@ export default function LoginPage() {
       </div>
 
       <div className="relative grid min-h-screen lg:grid-cols-[1fr_520px]">
+        {/* ========================================================
+            LEFT SIDE
+           ======================================================== */}
 
-        {/* LEFT SIDE */}
         <section className="relative hidden overflow-hidden lg:flex">
           <div
             className={`absolute inset-0 bg-gradient-to-br from-[#11150d] via-[#0b0d09] to-[#080a07] transition-opacity duration-1000 ${
@@ -194,10 +244,13 @@ export default function LoginPage() {
             }`}
           />
 
-          {/* Lamp */}
-          <div className="absolute left-[24%] top-[27%] flex h-[390px] w-[260px] flex-col items-center">
+          {/* ======================================================
+              Lamp
+             ====================================================== */}
 
-            {/* Light Beam */}
+          <div className="absolute left-[24%] top-[27%] flex h-[390px] w-[260px] flex-col items-center">
+            {/* Light beam */}
+
             <div
               className={`absolute top-12 h-60 w-72 transition-opacity duration-700 ${
                 lampOn
@@ -207,12 +260,14 @@ export default function LoginPage() {
               style={{
                 background:
                   "linear-gradient(180deg, rgba(255,220,100,0.45), rgba(255,220,100,0.04))",
+
                 clipPath:
                   "polygon(28% 0, 72% 0, 100% 100%, 0 100%)",
               }}
             />
 
-            {/* Lamp Shade */}
+            {/* Lamp shade */}
+
             <div
               className={`relative z-10 h-14 w-36 rounded-t-[70px] rounded-b-[12px] bg-[#151713] transition-shadow duration-700 ${
                 lampOn
@@ -230,6 +285,7 @@ export default function LoginPage() {
             </div>
 
             {/* Pole */}
+
             <div
               className={`absolute top-12 h-52 w-[3px] transition-colors duration-700 ${
                 lampOn
@@ -238,7 +294,8 @@ export default function LoginPage() {
               }`}
             />
 
-            {/* Pull Cord */}
+            {/* Pull cord */}
+
             <button
               type="button"
               onClick={handlePull}
@@ -282,6 +339,7 @@ export default function LoginPage() {
             </button>
 
             {/* Base */}
+
             <div
               className={`absolute bottom-2 h-2 w-36 rounded-full bg-[#171914] transition-shadow duration-700 ${
                 lampOn
@@ -293,7 +351,10 @@ export default function LoginPage() {
             <div className="absolute bottom-0 h-3 w-44 rounded-full bg-[#0d0f0b]" />
           </div>
 
-          {/* Brand */}
+          {/* ======================================================
+              Brand
+             ====================================================== */}
+
           <div
             className={`absolute bottom-12 left-14 transition-opacity duration-1000 ${
               lampOn
@@ -302,8 +363,17 @@ export default function LoginPage() {
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg font-semibold">
-                D
+              {/* DayFlow logo */}
+
+              <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                <Image
+                  src="/dayflow-logo.png"
+                  alt="DayFlow"
+                  fill
+                  priority
+                  sizes="48px"
+                  className="object-contain"
+                />
               </div>
 
               <div>
@@ -318,15 +388,22 @@ export default function LoginPage() {
             </div>
 
             <p className="mt-5 max-w-sm text-sm leading-6 text-white/35">
-              Plan your day. Protect your focus.
-              Build momentum.
+              Plan your day. Protect your
+              focus. Build momentum.
             </p>
           </div>
         </section>
 
-        {/* RIGHT SIDE */}
+        {/* ========================================================
+            RIGHT SIDE
+           ======================================================== */}
+
         <section className="relative flex min-h-screen items-center justify-center px-6 py-12">
           <div className="absolute inset-y-0 left-0 hidden w-px bg-white/5 lg:block" />
+
+          {/* ======================================================
+              Login form
+             ====================================================== */}
 
           <div
             className={`w-full max-w-[430px] transition-all duration-700 ease-out ${
@@ -335,18 +412,37 @@ export default function LoginPage() {
                 : "lg:invisible lg:translate-y-6 lg:opacity-0"
             }`}
           >
-            {/* Mobile Logo */}
+            {/* ====================================================
+                Mobile logo
+               ==================================================== */}
+
             <div className="mb-8 flex items-center justify-center gap-3 lg:hidden">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-400 text-lg font-bold text-black">
-                D
+              <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                <Image
+                  src="/dayflow-logo.png"
+                  alt="DayFlow"
+                  fill
+                  priority
+                  sizes="48px"
+                  className="object-contain"
+                />
               </div>
 
-              <span className="text-lg font-semibold">
-                DayFlow
-              </span>
+              <div>
+                <span className="text-lg font-semibold">
+                  DayFlow
+                </span>
+
+                <p className="text-[8px] uppercase tracking-[0.25em] text-white/30">
+                  Personal OS
+                </p>
+              </div>
             </div>
 
-            {/* Heading */}
+            {/* ====================================================
+                Heading
+               ==================================================== */}
+
             <div className="mb-8 text-center">
               <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-yellow-300/20 bg-yellow-300/10 shadow-[0_0_40px_rgba(250,204,21,0.08)]">
                 <User
@@ -360,18 +456,24 @@ export default function LoginPage() {
               </h1>
 
               <p className="mt-2 text-sm text-white/40">
-                Sign in to continue to DayFlow
+                Sign in to continue to
+                DayFlow
               </p>
             </div>
 
-            {/* Card */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+            {/* ====================================================
+                Card
+               ==================================================== */}
 
+            <div className="rounded-3xl border border-white/10 bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
               <form
                 onSubmit={handleSubmit}
                 className="space-y-5"
               >
-                {/* Email */}
+                {/* ==================================================
+                    Email
+                   ================================================== */}
+
                 <div>
                   <label
                     htmlFor="email"
@@ -403,7 +505,10 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Password */}
+                {/* ==================================================
+                    Password
+                   ================================================== */}
+
                 <div>
                   <label
                     htmlFor="password"
@@ -435,14 +540,20 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Error */}
+                {/* ==================================================
+                    Error
+                   ================================================== */}
+
                 {error && (
                   <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
                     {error}
                   </div>
                 )}
 
-                {/* Sign In */}
+                {/* ==================================================
+                    Sign in
+                   ================================================== */}
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -461,7 +572,10 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              {/* Divider */}
+              {/* ====================================================
+                  Divider
+                 ==================================================== */}
+
               <div className="my-7 flex items-center gap-4">
                 <div className="h-px flex-1 bg-white/10" />
 
@@ -472,32 +586,51 @@ export default function LoginPage() {
                 <div className="h-px flex-1 bg-white/10" />
               </div>
 
-              {/* OAuth Buttons */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* ====================================================
+                  OAuth buttons
+                 ==================================================== */}
 
+              <div className="grid grid-cols-2 gap-3">
                 {/* Google */}
-                <a
-                  href="/api/auth/google"
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleOAuth(
+                      "Google"
+                    )
+                  }
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
                   <GoogleLogo size={17} />
+
                   Google
-                </a>
+                </button>
 
                 {/* GitHub */}
-                <a
-                  href="/api/auth/github"
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleOAuth(
+                      "GitHub"
+                    )
+                  }
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
                   <GithubLogo size={17} />
-                  GitHub
-                </a>
 
+                  GitHub
+                </button>
               </div>
 
-              {/* Register */}
+              {/* ====================================================
+                  Register
+                 ==================================================== */}
+
               <p className="mt-7 text-center text-sm text-white/35">
-                Don&apos;t have an account?{" "}
+                Don&apos;t have an
+                account?{" "}
 
                 <Link
                   href="/register"
@@ -508,7 +641,10 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Footer */}
+            {/* ====================================================
+                Footer
+               ==================================================== */}
+
             <p className="mt-6 text-center text-xs text-white/20">
               © 2026 DayFlow
             </p>
