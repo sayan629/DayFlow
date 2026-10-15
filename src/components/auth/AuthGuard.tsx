@@ -9,7 +9,12 @@ interface AuthGuardProps {
   children: ReactNode;
 }
 
-const PUBLIC_ROUTES = ["/login", "/register"];
+const PUBLIC_ROUTES = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+];
 
 export default function AuthGuard({
   children,

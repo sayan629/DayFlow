@@ -74,39 +74,28 @@ export default function LoginPage() {
     (state) => state.setUser
   );
 
-  const [email, setEmail] =
-    useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const [password, setPassword] =
-    useState("");
-
-  const [error, setError] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // ============================================================
   // Lamp state
   // ============================================================
 
-  const [lampOn, setLampOn] =
-    useState(false);
-
-  const [pulling, setPulling] =
-    useState(false);
+  const [lampOn, setLampOn] = useState(false);
+  const [pulling, setPulling] = useState(false);
 
   function handlePull() {
     if (pulling) return;
 
     setPulling(true);
-
     setLampOn((prev) => !prev);
 
-    setTimeout(
-      () => setPulling(false),
-      220
-    );
+    setTimeout(() => {
+      setPulling(false);
+    }, 220);
   }
 
   // ============================================================
@@ -127,8 +116,7 @@ export default function LoginPage() {
         {
           method: "POST",
           headers: {
-            "Content-Type":
-              "application/json",
+            "Content-Type": "application/json",
           },
           credentials: "include",
           body: JSON.stringify({
@@ -138,12 +126,12 @@ export default function LoginPage() {
         }
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         setError(
           data.error ||
+            data.message ||
             "Unable to login"
         );
 
@@ -166,18 +154,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }
-
-  // ============================================================
-  // OAuth
-  // ============================================================
-
-  function handleOAuth(
-    provider: string
-  ) {
-    setError(
-      `${provider} sign in will be available after OAuth setup.`
-    );
   }
 
   return (
@@ -260,7 +236,6 @@ export default function LoginPage() {
               style={{
                 background:
                   "linear-gradient(180deg, rgba(255,220,100,0.45), rgba(255,220,100,0.04))",
-
                 clipPath:
                   "polygon(28% 0, 72% 0, 100% 100%, 0 100%)",
               }}
@@ -456,8 +431,7 @@ export default function LoginPage() {
               </h1>
 
               <p className="mt-2 text-sm text-white/40">
-                Sign in to continue to
-                DayFlow
+                Sign in to continue to DayFlow
               </p>
             </div>
 
@@ -493,9 +467,7 @@ export default function LoginPage() {
                       type="email"
                       value={email}
                       onChange={(event) =>
-                        setEmail(
-                          event.target.value
-                        )
+                        setEmail(event.target.value)
                       }
                       placeholder="you@example.com"
                       autoComplete="email"
@@ -510,12 +482,21 @@ export default function LoginPage() {
                    ================================================== */}
 
                 <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-2 block text-xs font-medium text-white/60"
-                  >
-                    Password
-                  </label>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label
+                      htmlFor="password"
+                      className="block text-xs font-medium text-white/60"
+                    >
+                      Password
+                    </label>
+
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-white/35 transition hover:text-yellow-300"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
 
                   <div className="relative">
                     <Lock
@@ -528,9 +509,7 @@ export default function LoginPage() {
                       type="password"
                       value={password}
                       onChange={(event) =>
-                        setPassword(
-                          event.target.value
-                        )
+                        setPassword(event.target.value)
                       }
                       placeholder="••••••••"
                       autoComplete="current-password"
@@ -593,35 +572,23 @@ export default function LoginPage() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Google */}
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleOAuth(
-                      "Google"
-                    )
-                  }
+                <a
+                  href="/api/auth/google"
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
                   <GoogleLogo size={17} />
-
                   Google
-                </button>
+                </a>
 
                 {/* GitHub */}
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleOAuth(
-                      "GitHub"
-                    )
-                  }
+                <a
+                  href="/api/auth/github"
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
                   <GithubLogo size={17} />
-
                   GitHub
-                </button>
+                </a>
               </div>
 
               {/* ====================================================
@@ -629,8 +596,7 @@ export default function LoginPage() {
                  ==================================================== */}
 
               <p className="mt-7 text-center text-sm text-white/35">
-                Don&apos;t have an
-                account?{" "}
+                Don&apos;t have an account?{" "}
 
                 <Link
                   href="/register"
