@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import {
+  AlertTriangle,
   Bell,
   Check,
   Clock,
@@ -13,6 +14,7 @@ import {
   Save,
   Settings,
   Target,
+  Trash2,
   User,
   Volume2,
 } from "lucide-react";
@@ -94,6 +96,23 @@ export default function SettingsPage() {
 
   const [passwordError, setPasswordError] =
     useState("");
+
+  // ------------------------------------------------------
+  // Delete Account
+  // ------------------------------------------------------
+
+  const [showDeletePassword, setShowDeletePassword] =
+    useState(false);
+
+  const [deletePassword, setDeletePassword] = useState("");
+
+  const [deletingAccount, setDeletingAccount] =
+    useState(false);
+
+  const [deleteError, setDeleteError] = useState("");
+
+  const [showDeleteConfirm, setShowDeleteConfirm] =
+    useState(false);
 
   useEffect(() => {
     if (user) {
@@ -314,6 +333,59 @@ export default function SettingsPage() {
       );
     } finally {
       setChangingPassword(false);
+    }
+  };
+
+  // ------------------------------------------------------
+  // Delete Account
+  // ------------------------------------------------------
+
+  const handleDeleteAccount = async () => {
+    setDeleteError("");
+
+    if (!deletePassword) {
+      setDeleteError("Please enter your password.");
+      return;
+    }
+
+    setDeletingAccount(true);
+
+    try {
+      const response = await fetch(
+        "/api/user/delete-account",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            password: deletePassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Failed to delete your account."
+        );
+      }
+
+      window.location.href = "/login";
+    } catch (error) {
+      console.error(
+        "Delete account error:",
+        error
+      );
+
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete your account."
+      );
+    } finally {
+      setDeletingAccount(false);
     }
   };
 
@@ -704,6 +776,160 @@ export default function SettingsPage() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* -------------------------------------------------- */}
+            {/* Danger Zone */}
+            {/* -------------------------------------------------- */}
+
+            <div className="border-t border-white/10 pt-8">
+              <div className="mb-5">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle
+                    size={17}
+                    className="text-red-400"
+                  />
+
+                  <h3 className="text-sm font-semibold text-white">
+                    Danger Zone
+                  </h3>
+                </div>
+
+                <p className="mt-2 text-xs text-zinc-500">
+                  Permanently delete your DayFlow account and all
+                  associated data.
+                </p>
+              </div>
+
+              {!showDeleteConfirm ? (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-4">
+                  <p className="text-xs leading-5 text-zinc-400">
+                    Deleting your account is permanent. Your tasks,
+                    focus sessions, alarms, and account information
+                    will be permanently removed.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeleteConfirm(true);
+                      setDeleteError("");
+                    }}
+                    className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                  >
+                    <Trash2 size={15} />
+                    Delete Account
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500/10">
+                      <AlertTriangle
+                        size={17}
+                        className="text-red-400"
+                      />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white">
+                        Are you sure you want to delete your account?
+                      </p>
+
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">
+                        This action cannot be undone. Enter your
+                        password to permanently delete your account.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <label
+                      htmlFor="delete-account-password"
+                      className="mb-2 block text-xs font-medium text-zinc-300"
+                    >
+                      Password
+                    </label>
+
+                    <div className="relative">
+                      <input
+                        id="delete-account-password"
+                        type={
+                          showDeletePassword
+                            ? "text"
+                            : "password"
+                        }
+                        value={deletePassword}
+                        onChange={(event) => {
+                          setDeletePassword(
+                            event.target.value
+                          );
+                          setDeleteError("");
+                        }}
+                        placeholder="Enter your password"
+                        autoComplete="current-password"
+                        className={passwordInputClass}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowDeletePassword(
+                            !showDeletePassword
+                          )
+                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 transition hover:text-white"
+                        aria-label={
+                          showDeletePassword
+                            ? "Hide password"
+                            : "Show password"
+                        }
+                      >
+                        {showDeletePassword ? (
+                          <EyeOff size={17} />
+                        ) : (
+                          <Eye size={17} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {deleteError && (
+                    <p className="mt-3 text-xs text-red-400">
+                      {deleteError}
+                    </p>
+                  )}
+
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      disabled={deletingAccount}
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setDeletePassword("");
+                        setDeleteError("");
+                        setShowDeletePassword(false);
+                      }}
+                      className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-xs font-semibold text-zinc-300 transition hover:bg-white/[0.07] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={deletingAccount}
+                      onClick={handleDeleteAccount}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-500 px-5 py-3 text-xs font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Trash2 size={15} />
+
+                      {deletingAccount
+                        ? "Deleting Account..."
+                        : "Permanently Delete Account"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
