@@ -33,8 +33,36 @@ enum AlarmStatus {
   stopped
 }
 
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  avatar       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions     Session[]
+  tasks        Task[]
+  focusSessions FocusSession[]
+  alarmHistory AlarmHistory[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 model Task {
   id           String       @id
+  userId       String?
   title        String
   description  String?
   date         String
@@ -48,15 +76,18 @@ model Task {
   snoozedUntil DateTime?
   createdAt    DateTime      @default(now())
 
+  user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
   focusSessions FocusSession[]
   alarmHistory  AlarmHistory[]
 
+  @@index([userId])
   @@index([date])
   @@index([completed])
 }
 
 model FocusSession {
   id              String    @id
+  userId          String?
   taskId          String?
   taskTitle       String?
   mode            FocusMode
@@ -64,14 +95,17 @@ model FocusSession {
   startedAt       DateTime
   completedAt     DateTime
 
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
   task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
   @@index([taskId])
   @@index([completedAt])
 }
 
 model AlarmHistory {
   id           String      @id
+  userId       String?
   taskId       String?
   taskTitle    String
   status       AlarmStatus
@@ -79,8 +113,10 @@ model AlarmHistory {
   stoppedAt    DateTime?
   snoozedUntil DateTime?
 
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
   task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
   @@index([taskId])
   @@index([triggeredAt])
 }
