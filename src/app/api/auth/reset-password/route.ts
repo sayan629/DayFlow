@@ -18,12 +18,11 @@ export async function POST(request: NextRequest) {
         ? body.password
         : "";
 
-    // Basic validation
     if (!token) {
       return NextResponse.json(
         {
           success: false,
-          message: "Reset token is required.",
+          error: "Invalid or missing reset token.",
         },
         { status: 400 }
       );
@@ -33,13 +32,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Password must be at least 8 characters.",
+          error: "Password must be at least 8 characters.",
         },
         { status: 400 }
       );
     }
 
-    // Hash the raw token so we can compare it
+    // Hash the token so we can safely compare it
     // with the hash stored in the database.
     const tokenHash = crypto
       .createHash("sha256")
@@ -53,33 +52,34 @@ export async function POST(request: NextRequest) {
         },
       });
 
+    // Token doesn't exist.
     if (!resetToken) {
       return NextResponse.json(
         {
           success: false,
-          message: "Invalid or expired reset link.",
+          error: "Invalid or expired reset link.",
         },
         { status: 400 }
       );
     }
 
-    // Prevent token reuse.
+    // Token has already been used.
     if (resetToken.usedAt) {
       return NextResponse.json(
         {
           success: false,
-          message: "This reset link has already been used.",
+          error: "This reset link has already been used.",
         },
         { status: 400 }
       );
     }
 
-    // Check expiration.
-    if (resetToken.expiresAt.getTime() < Date.now()) {
+    // Token has expired.
+    if (resetToken.expiresAt <= new Date()) {
       return NextResponse.json(
         {
           success: false,
-          message: "This reset link has expired.",
+          error: "This reset link has expired.",
         },
         { status: 400 }
       );
@@ -88,8 +88,7 @@ export async function POST(request: NextRequest) {
     // Hash the new password.
     const passwordHash = await hashPassword(password);
 
-    // Update password, mark token as used,
-    // and invalidate all existing sessions.
+    // Update password and consume the reset token.
     await prisma.$transaction([
       prisma.user.update({
         where: {
@@ -109,6 +108,7 @@ export async function POST(request: NextRequest) {
         },
       }),
 
+      // Invalidate all existing sessions.
       prisma.session.deleteMany({
         where: {
           userId: resetToken.userId,
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message:
-        "Password reset successfully. Please log in with your new password.",
+        "Password reset successfully. You can now log in with your new password.",
     });
   } catch (error) {
     console.error("Reset password error:", error);
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: "Unable to reset password.",
+        error: "Unable to reset password. Please try again.",
       },
       { status: 500 }
     );
