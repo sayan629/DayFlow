@@ -34,18 +34,19 @@ enum AlarmStatus {
 }
 
 model User {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   name         String
-  email        String    @unique
+  email        String   @unique
   passwordHash String
   avatar       String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  sessions     Session[]
-  tasks        Task[]
-  focusSessions FocusSession[]
-  alarmHistory AlarmHistory[]
+  sessions            Session[]
+  tasks               Task[]
+  focusSessions       FocusSession[]
+  alarmHistory        AlarmHistory[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Session {
@@ -53,6 +54,20 @@ model Session {
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -68,13 +83,13 @@ model Task {
   date         String
   startTime    String?
   endTime      String?
-  priority     TaskPriority  @default(medium)
-  category     TaskCategory  @default(other)
-  completed    Boolean       @default(false)
+  priority     TaskPriority @default(medium)
+  category     TaskCategory @default(other)
+  completed    Boolean      @default(false)
   reminder     Int?
-  alarmEnabled Boolean       @default(true)
+  alarmEnabled Boolean      @default(true)
   snoozedUntil DateTime?
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime     @default(now())
 
   user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
   focusSessions FocusSession[]
