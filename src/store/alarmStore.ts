@@ -72,6 +72,9 @@ interface AlarmStore {
 const ALARM_QUEUE_STORAGE_KEY =
   "dayflow-alarm-queue";
 
+/**
+ * Persist alarm queue.
+ */
 function saveQueue(queue: QueuedAlarm[]) {
   if (typeof window === "undefined") {
     return;
@@ -90,6 +93,9 @@ function saveQueue(queue: QueuedAlarm[]) {
   }
 }
 
+/**
+ * Load persisted alarm queue safely.
+ */
 function loadStoredQueue(): QueuedAlarm[] {
   if (typeof window === "undefined") {
     return [];
@@ -130,6 +136,9 @@ function loadStoredQueue(): QueuedAlarm[] {
   }
 }
 
+/**
+ * Clear persisted queue.
+ */
 function clearStoredQueue() {
   if (typeof window === "undefined") {
     return;
@@ -147,6 +156,9 @@ function clearStoredQueue() {
   }
 }
 
+/**
+ * Save alarm history to backend.
+ */
 async function saveAlarmHistory(
   historyItem: AlarmHistoryItem
 ) {
@@ -190,6 +202,9 @@ export const useAlarmStore = create<AlarmStore>(
     history: [],
     historyLoaded: false,
 
+    /**
+     * Load alarm history.
+     */
     loadHistory: async () => {
       try {
         const response = await fetch(
@@ -217,6 +232,12 @@ export const useAlarmStore = create<AlarmStore>(
       }
     },
 
+    /**
+     * Restore queue after refresh/restart.
+     *
+     * Duplicate task IDs are removed while
+     * preserving FIFO order.
+     */
     restoreQueue: () => {
       const storedQueue =
         loadStoredQueue();
@@ -242,6 +263,9 @@ export const useAlarmStore = create<AlarmStore>(
       saveQueue(uniqueQueue);
     },
 
+    /**
+     * Recover an already ringing alarm.
+     */
     recoverAlarm: (
       taskId,
       taskTitle,
@@ -258,6 +282,9 @@ export const useAlarmStore = create<AlarmStore>(
       });
     },
 
+    /**
+     * Start a new alarm.
+     */
     startAlarm: (
       taskId,
       taskTitle
@@ -276,6 +303,13 @@ export const useAlarmStore = create<AlarmStore>(
       });
     },
 
+    /**
+     * Add an alarm to FIFO queue.
+     *
+     * Prevents:
+     * - duplicate queue entries
+     * - current alarm being queued again
+     */
     enqueueAlarm: (
       taskId,
       taskTitle
@@ -313,6 +347,9 @@ export const useAlarmStore = create<AlarmStore>(
       saveQueue(updatedQueue);
     },
 
+    /**
+     * Remove and return first queued alarm.
+     */
     dequeueAlarm: () => {
       const state = get();
 
@@ -340,6 +377,9 @@ export const useAlarmStore = create<AlarmStore>(
       return nextAlarm;
     },
 
+    /**
+     * Clear complete queue.
+     */
     clearQueue: () => {
       set({
         queue: [],
@@ -348,15 +388,90 @@ export const useAlarmStore = create<AlarmStore>(
       clearStoredQueue();
     },
 
+    /**
+     * Stop current alarm and advance queue.
+     *
+     * IMPORTANT:
+     * State is cleared BEFORE the event is dispatched.
+     *
+     * This prevents:
+     *
+     * stopAlarm()
+     *   -> event
+     *   -> handleStopAlarm()
+     *   -> stopAlarm()
+     *   -> event
+     *   -> ...
+     *
+     * The event listener is now only responsible
+     * for audio cleanup and queue advancement.
+     */
     stopAlarm: () => {
       const state = get();
 
       const stoppedAt =
         new Date().toISOString();
 
+      let historyItem:
+        | AlarmHistoryItem
+        | null = null;
+
       if (
-        typeof window !==
-        "undefined"
+        state.taskId &&
+        state.taskTitle
+      ) {
+        historyItem = {
+          id: crypto.randomUUID(),
+          taskId: state.taskId,
+          taskTitle: state.taskTitle,
+          status: "stopped",
+          triggeredAt:
+            state.triggeredAt ??
+            stoppedAt,
+          stoppedAt,
+        };
+      }
+
+      /**
+       * IMPORTANT:
+       * Clear state FIRST.
+       */
+      set({
+        isRinging: false,
+        taskId: null,
+        taskTitle: null,
+        status: "stopped",
+        stoppedAt,
+        snoozedUntil: null,
+        ...(historyItem
+          ? {
+              history: [
+                historyItem,
+                ...state.history,
+              ],
+            }
+          : {}),
+      });
+
+      /**
+       * Save history after state update.
+       */
+      if (historyItem) {
+        void saveAlarmHistory(
+          historyItem
+        );
+      }
+
+      /**
+       * Notify alarm engine AFTER state is cleared.
+       *
+       * The engine will:
+       * - stop audio
+       * - clean snooze timer
+       * - advance queue
+       */
+      if (
+        typeof window !== "undefined"
       ) {
         window.dispatchEvent(
           new Event(
@@ -364,61 +479,70 @@ export const useAlarmStore = create<AlarmStore>(
           )
         );
       }
-
-      if (
-        state.taskId &&
-        state.taskTitle
-      ) {
-        const historyItem: AlarmHistoryItem =
-          {
-            id: crypto.randomUUID(),
-            taskId: state.taskId,
-            taskTitle:
-              state.taskTitle,
-            status: "stopped",
-            triggeredAt:
-              state.triggeredAt ??
-              stoppedAt,
-            stoppedAt,
-          };
-
-        set({
-          isRinging: false,
-          taskId: null,
-          taskTitle: null,
-          status: "stopped",
-          stoppedAt,
-          snoozedUntil: null,
-          history: [
-            historyItem,
-            ...state.history,
-          ],
-        });
-
-        void saveAlarmHistory(
-          historyItem
-        );
-      } else {
-        set({
-          isRinging: false,
-          taskId: null,
-          taskTitle: null,
-          status: "stopped",
-          stoppedAt,
-          snoozedUntil: null,
-        });
-      }
     },
 
+    /**
+     * Stop current alarm WITHOUT advancing queue.
+     *
+     * Used by manual stop/focus-style flows.
+     */
     stopAlarmWithoutAdvancing: () => {
       const state = get();
 
       const stoppedAt =
         new Date().toISOString();
 
+      let historyItem:
+        | AlarmHistoryItem
+        | null = null;
+
       if (
-        typeof window !==
-        "undefined"
+        state.taskId &&
+        state.taskTitle
+      ) {
+        historyItem = {
+          id: crypto.randomUUID(),
+          taskId: state.taskId,
+          taskTitle: state.taskTitle,
+          status: "stopped",
+          triggeredAt:
+            state.triggeredAt ??
+            stoppedAt,
+          stoppedAt,
+        };
+      }
+
+      /**
+       * Clear state FIRST.
+       */
+      set({
+        isRinging: false,
+        taskId: null,
+        taskTitle: null,
+        status: "stopped",
+        stoppedAt,
+        snoozedUntil: null,
+        ...(historyItem
+          ? {
+              history: [
+                historyItem,
+                ...state.history,
+              ],
+            }
+          : {}),
+      });
+
+      if (historyItem) {
+        void saveAlarmHistory(
+          historyItem
+        );
+      }
+
+      /**
+       * Tell engine not to advance queue.
+       */
+      if (
+        typeof window !== "undefined"
       ) {
         window.dispatchEvent(
           new CustomEvent(
@@ -431,58 +555,16 @@ export const useAlarmStore = create<AlarmStore>(
           )
         );
       }
-
-      if (
-        state.taskId &&
-        state.taskTitle
-      ) {
-        const historyItem: AlarmHistoryItem =
-          {
-            id: crypto.randomUUID(),
-            taskId: state.taskId,
-            taskTitle:
-              state.taskTitle,
-            status: "stopped",
-            triggeredAt:
-              state.triggeredAt ??
-              stoppedAt,
-            stoppedAt,
-          };
-
-        set({
-          isRinging: false,
-          taskId: null,
-          taskTitle: null,
-          status: "stopped",
-          stoppedAt,
-          snoozedUntil: null,
-          history: [
-            historyItem,
-            ...state.history,
-          ],
-        });
-
-        void saveAlarmHistory(
-          historyItem
-        );
-      } else {
-        set({
-          isRinging: false,
-          taskId: null,
-          taskTitle: null,
-          status: "stopped",
-          stoppedAt,
-          snoozedUntil: null,
-        });
-      }
     },
 
+    /**
+     * Snooze current alarm.
+     */
     snoozeAlarm: (minutes) => {
       const state = get();
 
       if (
-        typeof window !==
-        "undefined"
+        typeof window !== "undefined"
       ) {
         window.dispatchEvent(
           new CustomEvent(
@@ -505,6 +587,9 @@ export const useAlarmStore = create<AlarmStore>(
       const taskId =
         state.taskId;
 
+      /**
+       * Persist snooze on task.
+       */
       if (taskId) {
         void fetch(
           `/api/tasks/${taskId}`,
@@ -534,8 +619,7 @@ export const useAlarmStore = create<AlarmStore>(
           {
             id: crypto.randomUUID(),
             taskId: state.taskId,
-            taskTitle:
-              state.taskTitle,
+            taskTitle: state.taskTitle,
             status: "snoozed",
             triggeredAt:
               state.triggeredAt ??
@@ -569,6 +653,9 @@ export const useAlarmStore = create<AlarmStore>(
       }
     },
 
+    /**
+     * Clear alarm history.
+     */
     clearHistory: async () => {
       try {
         const response = await fetch(
