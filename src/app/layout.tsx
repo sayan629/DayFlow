@@ -7,9 +7,9 @@ import AuthBootstrap from "@/components/auth/AuthBootstrap";
 import AuthGuard from "@/components/auth/AuthGuard";
 
 export const metadata: Metadata = {
-  title: "DayFlow",
+  title: "DayFlow | Personal OS",
   description:
-    "A personal productivity operating system.",
+    "DayFlow — your personal productivity operating system.",
 };
 
 export default function RootLayout({
