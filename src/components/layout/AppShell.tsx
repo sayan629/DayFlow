@@ -9,7 +9,6 @@ import {
   BellRing,
   CalendarDays,
   ChevronRight,
-  Clock3,
   Flame,
   Home,
   ListTodo,
@@ -66,14 +65,14 @@ const navigation = [
 
 function getDateKey(date: Date) {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(
-    2,
-    "0"
-  );
-  const day = String(date.getDate()).padStart(
-    2,
-    "0"
-  );
+
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    date.getDate()
+  ).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
@@ -107,9 +106,13 @@ function SidebarContent({
   onNavigate?: () => void;
   onClose?: () => void;
 }) {
-  const user = useUserStore((state) => state.user);
+  const user = useUserStore(
+    (state) => state.user
+  );
 
-  const tasks = useTaskStore((state) => state.tasks);
+  const tasks = useTaskStore(
+    (state) => state.tasks
+  );
 
   const focusSessions = useFocusStore(
     (state) => state.sessionHistory
@@ -121,7 +124,9 @@ function SidebarContent({
 
   const today = useScheduler();
 
-  const userName = user?.name?.trim() || "User";
+  const userName =
+    user?.name?.trim() || "User";
+
   const userInitial =
     userName.charAt(0).toUpperCase();
 
@@ -139,17 +144,21 @@ function SidebarContent({
     const days = Array.from(
       { length: 7 },
       (_, index) => {
-        const date = new Date(currentDate);
+        const date = new Date(
+          currentDate
+        );
 
         date.setDate(
-          currentDate.getDate() - (6 - index)
+          currentDate.getDate() -
+            (6 - index)
         );
 
         const key = getDateKey(date);
 
         const dayTasks = tasks.filter(
           (task) =>
-            getTaskDateKey(task.date) === key
+            getTaskDateKey(task.date) ===
+            key
         );
 
         const completedTasks =
@@ -158,28 +167,37 @@ function SidebarContent({
           );
 
         const dayFocusSessions =
-          focusSessions.filter((session) => {
-            const sessionDate = new Date(
-              session.completedAt
-            );
+          focusSessions.filter(
+            (session) => {
+              const sessionDate =
+                new Date(
+                  session.completedAt
+                );
 
-            return (
-              getDateKey(sessionDate) === key
-            );
-          });
+              return (
+                getDateKey(
+                  sessionDate
+                ) === key
+              );
+            }
+          );
 
         const hasActivity =
           streakMode === "tasks"
             ? completedTasks.length > 0
             : streakMode === "focus"
-              ? dayFocusSessions.length > 0
-              : completedTasks.length > 0 ||
-                dayFocusSessions.length > 0;
+              ? dayFocusSessions.length >
+                0
+              : completedTasks.length >
+                  0 ||
+                dayFocusSessions.length >
+                  0;
 
         return {
           key,
           total: dayTasks.length,
-          completed: completedTasks.length,
+          completed:
+            completedTasks.length,
           focusSessions:
             dayFocusSessions.length,
           active: hasActivity,
@@ -227,11 +245,12 @@ function SidebarContent({
       todayStats.total > 0 &&
       yesterdayStats.total > 0
     ) {
-      const completionChange = Math.round(
-        (todayTaskRate -
-          yesterdayTaskRate) *
-          100
-      );
+      const completionChange =
+        Math.round(
+          (todayTaskRate -
+            yesterdayTaskRate) *
+            100
+        );
 
       productivityChange = Math.round(
         (productivityChange +
@@ -268,44 +287,52 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Brand */}
+      {/* =========================================================
+          BRAND / LOGO
+         ========================================================= */}
 
       <div
         className={`flex h-20 shrink-0 items-center border-b border-white/[0.07] ${
           collapsed
             ? "justify-center px-3"
-            : "justify-between px-5"
+            : "justify-start px-5"
         }`}
       >
         <Link
           href="/"
           onClick={onNavigate}
-          className={`flex items-center gap-3 rounded-2xl ${focusRing}`}
+          className={`flex items-center rounded-2xl ${focusRing}`}
           aria-label="DayFlow home"
         >
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-white text-black shadow-[0_0_30px_rgba(255,255,255,0.08)] ring-1 ring-white/20 transition-transform duration-300 hover:rotate-[-6deg]">
-            <Clock3
-              size={20}
-              strokeWidth={2.2}
-            />
-
-            <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0b0b0e]" />
-            </span>
-          </div>
-
-          {!collapsed && (
-            <div className="min-w-0">
-              <h1 className="text-[19px] font-semibold leading-none tracking-tight text-white">
-                DayFlow
-              </h1>
-
-              <p className="mt-1.5 text-[9px] font-medium uppercase tracking-[0.24em] text-zinc-600">
-                Personal OS
-              </p>
+          {collapsed ? (
+            /*
+             * Collapsed sidebar:
+             * Show the logo as a compact square.
+             */
+            <div className="relative h-11 w-11 overflow-hidden rounded-xl">
+              <Image
+                src="/dayflow-logo.png"
+                alt="DayFlow"
+                fill
+                priority
+                sizes="44px"
+                className="object-cover"
+              />
             </div>
+          ) : (
+            /*
+             * Expanded sidebar:
+             * Show your complete DayFlow logo.
+             */
+            <Image
+              src="/dayflow-logo.png"
+              alt="DayFlow"
+              width={190}
+              height={70}
+              priority
+              sizes="190px"
+              className="h-[62px] w-[180px] object-contain object-left"
+            />
           )}
         </Link>
 
@@ -314,14 +341,16 @@ function SidebarContent({
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className={`rounded-xl p-2 text-zinc-500 transition hover:bg-white/[0.05] hover:text-white ${focusRing}`}
+            className={`ml-auto rounded-xl p-2 text-zinc-500 transition hover:bg-white/[0.05] hover:text-white ${focusRing}`}
           >
             <X size={18} />
           </button>
         )}
       </div>
 
-      {/* Navigation */}
+      {/* =========================================================
+          NAVIGATION
+         ========================================================= */}
 
       <div className="flex-1 overflow-y-auto px-3 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {!collapsed && (
@@ -350,7 +379,9 @@ function SidebarContent({
                 href={item.href}
                 onClick={onNavigate}
                 aria-current={
-                  isActive ? "page" : undefined
+                  isActive
+                    ? "page"
+                    : undefined
                 }
                 aria-label={
                   collapsed
@@ -398,7 +429,8 @@ function SidebarContent({
                   </span>
                 )}
 
-                {item.label === "Alarms" && (
+                {item.label ===
+                  "Alarms" && (
                   <span
                     className={`flex h-2 w-2 ${
                       collapsed
@@ -440,7 +472,9 @@ function SidebarContent({
           href="/settings"
           onClick={onNavigate}
           aria-label={
-            collapsed ? "Settings" : undefined
+            collapsed
+              ? "Settings"
+              : undefined
           }
           className={`group relative flex w-full items-center rounded-[14px] text-zinc-500 transition-all duration-200 hover:bg-white/[0.045] hover:text-zinc-200 ${focusRing} ${
             collapsed
@@ -468,11 +502,13 @@ function SidebarContent({
         </Link>
       </div>
 
-      {/* Bottom */}
+      {/* =========================================================
+          SIDEBAR BOTTOM
+         ========================================================= */}
 
       <div className="shrink-0 border-t border-white/[0.07] p-3">
         {collapsed ? (
-          /* Collapsed sidebar avatar */
+          /* Collapsed avatar */
 
           <div className="flex justify-center py-1">
             <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black ring-2 ring-white/10">
@@ -485,13 +521,15 @@ function SidebarContent({
                   className="object-cover"
                 />
               ) : (
-                <span>{userInitial}</span>
+                <span>
+                  {userInitial}
+                </span>
               )}
             </div>
           </div>
         ) : (
           <>
-            {/* Productivity card */}
+            {/* Productivity Card */}
 
             <div className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.055] to-white/[0.015] p-4 transition-colors duration-300 hover:border-white/[0.14]">
               <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-orange-400/[0.06] blur-2xl transition-opacity duration-500 group-hover:bg-orange-400/[0.1]" />
@@ -588,7 +626,9 @@ function SidebarContent({
                     className="object-cover"
                   />
                 ) : (
-                  <span>{userInitial}</span>
+                  <span>
+                    {userInitial}
+                  </span>
                 )}
               </div>
 
@@ -652,21 +692,23 @@ export default function AppShell({
     }
 
     return {
-      weekday: today.toLocaleDateString(
-        "en-US",
-        {
-          weekday: "long",
-        }
-      ),
+      weekday:
+        today.toLocaleDateString(
+          "en-US",
+          {
+            weekday: "long",
+          }
+        ),
 
-      fullDate: today.toLocaleDateString(
-        "en-US",
-        {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        }
-      ),
+      fullDate:
+        today.toLocaleDateString(
+          "en-US",
+          {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          }
+        ),
     };
   }, [today]);
 
@@ -689,7 +731,8 @@ export default function AppShell({
     const previousOverflow =
       document.body.style.overflow;
 
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow =
+      "hidden";
 
     return () => {
       document.removeEventListener(
@@ -708,7 +751,9 @@ export default function AppShell({
   return (
     <main className="min-h-screen bg-[#09090b] text-white antialiased selection:bg-white selection:text-black">
       <div className="flex min-h-screen">
-        {/* Desktop Sidebar */}
+        {/* =========================================================
+            DESKTOP SIDEBAR
+           ========================================================= */}
 
         <aside
           className={`${
@@ -723,7 +768,9 @@ export default function AppShell({
           />
         </aside>
 
-        {/* Mobile Drawer */}
+        {/* =========================================================
+            MOBILE DRAWER
+           ========================================================= */}
 
         <div
           className={`fixed inset-0 z-40 lg:hidden ${
@@ -764,14 +811,16 @@ export default function AppShell({
           </aside>
         </div>
 
-        {/* Main */}
+        {/* =========================================================
+            MAIN CONTENT
+           ========================================================= */}
 
         <section className="flex min-w-0 flex-1 flex-col">
           {/* Header */}
 
           <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-white/[0.07] bg-[#09090b]/80 px-5 backdrop-blur-xl md:px-8">
             <div className="flex items-center gap-3">
-              {/* Mobile menu */}
+              {/* Mobile Menu */}
 
               <button
                 type="button"
@@ -784,7 +833,7 @@ export default function AppShell({
                 <Menu size={20} />
               </button>
 
-              {/* Desktop collapse */}
+              {/* Desktop Sidebar Collapse */}
 
               <button
                 type="button"
@@ -799,7 +848,9 @@ export default function AppShell({
                     ? "Collapse sidebar"
                     : "Expand sidebar"
                 }
-                aria-expanded={sidebarOpen}
+                aria-expanded={
+                  sidebarOpen
+                }
               >
                 {sidebarOpen ? (
                   <PanelLeftClose
@@ -814,6 +865,8 @@ export default function AppShell({
 
               <div className="h-8 w-px bg-white/[0.07]" />
 
+              {/* Date */}
+
               <div className="min-h-[36px]">
                 <p className="text-[11px] font-medium text-zinc-600">
                   {dateInfo.weekday ||
@@ -827,12 +880,16 @@ export default function AppShell({
               </div>
             </div>
 
+            {/* =====================================================
+                HEADER RIGHT
+               ===================================================== */}
+
             <div className="flex items-center gap-3">
-              {/* Functional Notifications */}
+              {/* Functional Notification Bell */}
 
               <NotificationBell />
 
-              {/* Authenticated User */}
+              {/* User Menu */}
 
               <UserMenu />
             </div>
