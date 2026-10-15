@@ -12,10 +12,6 @@ import {
 
 import { useUserStore } from "@/store/userStore";
 
-/* -------------------------------------------------------------------------- */
-/* GitHub Logo                                                                */
-/* -------------------------------------------------------------------------- */
-
 function GithubLogo({ size = 16 }: { size?: number }) {
   return (
     <svg
@@ -29,10 +25,6 @@ function GithubLogo({ size = 16 }: { size?: number }) {
     </svg>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/* Google Logo                                                                */
-/* -------------------------------------------------------------------------- */
 
 function GoogleLogo({ size = 16 }: { size?: number }) {
   return (
@@ -65,14 +57,12 @@ function GoogleLogo({ size = 16 }: { size?: number }) {
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Register Page                                                              */
-/* -------------------------------------------------------------------------- */
-
 export default function RegisterPage() {
   const router = useRouter();
 
-  const setUser = useUserStore((state) => state.setUser);
+  const setUser = useUserStore(
+    (state) => state.setUser
+  );
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -83,10 +73,6 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  /* ------------------------------------------------------------------------ */
-  /* Lamp State                                                               */
-  /* ------------------------------------------------------------------------ */
-
   const [lampOn, setLampOn] = useState(false);
   const [pulling, setPulling] = useState(false);
 
@@ -96,16 +82,13 @@ export default function RegisterPage() {
     }
 
     setPulling(true);
+
     setLampOn((previous) => !previous);
 
     setTimeout(() => {
       setPulling(false);
     }, 220);
   }
-
-  /* ------------------------------------------------------------------------ */
-  /* Registration                                                             */
-  /* ------------------------------------------------------------------------ */
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>
@@ -114,13 +97,11 @@ export default function RegisterPage() {
 
     setError("");
 
-    /* Password confirmation */
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
-    /* Password length */
     if (password.length < 8) {
       setError(
         "Password must be at least 8 characters"
@@ -154,14 +135,11 @@ export default function RegisterPage() {
           data.error ||
             "Unable to create your account"
         );
-
         return;
       }
 
-      /* Store authenticated user */
       setUser(data.user);
 
-      /* Go to dashboard */
       router.push("/");
       router.refresh();
     } catch (error) {
@@ -186,10 +164,7 @@ export default function RegisterPage() {
           : "bg-[#050505]"
       }`}
     >
-      {/* ================================================================== */}
-      {/* Ambient Background                                                   */}
-      {/* ================================================================== */}
-
+      {/* Ambient Background */}
       <div
         className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${
           lampOn
@@ -204,10 +179,7 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,220,80,0.07),transparent_28%)]" />
       </div>
 
-      {/* ================================================================== */}
-      {/* Floating Particles                                                   */}
-      {/* ================================================================== */}
-
+      {/* Floating Particles */}
       <div
         className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${
           lampOn
@@ -228,17 +200,10 @@ export default function RegisterPage() {
         <span className="absolute left-[44%] top-[15%] h-1 w-1 animate-pulse rounded-full bg-yellow-200 shadow-[0_0_12px_4px_rgba(250,204,21,0.25)]" />
       </div>
 
-      {/* ================================================================== */}
-      {/* Main Layout                                                         */}
-      {/* ================================================================== */}
-
       <div className="relative grid min-h-screen lg:grid-cols-[1fr_520px]">
-        {/* ================================================================= */}
-        {/* LEFT SIDE                                                          */}
-        {/* ================================================================= */}
 
+        {/* LEFT SIDE */}
         <section className="relative hidden overflow-hidden lg:flex">
-          {/* Background */}
           <div
             className={`absolute inset-0 bg-gradient-to-br from-[#11150d] via-[#0b0d09] to-[#080a07] transition-opacity duration-1000 ${
               lampOn
@@ -249,7 +214,8 @@ export default function RegisterPage() {
 
           {/* Lamp */}
           <div className="absolute left-[24%] top-[27%] flex h-[390px] w-[260px] flex-col items-center">
-            {/* Light beam */}
+
+            {/* Light Beam */}
             <div
               className={`absolute top-12 h-60 w-72 transition-opacity duration-700 ${
                 lampOn
@@ -264,7 +230,7 @@ export default function RegisterPage() {
               }}
             />
 
-            {/* Lamp shade */}
+            {/* Lamp Shade */}
             <div
               className={`relative z-10 h-14 w-36 rounded-t-[70px] rounded-b-[12px] bg-[#151713] transition-shadow duration-700 ${
                 lampOn
@@ -290,7 +256,7 @@ export default function RegisterPage() {
               }`}
             />
 
-            {/* Pull cord */}
+            {/* Pull Cord */}
             <button
               type="button"
               onClick={handlePull}
@@ -308,7 +274,9 @@ export default function RegisterPage() {
                     : "bg-[#4a4636]"
                 }`}
                 style={{
-                  height: pulling ? 118 : 92,
+                  height: pulling
+                    ? 118
+                    : 92,
                 }}
               />
 
@@ -331,7 +299,7 @@ export default function RegisterPage() {
               </span>
             </button>
 
-            {/* Lamp base */}
+            {/* Lamp Base */}
             <div
               className={`absolute bottom-2 h-2 w-36 rounded-full bg-[#171914] transition-shadow duration-700 ${
                 lampOn
@@ -374,14 +342,10 @@ export default function RegisterPage() {
           </div>
         </section>
 
-        {/* ================================================================= */}
-        {/* RIGHT SIDE                                                         */}
-        {/* ================================================================= */}
-
+        {/* RIGHT SIDE */}
         <section className="relative flex min-h-screen items-center justify-center px-6 py-10">
           <div className="absolute inset-y-0 left-0 hidden w-px bg-white/5 lg:block" />
 
-          {/* Register form */}
           <div
             className={`w-full max-w-[430px] transition-all duration-700 ease-out ${
               lampOn
@@ -420,14 +384,12 @@ export default function RegisterPage() {
 
             {/* Card */}
             <div className="rounded-3xl border border-white/10 bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+
               <form
                 onSubmit={handleSubmit}
                 className="space-y-4"
               >
-                {/* ======================================================= */}
-                {/* Name                                                      */}
-                {/* ======================================================= */}
-
+                {/* Full Name */}
                 <div>
                   <label
                     htmlFor="name"
@@ -447,7 +409,9 @@ export default function RegisterPage() {
                       type="text"
                       value={name}
                       onChange={(event) =>
-                        setName(event.target.value)
+                        setName(
+                          event.target.value
+                        )
                       }
                       placeholder="Your name"
                       autoComplete="name"
@@ -457,10 +421,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {/* ======================================================= */}
-                {/* Email                                                     */}
-                {/* ======================================================= */}
-
+                {/* Email */}
                 <div>
                   <label
                     htmlFor="email"
@@ -480,7 +441,9 @@ export default function RegisterPage() {
                       type="email"
                       value={email}
                       onChange={(event) =>
-                        setEmail(event.target.value)
+                        setEmail(
+                          event.target.value
+                        )
                       }
                       placeholder="you@example.com"
                       autoComplete="email"
@@ -490,10 +453,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {/* ======================================================= */}
-                {/* Password                                                   */}
-                {/* ======================================================= */}
-
+                {/* Password */}
                 <div>
                   <label
                     htmlFor="password"
@@ -513,7 +473,9 @@ export default function RegisterPage() {
                       type="password"
                       value={password}
                       onChange={(event) =>
-                        setPassword(event.target.value)
+                        setPassword(
+                          event.target.value
+                        )
                       }
                       placeholder="Minimum 8 characters"
                       autoComplete="new-password"
@@ -524,10 +486,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {/* ======================================================= */}
-                {/* Confirm Password                                           */}
-                {/* ======================================================= */}
-
+                {/* Confirm Password */}
                 <div>
                   <label
                     htmlFor="confirmPassword"
@@ -560,20 +519,14 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {/* ======================================================= */}
-                {/* Error                                                       */}
-                {/* ======================================================= */}
-
+                {/* Error */}
                 {error && (
                   <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
                     {error}
                   </div>
                 )}
 
-                {/* ======================================================= */}
-                {/* Create Account Button                                      */}
-                {/* ======================================================= */}
-
+                {/* Create Account */}
                 <button
                   type="submit"
                   disabled={loading}
@@ -592,10 +545,7 @@ export default function RegisterPage() {
                 </button>
               </form>
 
-              {/* ========================================================= */}
-              {/* Divider                                                     */}
-              {/* ========================================================= */}
-
+              {/* Divider */}
               <div className="my-6 flex items-center gap-4">
                 <div className="h-px flex-1 bg-white/10" />
 
@@ -606,12 +556,10 @@ export default function RegisterPage() {
                 <div className="h-px flex-1 bg-white/10" />
               </div>
 
-              {/* ========================================================= */}
-              {/* OAuth Buttons                                               */}
-              {/* ========================================================= */}
-
+              {/* OAuth Buttons */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Google OAuth */}
+
+                {/* Google */}
                 <a
                   href="/api/auth/google"
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
@@ -620,7 +568,7 @@ export default function RegisterPage() {
                   Google
                 </a>
 
-                {/* GitHub OAuth - Not implemented yet */}
+                {/* GitHub */}
                 <a
                   href="/api/auth/github"
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
@@ -628,12 +576,10 @@ export default function RegisterPage() {
                   <GithubLogo size={17} />
                   GitHub
                 </a>
+
               </div>
 
-              {/* ========================================================= */}
-              {/* Login Link                                                  */}
-              {/* ========================================================= */}
-
+              {/* Login Link */}
               <p className="mt-6 text-center text-sm text-white/35">
                 Already have an account?{" "}
 

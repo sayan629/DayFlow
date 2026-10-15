@@ -1,5 +1,10 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+
 import {
   Bell,
   BellRing,
@@ -17,9 +22,6 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 
 import { useScheduler } from "@/hooks/useScheduler";
 import { useFocusStore } from "@/store/focusStore";
@@ -29,12 +31,36 @@ import { usePreferencesStore } from "@/store/preferencesStore";
 import UserMenu from "@/components/auth/UserMenu";
 
 const navigation = [
-  { label: "Dashboard", icon: Home, href: "/" },
-  { label: "Tasks", icon: ListTodo, href: "/tasks" },
-  { label: "Calendar", icon: CalendarDays, href: "/calendar" },
-  { label: "Focus", icon: Target, href: "/focus" },
-  { label: "Analytics", icon: TrendingUp, href: "/analytics" },
-  { label: "Alarms", icon: BellRing, href: "/alarms" },
+  {
+    label: "Dashboard",
+    icon: Home,
+    href: "/",
+  },
+  {
+    label: "Tasks",
+    icon: ListTodo,
+    href: "/tasks",
+  },
+  {
+    label: "Calendar",
+    icon: CalendarDays,
+    href: "/calendar",
+  },
+  {
+    label: "Focus",
+    icon: Target,
+    href: "/focus",
+  },
+  {
+    label: "Analytics",
+    icon: TrendingUp,
+    href: "/analytics",
+  },
+  {
+    label: "Alarms",
+    icon: BellRing,
+    href: "/alarms",
+  },
 ];
 
 function getDateKey(date: Date) {
@@ -52,10 +78,6 @@ function getTaskDateKey(dateString: string) {
 const focusRing =
   "outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b0e]";
 
-/* ------------------------------------------------------------------ */
-/* Tooltip shown only when the sidebar is collapsed                    */
-/* ------------------------------------------------------------------ */
-
 function Tip({ label }: { label: string }) {
   return (
     <span
@@ -66,10 +88,6 @@ function Tip({ label }: { label: string }) {
     </span>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/* Sidebar contents                                                    */
-/* ------------------------------------------------------------------ */
 
 function SidebarContent({
   collapsed,
@@ -103,10 +121,9 @@ function SidebarContent({
    */
   const today = useScheduler();
 
-  /* -------------------------------------------------------------- */
-  /* Real productivity statistics                                    */
-  /* -------------------------------------------------------------- */
-
+  /*
+   * Real productivity statistics
+   */
   const productivityStats = useMemo(() => {
     if (!today) {
       return {
@@ -118,57 +135,59 @@ function SidebarContent({
 
     const currentDate = new Date(today);
 
-    const days = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(currentDate);
+    const days = Array.from(
+      { length: 7 },
+      (_, index) => {
+        const date = new Date(currentDate);
 
-      date.setDate(
-        currentDate.getDate() - (6 - index)
-      );
+        date.setDate(
+          currentDate.getDate() - (6 - index)
+        );
 
-      const key = getDateKey(date);
+        const key = getDateKey(date);
 
-      const dayTasks = tasks.filter(
-        (task) =>
-          getTaskDateKey(task.date) === key
-      );
+        const dayTasks = tasks.filter(
+          (task) =>
+            getTaskDateKey(task.date) === key
+        );
 
-      const completedTasks = dayTasks.filter(
-        (task) => task.completed
-      );
+        const completedTasks = dayTasks.filter(
+          (task) => task.completed
+        );
 
-      const dayFocusSessions =
-        focusSessions.filter((session) => {
-          const sessionDate = new Date(
-            session.completedAt
-          );
+        const dayFocusSessions =
+          focusSessions.filter((session) => {
+            const sessionDate = new Date(
+              session.completedAt
+            );
 
-          return getDateKey(sessionDate) === key;
-        });
+            return getDateKey(sessionDate) === key;
+          });
 
-      const hasActivity =
-        streakMode === "tasks"
-          ? completedTasks.length > 0
-          : streakMode === "focus"
-            ? dayFocusSessions.length > 0
-            : completedTasks.length > 0 ||
-              dayFocusSessions.length > 0;
+        const hasActivity =
+          streakMode === "tasks"
+            ? completedTasks.length > 0
+            : streakMode === "focus"
+              ? dayFocusSessions.length > 0
+              : completedTasks.length > 0 ||
+                dayFocusSessions.length > 0;
 
-      return {
-        key,
-        total: dayTasks.length,
-        completed: completedTasks.length,
-        focusSessions: dayFocusSessions.length,
-        active: hasActivity,
-      };
-    });
+        return {
+          key,
+          total: dayTasks.length,
+          completed: completedTasks.length,
+          focusSessions: dayFocusSessions.length,
+          active: hasActivity,
+        };
+      }
+    );
 
     const todayStats = days[6];
     const yesterdayStats = days[5];
 
     const todayTaskRate =
       todayStats.total > 0
-        ? todayStats.completed /
-          todayStats.total
+        ? todayStats.completed / todayStats.total
         : 0;
 
     const yesterdayTaskRate =
@@ -189,8 +208,7 @@ function SidebarContent({
 
     if (yesterdayActivity > 0) {
       productivityChange = Math.round(
-        ((todayActivity -
-          yesterdayActivity) /
+        ((todayActivity - yesterdayActivity) /
           yesterdayActivity) *
           100
       );
@@ -203,14 +221,12 @@ function SidebarContent({
       yesterdayStats.total > 0
     ) {
       const completionChange = Math.round(
-        (todayTaskRate -
-          yesterdayTaskRate) *
+        (todayTaskRate - yesterdayTaskRate) *
           100
       );
 
       productivityChange = Math.round(
-        (productivityChange +
-          completionChange) /
+        (productivityChange + completionChange) /
           2
       );
     }
@@ -244,6 +260,7 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       {/* Brand */}
+
       <div
         className={`flex h-20 shrink-0 items-center border-b border-white/[0.07] ${
           collapsed
@@ -296,6 +313,7 @@ function SidebarContent({
       </div>
 
       {/* Navigation */}
+
       <div className="flex-1 overflow-y-auto px-3 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {!collapsed && (
           <p className="mb-3 px-3 text-[9px] font-semibold uppercase tracking-[0.2em] text-zinc-600">
@@ -410,6 +428,7 @@ function SidebarContent({
         )}
 
         {/* Settings */}
+
         <Link
           href="/settings"
           onClick={onNavigate}
@@ -443,16 +462,29 @@ function SidebarContent({
       </div>
 
       {/* Bottom */}
+
       <div className="shrink-0 border-t border-white/[0.07] p-3">
         {collapsed ? (
+          /* Collapsed sidebar avatar */
           <div className="flex justify-center py-1">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black ring-2 ring-white/10">
-              {userInitial}
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black ring-2 ring-white/10">
+              {user?.avatar ? (
+                <Image
+                  src={user.avatar}
+                  alt={userName}
+                  fill
+                  sizes="40px"
+                  className="object-cover"
+                />
+              ) : (
+                <span>{userInitial}</span>
+              )}
             </div>
           </div>
         ) : (
           <>
             {/* Productivity card */}
+
             <div className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.055] to-white/[0.015] p-4 transition-colors duration-300 hover:border-white/[0.14]">
               <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-orange-400/[0.06] blur-2xl transition-opacity duration-500 group-hover:bg-orange-400/[0.1]" />
 
@@ -501,6 +533,7 @@ function SidebarContent({
                     0
                       ? "+"
                       : ""}
+
                     {
                       productivityStats.productivityChange
                     }
@@ -509,6 +542,7 @@ function SidebarContent({
                 </div>
 
                 {/* Real 7-day activity segments */}
+
                 <div
                   className="flex gap-1"
                   aria-hidden
@@ -534,12 +568,25 @@ function SidebarContent({
             </div>
 
             {/* Profile */}
+
             <button
               type="button"
               className={`group mt-3 flex w-full items-center gap-3 rounded-2xl border border-transparent px-2 py-2.5 text-left transition hover:border-white/[0.06] hover:bg-white/[0.025] ${focusRing}`}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black ring-2 ring-white/10">
-                {userInitial}
+              {/* Sidebar profile avatar */}
+
+              <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black ring-2 ring-white/10">
+                {user?.avatar ? (
+                  <Image
+                    src={user.avatar}
+                    alt={userName}
+                    fill
+                    sizes="36px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <span>{userInitial}</span>
+                )}
               </div>
 
               <div className="min-w-0">
@@ -564,10 +611,6 @@ function SidebarContent({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* App shell                                                           */
-/* ------------------------------------------------------------------ */
-
 export default function AppShell({
   children,
 }: {
@@ -581,21 +624,11 @@ export default function AppShell({
   const [mobileOpen, setMobileOpen] =
     useState(false);
 
-  const user = useUserStore(
-    (state) => state.user
-  );
-
-  const userName =
-    user?.name?.trim() || "User";
-
-  const userInitial =
-    userName.charAt(0).toUpperCase();
-
   const today = useScheduler();
 
-  /* -------------------------------------------------------------- */
-  /* Load tasks once at application-shell level                     */
-  /* -------------------------------------------------------------- */
+  /*
+   * Load tasks once at application-shell level.
+   */
 
   const loadTasks = useTaskStore(
     (state) => state.loadTasks
@@ -638,9 +671,9 @@ export default function AppShell({
     };
   }, [today]);
 
-  /* -------------------------------------------------------------- */
-  /* Close drawer on Escape + lock body scroll while open           */
-  /* -------------------------------------------------------------- */
+  /*
+   * Close drawer on Escape and lock body scroll.
+   */
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -656,7 +689,7 @@ export default function AppShell({
       onKey
     );
 
-    const prev =
+    const previousOverflow =
       document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
@@ -667,7 +700,8 @@ export default function AppShell({
         onKey
       );
 
-      document.body.style.overflow = prev;
+      document.body.style.overflow =
+        previousOverflow;
     };
   }, [mobileOpen]);
 
@@ -677,7 +711,7 @@ export default function AppShell({
   return (
     <main className="min-h-screen bg-[#09090b] text-white antialiased selection:bg-white selection:text-black">
       <div className="flex min-h-screen">
-        {/* ============ DESKTOP SIDEBAR ============ */}
+        {/* Desktop Sidebar */}
 
         <aside
           className={`${
@@ -692,7 +726,7 @@ export default function AppShell({
           />
         </aside>
 
-        {/* ============ MOBILE DRAWER ============ */}
+        {/* Mobile Drawer */}
 
         <div
           className={`fixed inset-0 z-40 lg:hidden ${
@@ -733,7 +767,7 @@ export default function AppShell({
           </aside>
         </div>
 
-        {/* ============ MAIN ============ */}
+        {/* Main */}
 
         <section className="flex min-w-0 flex-1 flex-col">
           {/* Header */}
@@ -758,7 +792,7 @@ export default function AppShell({
               <button
                 type="button"
                 onClick={() =>
-                  setSidebarOpen((c) => !c)
+                  setSidebarOpen((current) => !current)
                 }
                 className={`${iconBtn} hidden lg:block`}
                 aria-label={
@@ -795,7 +829,7 @@ export default function AppShell({
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Notification */}
+              {/* Notifications */}
 
               <button
                 type="button"
@@ -811,31 +845,13 @@ export default function AppShell({
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]" />
               </button>
 
-              {/* Profile */}
+              {/* Authenticated user menu */}
 
-              <button
-                type="button"
-                className="group flex items-center gap-3 rounded-2xl border-l border-white/[0.07] py-1 pl-4 pr-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black shadow-lg ring-2 ring-white/10 transition group-hover:ring-white/25">
-                  {userInitial}
-                </div>
-
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium leading-tight text-zinc-300">
-                    {userName}
-                  </p>
-
-                  <p className="text-[11px] text-zinc-600">
-                    My workspace
-                  </p>
-                </div>
-              </button>
+              <UserMenu />
             </div>
-            <UserMenu />
           </header>
 
-          {/* Page content */}
+          {/* Page Content */}
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {children}
