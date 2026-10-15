@@ -3,7 +3,12 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mail, Lock, User, ArrowRight } from "lucide-react";
+import {
+  Mail,
+  LockKeyhole,
+  UserRound,
+  ArrowRight,
+} from "lucide-react";
 import { useUserStore } from "@/store/userStore";
 
 function GithubLogo({ size = 16 }: { size?: number }) {
@@ -22,19 +27,27 @@ function GithubLogo({ size = 16 }: { size?: number }) {
 
 function GoogleLogo({ size = 16 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       <path
         fill="#4285F4"
         d="M21.35 12.23c0-.79-.07-1.55-.22-2.27H12v4.3h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.42Z"
       />
+
       <path
         fill="#34A853"
         d="M12 21.7c2.63 0 4.84-.87 6.45-2.35l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.53A9.74 9.74 0 0 0 12 21.7Z"
       />
+
       <path
         fill="#FBBC05"
         d="M6.54 13.79A5.85 5.85 0 0 1 6.23 12c0-.62.11-1.22.31-1.79V7.68H3.3A9.74 9.74 0 0 0 2.25 12c0 1.57.38 3.05 1.05 4.32l3.24-2.53Z"
       />
+
       <path
         fill="#EA4335"
         d="M12 6.18c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.84 3.26 14.63 2.3 12 2.3a9.74 9.74 0 0 0-8.7 5.38l3.24 2.53c1.01-1.96 3.16-3.68 5.7-3.68Z"
@@ -64,10 +77,14 @@ export default function LoginPage() {
     setPulling(true);
     setLampOn((prev) => !prev);
 
-    setTimeout(() => setPulling(false), 220);
+    setTimeout(() => {
+      setPulling(false);
+    }, 220);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setError("");
@@ -100,14 +117,12 @@ export default function LoginPage() {
     } catch (error) {
       console.error("Login error:", error);
 
-      setError("Something went wrong. Please try again.");
+      setError(
+        "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleOAuth(provider: string) {
-    setError(`${provider} sign in will be available after OAuth setup.`);
   }
 
   return (
@@ -129,17 +144,22 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,220,80,0.07),transparent_28%)]" />
       </div>
 
-      {/* Floating particles (fireflies) */}
+      {/* Floating particles */}
       <div
         className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${
           lampOn ? "opacity-100" : "opacity-0"
         }`}
       >
         <span className="absolute left-[6%] top-[12%] h-1 w-1 animate-pulse rounded-full bg-yellow-300 shadow-[0_0_12px_4px_rgba(250,204,21,0.35)]" />
+
         <span className="absolute left-[22%] top-[22%] h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-200 shadow-[0_0_14px_5px_rgba(250,204,21,0.3)]" />
+
         <span className="absolute left-[33%] top-[52%] h-1 w-1 animate-pulse rounded-full bg-yellow-300 shadow-[0_0_12px_4px_rgba(250,204,21,0.35)]" />
+
         <span className="absolute left-[12%] top-[78%] h-1 w-1 animate-pulse rounded-full bg-yellow-200 shadow-[0_0_12px_4px_rgba(250,204,21,0.3)]" />
+
         <span className="absolute left-[40%] top-[85%] h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-300 shadow-[0_0_15px_5px_rgba(250,204,21,0.3)]" />
+
         <span className="absolute left-[44%] top-[15%] h-1 w-1 animate-pulse rounded-full bg-yellow-200 shadow-[0_0_12px_4px_rgba(250,204,21,0.25)]" />
       </div>
 
@@ -162,7 +182,8 @@ export default function LoginPage() {
               style={{
                 background:
                   "linear-gradient(180deg, rgba(255,220,100,0.45), rgba(255,220,100,0.04))",
-                clipPath: "polygon(28% 0, 72% 0, 100% 100%, 0 100%)",
+                clipPath:
+                  "polygon(28% 0, 72% 0, 100% 100%, 0 100%)",
               }}
             />
 
@@ -188,18 +209,26 @@ export default function LoginPage() {
               }`}
             />
 
-            {/* Pull cord (click me) */}
+            {/* Pull cord */}
             <button
               type="button"
               onClick={handlePull}
-              aria-label={lampOn ? "Pull cord to turn lamp off" : "Pull cord to turn lamp on"}
+              aria-label={
+                lampOn
+                  ? "Pull cord to turn lamp off"
+                  : "Pull cord to turn lamp on"
+              }
               className="absolute right-[27%] top-14 z-20 flex translate-x-1/2 cursor-pointer flex-col items-center px-3 pb-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300/50"
             >
               <span
                 className={`block w-px transition-[height] duration-200 ease-out ${
-                  lampOn ? "bg-[#8c8259]" : "bg-[#4a4636]"
+                  lampOn
+                    ? "bg-[#8c8259]"
+                    : "bg-[#4a4636]"
                 }`}
-                style={{ height: pulling ? 118 : 92 }}
+                style={{
+                  height: pulling ? 118 : 92,
+                }}
               />
 
               <span
@@ -212,7 +241,9 @@ export default function LoginPage() {
 
               <span
                 className={`mt-3 whitespace-nowrap text-[10px] uppercase tracking-[0.2em] text-yellow-200/50 transition-opacity duration-500 ${
-                  lampOn ? "opacity-0" : "animate-pulse opacity-100"
+                  lampOn
+                    ? "opacity-0"
+                    : "animate-pulse opacity-100"
                 }`}
               >
                 Pull to sign in
@@ -254,7 +285,8 @@ export default function LoginPage() {
             </div>
 
             <p className="mt-5 max-w-sm text-sm leading-6 text-white/35">
-              Plan your day. Protect your focus. Build momentum.
+              Plan your day. Protect your focus. Build
+              momentum.
             </p>
           </div>
         </section>
@@ -263,8 +295,7 @@ export default function LoginPage() {
         <section className="relative flex min-h-screen items-center justify-center px-6 py-12">
           <div className="absolute inset-y-0 left-0 hidden w-px bg-white/5 lg:block" />
 
-          {/* On large screens the form stays hidden until the lamp is on.
-              On mobile (no lamp visible) the form is always shown. */}
+          {/* Login form */}
           <div
             className={`w-full max-w-[430px] transition-all duration-700 ease-out ${
               lampOn
@@ -278,13 +309,18 @@ export default function LoginPage() {
                 D
               </div>
 
-              <span className="text-lg font-semibold">DayFlow</span>
+              <span className="text-lg font-semibold">
+                DayFlow
+              </span>
             </div>
 
             {/* Heading */}
             <div className="mb-8 text-center">
               <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-yellow-300/20 bg-yellow-300/10 shadow-[0_0_40px_rgba(250,204,21,0.08)]">
-                <User size={24} className="text-yellow-300" />
+                <UserRound
+                  size={24}
+                  className="text-yellow-300"
+                />
               </div>
 
               <h1 className="text-3xl font-semibold tracking-tight text-white">
@@ -298,7 +334,10 @@ export default function LoginPage() {
 
             {/* Card */}
             <div className="rounded-3xl border border-white/10 bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-5"
+              >
                 {/* Email */}
                 <div>
                   <label
@@ -318,7 +357,9 @@ export default function LoginPage() {
                       id="email"
                       type="email"
                       value={email}
-                      onChange={(event) => setEmail(event.target.value)}
+                      onChange={(event) =>
+                        setEmail(event.target.value)
+                      }
                       placeholder="you@example.com"
                       autoComplete="email"
                       required
@@ -337,7 +378,7 @@ export default function LoginPage() {
                   </label>
 
                   <div className="relative">
-                    <Lock
+                    <LockKeyhole
                       size={17}
                       className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25"
                     />
@@ -346,7 +387,9 @@ export default function LoginPage() {
                       id="password"
                       type="password"
                       value={password}
-                      onChange={(event) => setPassword(event.target.value)}
+                      onChange={(event) =>
+                        setPassword(event.target.value)
+                      }
                       placeholder="••••••••"
                       autoComplete="current-password"
                       required
@@ -368,7 +411,9 @@ export default function LoginPage() {
                   disabled={loading}
                   className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 px-4 text-sm font-semibold text-black shadow-[0_8px_30px_rgba(250,204,21,0.12)] transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? "Signing in..." : "Sign in"}
+                  {loading
+                    ? "Signing in..."
+                    : "Sign in"}
 
                   {!loading && (
                     <ArrowRight
@@ -392,28 +437,29 @@ export default function LoginPage() {
 
               {/* OAuth buttons */}
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleOAuth("Google")}
+                {/* Google OAuth */}
+                <a
+                  href="/api/auth/google"
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
                   <GoogleLogo size={17} />
                   Google
-                </button>
+                </a>
 
-                <button
-                  type="button"
-                  onClick={() => handleOAuth("GitHub")}
+                {/* GitHub - OAuth not implemented yet */}
+                <a
+                  href="/api/auth/github"
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
                 >
                   <GithubLogo size={17} />
                   GitHub
-                </button>
+                </a>
               </div>
 
               {/* Register */}
               <p className="mt-7 text-center text-sm text-white/35">
                 Don&apos;t have an account?{" "}
+
                 <Link
                   href="/register"
                   className="font-medium text-yellow-300 transition hover:text-yellow-200"
