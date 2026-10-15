@@ -513,18 +513,15 @@ function SidebarContent({
           <div className="flex justify-center py-1">
             <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black ring-2 ring-white/10">
               {user?.avatar ? (
-                <Image
-                  src={user.avatar}
-                  alt={userName}
-                  fill
-                  sizes="40px"
-                  className="object-cover"
-                />
-              ) : (
-                <span>
-                  {userInitial}
-                </span>
-              )}
+  <img
+    src={user.avatar}
+    alt={userName}
+    className="h-full w-full object-cover"
+    referrerPolicy="no-referrer"
+  />
+) : (
+  <span>{userInitial}</span>
+)}
             </div>
           </div>
         ) : (
@@ -618,18 +615,15 @@ function SidebarContent({
             >
               <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-zinc-200 to-zinc-600 text-sm font-semibold text-black ring-2 ring-white/10">
                 {user?.avatar ? (
-                  <Image
-                    src={user.avatar}
-                    alt={userName}
-                    fill
-                    sizes="36px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <span>
-                    {userInitial}
-                  </span>
-                )}
+  <img
+    src={user.avatar}
+    alt={userName}
+    className="h-full w-full object-cover"
+    referrerPolicy="no-referrer"
+  />
+) : (
+  <span>{userInitial}</span>
+)}
               </div>
 
               <div className="min-w-0">

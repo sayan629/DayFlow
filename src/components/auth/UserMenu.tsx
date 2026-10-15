@@ -2,23 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-
 import { useUserStore } from "@/store/userStore";
 import { logout } from "@/lib/clientAuth";
 
 export default function UserMenu() {
   const router = useRouter();
 
-  const user = useUserStore(
-    (state) => state.user
-  );
+  const user = useUserStore((state) => state.user);
 
   const [loading, setLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   if (!user) {
     return null;
   }
+
+  console.log("USER FROM ZUSTAND:", user);
+console.log("AVATAR:", user.avatar);
 
   async function handleLogout() {
     setLoading(true);
@@ -33,20 +33,22 @@ export default function UserMenu() {
     setLoading(false);
   }
 
-  const initial =
-    user.name?.charAt(0).toUpperCase() || "U";
+  const initial = user.name?.charAt(0).toUpperCase() || "U";
 
   return (
     <div className="flex items-center gap-3">
       {/* Avatar */}
       <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-sm font-semibold text-white ring-2 ring-white/10">
-        {user.avatar ? (
-          <Image
+        {user.avatar && !imageError ? (
+          <img
             src={user.avatar}
-            alt={user.name}
-            fill
-            sizes="36px"
-            className="object-cover"
+            alt={`${user.name}'s avatar`}
+            className="h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+            onError={() => {
+              console.error("Failed to load avatar:", user.avatar);
+              setImageError(true);
+            }}
           />
         ) : (
           <span>{initial}</span>
@@ -71,9 +73,7 @@ export default function UserMenu() {
         disabled={loading}
         className="rounded-lg border border-white/10 px-3 py-2 text-xs text-white/70 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading
-          ? "Logging out..."
-          : "Logout"}
+        {loading ? "Logging out..." : "Logout"}
       </button>
     </div>
   );

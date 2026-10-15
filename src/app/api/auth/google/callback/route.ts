@@ -14,101 +14,64 @@ const GOOGLE_USERINFO_URL =
 export async function GET(request: NextRequest) {
   try {
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret =
-      process.env.GOOGLE_CLIENT_SECRET;
-    const callbackUrl =
-      process.env.GOOGLE_CALLBACK_URL;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const callbackUrl = process.env.GOOGLE_CALLBACK_URL;
 
-    if (
-      !clientId ||
-      !clientSecret ||
-      !callbackUrl
-    ) {
+    if (!clientId || !clientSecret || !callbackUrl) {
       return NextResponse.redirect(
-        new URL(
-          "/login?error=google_config",
-          request.url
-        )
+        new URL("/login?error=google_config", request.url)
       );
     }
 
-    const searchParams =
-      request.nextUrl.searchParams;
+    const searchParams = request.nextUrl.searchParams;
 
     const code = searchParams.get("code");
     const state = searchParams.get("state");
     const error = searchParams.get("error");
 
     if (error) {
-      console.error(
-        "Google OAuth error:",
-        error
-      );
+      console.error("Google OAuth error:", error);
 
       return NextResponse.redirect(
-        new URL(
-          "/login?error=google_denied",
-          request.url
-        )
+        new URL("/login?error=google_denied", request.url)
       );
     }
 
     if (!code || !state) {
       return NextResponse.redirect(
-        new URL(
-          "/login?error=google_invalid_callback",
-          request.url
-        )
+        new URL("/login?error=google_invalid_callback", request.url)
       );
     }
 
     const savedState =
-      request.cookies.get(
-        "google_oauth_state"
-      )?.value;
+      request.cookies.get("google_oauth_state")?.value;
 
-    if (
-      !savedState ||
-      savedState !== state
-    ) {
-      console.error(
-        "Google OAuth state mismatch"
-      );
+    if (!savedState || savedState !== state) {
+      console.error("Google OAuth state mismatch");
 
       return NextResponse.redirect(
-        new URL(
-          "/login?error=google_state",
-          request.url
-        )
+        new URL("/login?error=google_state", request.url)
       );
     }
 
-    /*
-     * Exchange authorization code
-     * for Google access token.
-     */
-    const tokenResponse =
-      await fetch(GOOGLE_TOKEN_URL, {
-        method: "POST",
-
-        headers: {
-          "Content-Type":
-            "application/x-www-form-urlencoded",
-        },
-
-        body: new URLSearchParams({
-          client_id: clientId,
-          client_secret: clientSecret,
-          code,
-          grant_type:
-            "authorization_code",
-          redirect_uri: callbackUrl,
-        }),
-      });
+    // Exchange authorization code for Google access token
+    const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type":
+          "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: callbackUrl,
+      }),
+    });
 
     if (!tokenResponse.ok) {
-      const tokenError =
-        await tokenResponse.text();
+      const tokenError = await tokenResponse.text();
 
       console.error(
         "Google token exchange failed:",
@@ -116,38 +79,30 @@ export async function GET(request: NextRequest) {
       );
 
       return NextResponse.redirect(
-        new URL(
-          "/login?error=google_token",
-          request.url
-        )
+        new URL("/login?error=google_token", request.url)
       );
     }
 
-    const tokenData =
-      await tokenResponse.json();
+    const tokenData = await tokenResponse.json();
 
-    const accessToken =
-      tokenData.access_token;
+    const accessToken = tokenData.access_token;
 
     if (!accessToken) {
       return NextResponse.redirect(
-        new URL(
-          "/login?error=google_no_token",
-          request.url
-        )
+        new URL("/login?error=google_no_token", request.url)
       );
     }
 
-    /*
-     * Get Google profile.
-     */
-    const userInfoResponse =
-      await fetch(GOOGLE_USERINFO_URL, {
+    // Get Google profile
+    const userInfoResponse = await fetch(
+      GOOGLE_USERINFO_URL,
+      {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
         cache: "no-store",
-      });
+      }
+    );
 
     if (!userInfoResponse.ok) {
       const userInfoError =
@@ -159,21 +114,21 @@ export async function GET(request: NextRequest) {
       );
 
       return NextResponse.redirect(
-        new URL(
-          "/login?error=google_profile",
-          request.url
-        )
+        new URL("/login?error=google_profile", request.url)
       );
     }
 
-    const googleUser =
-      await userInfoResponse.json();
+    const googleUser = await userInfoResponse.json();
+
+    console.log("Google user info:", {
+      email: googleUser.email,
+      name: googleUser.name,
+      picture: googleUser.picture,
+    });
 
     const email =
       typeof googleUser.email === "string"
-        ? normalizeEmail(
-            googleUser.email
-          )
+        ? normalizeEmail(googleUser.email)
         : "";
 
     const name =
@@ -183,40 +138,31 @@ export async function GET(request: NextRequest) {
         : email.split("@")[0];
 
     const avatar =
-      typeof googleUser.picture === "string"
+      typeof googleUser.picture === "string" &&
+      googleUser.picture.trim()
         ? googleUser.picture
         : null;
 
     if (!email) {
       return NextResponse.redirect(
-        new URL(
-          "/login?error=google_no_email",
-          request.url
-        )
+        new URL("/login?error=google_no_email", request.url)
       );
     }
 
-    /*
-     * Find existing DayFlow user.
-     */
+    // Find existing DayFlow user
     let user = await prisma.user.findUnique({
       where: {
         email,
       },
     });
 
-    /*
-     * Create a DayFlow account if
-     * this Google email doesn't exist.
-     */
+    // Create account if Google email doesn't exist
     if (!user) {
       const randomPassword =
         randomBytes(32).toString("hex");
 
       const passwordHash =
-        await hashPassword(
-          randomPassword
-        );
+        await hashPassword(randomPassword);
 
       user = await prisma.user.create({
         data: {
@@ -224,38 +170,32 @@ export async function GET(request: NextRequest) {
           email,
           passwordHash,
           avatar,
+          emailVerifiedAt: new Date(),
         },
       });
     } else {
-      /*
-       * Keep profile information
-       * reasonably up to date.
-       */
+      // Update Google profile information
       user = await prisma.user.update({
         where: {
           id: user.id,
         },
-
         data: {
           name,
           avatar,
+          emailVerifiedAt:
+            user.emailVerifiedAt ?? new Date(),
         },
       });
     }
 
-    /*
-     * Create our normal DayFlow session.
-     */
+    // Create normal DayFlow session
     await createSession(user.id);
 
-    const response =
-      NextResponse.redirect(
-        new URL("/", request.url)
-      );
+    const response = NextResponse.redirect(
+      new URL("/", request.url)
+    );
 
-    /*
-     * Remove OAuth state cookie.
-     */
+    // Remove OAuth state cookie
     response.cookies.delete(
       "google_oauth_state"
     );
@@ -268,10 +208,7 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.redirect(
-      new URL(
-        "/login?error=google_failed",
-        request.url
-      )
+      new URL("/login?error=google_failed", request.url)
     );
   }
 }

@@ -1,9 +1,7 @@
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-  normalizeEmail,
-  verifyPassword,
-} from "@/lib/auth";
+import { normalizeEmail, verifyPassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
 
 export async function POST(request: Request) {
@@ -16,31 +14,23 @@ export async function POST(request: Request) {
         : "";
 
     const password =
-      typeof body.password === "string"
-        ? body.password
-        : "";
+      typeof body.password === "string" ? body.password : "";
 
     if (!email || !password) {
       return NextResponse.json(
-        {
-          error: "Email and password are required",
-        },
+        { error: "Email and password are required" },
         { status: 400 }
       );
     }
 
     const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
+      where: { email },
     });
 
     // Don't reveal whether the email exists.
     if (!user) {
       return NextResponse.json(
-        {
-          error: "Invalid email or password",
-        },
+        { error: "Invalid email or password" },
         { status: 401 }
       );
     }
@@ -52,10 +42,20 @@ export async function POST(request: Request) {
 
     if (!passwordValid) {
       return NextResponse.json(
-        {
-          error: "Invalid email or password",
-        },
+        { error: "Invalid email or password" },
         { status: 401 }
+      );
+    }
+
+    // Require verification before creating a login session.
+    if (!user.emailVerifiedAt) {
+      return NextResponse.json(
+        {
+          error: "Please verify your email address before logging in.",
+          requiresEmailVerification: true,
+          email: user.email,
+        },
+        { status: 403 }
       );
     }
 
@@ -77,9 +77,7 @@ export async function POST(request: Request) {
     console.error("Login error:", error);
 
     return NextResponse.json(
-      {
-        error: "Something went wrong while logging in",
-      },
+      { error: "Something went wrong while logging in" },
       { status: 500 }
     );
   }
