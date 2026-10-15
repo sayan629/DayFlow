@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
 import {
   Mail,
   LockKeyhole,
@@ -82,7 +84,6 @@ export default function RegisterPage() {
     }
 
     setPulling(true);
-
     setLampOn((previous) => !previous);
 
     setTimeout(() => {
@@ -164,7 +165,10 @@ export default function RegisterPage() {
           : "bg-[#050505]"
       }`}
     >
-      {/* Ambient Background */}
+      {/* ========================================================
+          Ambient Background
+         ======================================================== */}
+
       <div
         className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${
           lampOn
@@ -179,7 +183,10 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,220,80,0.07),transparent_28%)]" />
       </div>
 
-      {/* Floating Particles */}
+      {/* ========================================================
+          Floating Particles
+         ======================================================== */}
+
       <div
         className={`pointer-events-none absolute inset-0 transition-opacity duration-1000 ${
           lampOn
@@ -201,8 +208,10 @@ export default function RegisterPage() {
       </div>
 
       <div className="relative grid min-h-screen lg:grid-cols-[1fr_520px]">
+        {/* ========================================================
+            LEFT SIDE
+           ======================================================== */}
 
-        {/* LEFT SIDE */}
         <section className="relative hidden overflow-hidden lg:flex">
           <div
             className={`absolute inset-0 bg-gradient-to-br from-[#11150d] via-[#0b0d09] to-[#080a07] transition-opacity duration-1000 ${
@@ -212,10 +221,13 @@ export default function RegisterPage() {
             }`}
           />
 
-          {/* Lamp */}
-          <div className="absolute left-[24%] top-[27%] flex h-[390px] w-[260px] flex-col items-center">
+          {/* ======================================================
+              Lamp
+             ====================================================== */}
 
+          <div className="absolute left-[24%] top-[27%] flex h-[390px] w-[260px] flex-col items-center">
             {/* Light Beam */}
+
             <div
               className={`absolute top-12 h-60 w-72 transition-opacity duration-700 ${
                 lampOn
@@ -231,6 +243,7 @@ export default function RegisterPage() {
             />
 
             {/* Lamp Shade */}
+
             <div
               className={`relative z-10 h-14 w-36 rounded-t-[70px] rounded-b-[12px] bg-[#151713] transition-shadow duration-700 ${
                 lampOn
@@ -248,6 +261,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Pole */}
+
             <div
               className={`absolute top-12 h-52 w-[3px] transition-colors duration-700 ${
                 lampOn
@@ -257,6 +271,7 @@ export default function RegisterPage() {
             />
 
             {/* Pull Cord */}
+
             <button
               type="button"
               onClick={handlePull}
@@ -300,6 +315,7 @@ export default function RegisterPage() {
             </button>
 
             {/* Lamp Base */}
+
             <div
               className={`absolute bottom-2 h-2 w-36 rounded-full bg-[#171914] transition-shadow duration-700 ${
                 lampOn
@@ -311,7 +327,10 @@ export default function RegisterPage() {
             <div className="absolute bottom-0 h-3 w-44 rounded-full bg-[#0d0f0b]" />
           </div>
 
-          {/* Brand */}
+          {/* ======================================================
+              Brand
+             ====================================================== */}
+
           <div
             className={`absolute bottom-12 left-14 transition-opacity duration-1000 ${
               lampOn
@@ -320,8 +339,17 @@ export default function RegisterPage() {
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg font-semibold">
-                D
+              {/* DayFlow Logo */}
+
+              <div className="relative h-11 w-11 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                <Image
+                  src="/dayflow-logo.png"
+                  alt="DayFlow"
+                  fill
+                  priority
+                  sizes="44px"
+                  className="object-contain"
+                />
               </div>
 
               <div>
@@ -342,7 +370,10 @@ export default function RegisterPage() {
           </div>
         </section>
 
-        {/* RIGHT SIDE */}
+        {/* ========================================================
+            RIGHT SIDE
+           ======================================================== */}
+
         <section className="relative flex min-h-screen items-center justify-center px-6 py-10">
           <div className="absolute inset-y-0 left-0 hidden w-px bg-white/5 lg:block" />
 
@@ -353,18 +384,37 @@ export default function RegisterPage() {
                 : "lg:invisible lg:translate-y-6 lg:opacity-0"
             }`}
           >
-            {/* Mobile Logo */}
+            {/* ====================================================
+                Mobile Logo
+               ==================================================== */}
+
             <div className="mb-7 flex items-center justify-center gap-3 lg:hidden">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-400 text-lg font-bold text-black">
-                D
+              <div className="relative h-11 w-11 overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                <Image
+                  src="/dayflow-logo.png"
+                  alt="DayFlow"
+                  fill
+                  priority
+                  sizes="44px"
+                  className="object-contain"
+                />
               </div>
 
-              <span className="text-lg font-semibold">
-                DayFlow
-              </span>
+              <div>
+                <span className="text-lg font-semibold">
+                  DayFlow
+                </span>
+
+                <p className="text-[8px] uppercase tracking-[0.25em] text-white/30">
+                  Personal OS
+                </p>
+              </div>
             </div>
 
-            {/* Heading */}
+            {/* ====================================================
+                Heading
+               ==================================================== */}
+
             <div className="mb-6 text-center">
               <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-yellow-300/20 bg-yellow-300/10 shadow-[0_0_40px_rgba(250,204,21,0.08)]">
                 <UserRound
@@ -382,14 +432,17 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {/* Card */}
-            <div className="rounded-3xl border border-white/10 bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+            {/* ====================================================
+                Card
+               ==================================================== */}
 
+            <div className="rounded-3xl border border-white/10 bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
               <form
                 onSubmit={handleSubmit}
                 className="space-y-4"
               >
                 {/* Full Name */}
+
                 <div>
                   <label
                     htmlFor="name"
@@ -422,6 +475,7 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Email */}
+
                 <div>
                   <label
                     htmlFor="email"
@@ -454,6 +508,7 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Password */}
+
                 <div>
                   <label
                     htmlFor="password"
@@ -487,6 +542,7 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Confirm Password */}
+
                 <div>
                   <label
                     htmlFor="confirmPassword"
@@ -520,6 +576,7 @@ export default function RegisterPage() {
                 </div>
 
                 {/* Error */}
+
                 {error && (
                   <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
                     {error}
@@ -527,6 +584,7 @@ export default function RegisterPage() {
                 )}
 
                 {/* Create Account */}
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -546,6 +604,7 @@ export default function RegisterPage() {
               </form>
 
               {/* Divider */}
+
               <div className="my-6 flex items-center gap-4">
                 <div className="h-px flex-1 bg-white/10" />
 
@@ -557,9 +616,10 @@ export default function RegisterPage() {
               </div>
 
               {/* OAuth Buttons */}
-              <div className="grid grid-cols-2 gap-3">
 
+              <div className="grid grid-cols-2 gap-3">
                 {/* Google */}
+
                 <a
                   href="/api/auth/google"
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
@@ -569,6 +629,7 @@ export default function RegisterPage() {
                 </a>
 
                 {/* GitHub */}
+
                 <a
                   href="/api/auth/github"
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/70 transition hover:bg-white/[0.08] hover:text-white"
@@ -576,10 +637,10 @@ export default function RegisterPage() {
                   <GithubLogo size={17} />
                   GitHub
                 </a>
-
               </div>
 
               {/* Login Link */}
+
               <p className="mt-6 text-center text-sm text-white/35">
                 Already have an account?{" "}
 
@@ -593,6 +654,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Footer */}
+
             <p className="mt-5 text-center text-xs text-white/20">
               © 2026 DayFlow
             </p>
