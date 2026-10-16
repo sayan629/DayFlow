@@ -77,3 +77,5 @@ src-tauri/gen/
 # Misc
 .DS_Store
 *.log
+# Old SQLite migration backup
+prisma/migrations_sqlite_backup/
