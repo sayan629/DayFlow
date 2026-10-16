@@ -1,6 +1,5 @@
 "use client";
 
-
 import {
   Bell,
   CheckCircle2,
@@ -94,7 +93,7 @@ export default function HomePage() {
    *
    * This is intentionally NOT:
    *
-   *   if (!now || !today) return null;
+   * if (!now || !today) return null;
    *
    * Returning null can cause Next.js 16's
    * Instant Navigation validation to drop

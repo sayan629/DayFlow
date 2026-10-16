@@ -56,10 +56,9 @@ export default function NextTaskCard() {
       return null;
     }
 
-    const [hours, minutes] =
-      nextTask.startTime
-        .split(":")
-        .map(Number);
+    const [hours, minutes] = nextTask.startTime
+      .split(":")
+      .map(Number);
 
     const taskTime = new Date(now);
 
@@ -212,7 +211,6 @@ export default function NextTaskCard() {
 
                   <span>
                     {nextTask.startTime}
-
                     {nextTask.endTime &&
                       ` – ${nextTask.endTime}`}
                   </span>
